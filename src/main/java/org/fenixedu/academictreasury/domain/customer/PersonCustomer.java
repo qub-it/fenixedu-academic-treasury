@@ -156,6 +156,15 @@ public class PersonCustomer extends PersonCustomer_Base {
 
         return true;
     }
+    
+    @Override
+    public void delete() {
+        setPerson(null);
+        
+        super.delete();
+        
+        
+    }
 
     // @formatter: off
     /************
