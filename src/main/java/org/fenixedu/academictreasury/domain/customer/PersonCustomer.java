@@ -85,6 +85,30 @@ public class PersonCustomer extends PersonCustomer_Base {
 
         return getPerson().getName();
     }
+    
+    @Override
+    public String getFirstNames() {
+        return getPerson().getProfile().getGivenNames();
+    }
+    
+    @Override
+    public String getLastNames() {
+        return getPerson().getProfile().getFamilyNames();
+    }
+    
+    @Override
+    public String getEmail() {
+        return getPerson().getDefaultEmailAddressValue();
+    }
+    
+    @Override
+    public String getPhoneNumber() {
+        if(!Strings.isNullOrEmpty(getPerson().getDefaultPhoneNumber())) {
+            return getPerson().getDefaultPhoneNumber();
+        }
+        
+        return getPerson().getDefaultMobilePhoneNumber();
+    }
 
     @Override
     public String getIdentificationNumber() {

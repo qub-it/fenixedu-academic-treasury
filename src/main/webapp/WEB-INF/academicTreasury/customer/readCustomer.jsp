@@ -130,7 +130,7 @@ ${portal.toolkit()}
                                 <div class="col-xs-3">
                                     <c:out value="${debtAccount.finantialInstitution.currency.getValueFor(debtAccount.totalInDebt + debtAccount.calculatePendingInterestAmount())}" />
                                 </div> &nbsp;&nbsp;<a class="btn btn-default btn-xs"
-                                href="${pageContext.request.contextPath}<%= CustomerAccountingController.READ_ACCOUNT_URL %>${debtAccount.externalId}"><spring:message
+                                href="${pageContext.request.contextPath}${readAccountUrl}${debtAccount.externalId}"><spring:message
                                         code="label.customer.read.showdebtaccount"></spring:message></a> <c:if test="${debtAccount.totalInDebt < 0 }">
                                     <span class="label label-primary"> <spring:message code="label.DebtAccount.customerHasAmountToRehimburse" />
                                     </span>

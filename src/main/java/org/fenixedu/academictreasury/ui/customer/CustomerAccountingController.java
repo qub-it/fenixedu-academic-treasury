@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import org.fenixedu.academictreasury.domain.customer.PersonCustomer;
 import org.fenixedu.academictreasury.ui.AcademicTreasuryBaseController;
 import org.fenixedu.academictreasury.ui.AcademicTreasuryController;
+import org.fenixedu.academictreasury.ui.customer.forwardpayments.CustomerAccountingForwardPaymentController;
 import org.fenixedu.bennu.core.security.Authenticate;
 import org.fenixedu.bennu.spring.portal.SpringFunctionality;
 import org.fenixedu.treasury.domain.Customer;
@@ -19,6 +20,7 @@ import org.fenixedu.treasury.domain.exemption.TreasuryExemption;
 import org.fenixedu.treasury.domain.paymentcodes.FinantialDocumentPaymentCode;
 import org.fenixedu.treasury.domain.paymentcodes.MultipleEntriesPaymentCode;
 import org.fenixedu.treasury.domain.paymentcodes.PaymentCodeTarget;
+import org.fenixedu.treasury.ui.document.forwardpayments.ForwardPaymentController;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,19 +33,38 @@ import com.google.common.collect.Sets;
         accessGroup = "activeStudents")
 @RequestMapping(CustomerAccountingController.CONTROLLER_URL)
 public class CustomerAccountingController extends AcademicTreasuryBaseController {
+
     public static final String CONTROLLER_URL = "/academictreasury/customer/viewaccount";
+
+    private static final String JSP_PATH = "academicTreasury/customer/";
+
     private static final String READ_CUSTOMER_URI = "/customer/read/";
-    public static final String READ_CUSTOMER_URL = CONTROLLER_URL + READ_CUSTOMER_URI;
+    private static final String READ_CUSTOMER_URL = CONTROLLER_URL + READ_CUSTOMER_URI;
     private static final String READ_ACCOUNT_URI = "/account/read/";
     public static final String READ_ACCOUNT_URL = CONTROLLER_URL + READ_ACCOUNT_URI;
 
+    public String getReadCustomerUrl() {
+        return CustomerAccountingController.READ_CUSTOMER_URL;
+    }
+
+    public String getReadAccountUrl() {
+        return CustomerAccountingController.READ_ACCOUNT_URL;
+    }
+
+    protected String getForwardPaymentUrl() {
+        return CustomerAccountingForwardPaymentController.CHOOSE_INVOICE_ENTRIES_URL;
+    }
+
     @RequestMapping
     public String home(Model model) {
-        return "forward:" + CustomerAccountingController.READ_CUSTOMER_URL;
+        return "forward:" + getReadCustomerUrl();
     }
 
     @RequestMapping(value = READ_CUSTOMER_URI)
     public String readCustomer(Model model, RedirectAttributes redirectAttributes) {
+        model.addAttribute("readCustomerUrl", getReadCustomerUrl());
+        model.addAttribute("readAccountUrl", getReadAccountUrl());
+
         Customer customer = Authenticate.getUser().getPerson().getPersonCustomer();
         model.addAttribute("customer", customer);
 
@@ -52,7 +73,7 @@ public class CustomerAccountingController extends AcademicTreasuryBaseController
         }
         if (customer.getDebtAccountsSet().size() == 1) {
             DebtAccount debtAccount = customer.getDebtAccountsSet().iterator().next();
-            return redirect(READ_ACCOUNT_URL + debtAccount.getExternalId(), model, redirectAttributes);
+            return redirect(getReadAccountUrl() + debtAccount.getExternalId(), model, redirectAttributes);
         }
 
         List<InvoiceEntry> pendingInvoiceEntries = new ArrayList<InvoiceEntry>();
@@ -60,13 +81,15 @@ public class CustomerAccountingController extends AcademicTreasuryBaseController
             pendingInvoiceEntries.addAll(debtAccount.getPendingInvoiceEntriesSet());
         }
         model.addAttribute("pendingDocumentsDataSet", pendingInvoiceEntries);
-        return "academicTreasury/customer/readCustomer";
+
+        return jspPage("readCustomer");
     }
 
     @RequestMapping(value = READ_ACCOUNT_URI + "{oid}")
     public String readAccount(@PathVariable(value = "oid") DebtAccount debtAccount, Model model) {
         model.addAttribute("debtAccount", debtAccount);
-
+        model.addAttribute("forwardPaymentUrl", getForwardPaymentUrl());
+        
         List<InvoiceEntry> allInvoiceEntries = new ArrayList<InvoiceEntry>();
         List<SettlementNote> paymentEntries = new ArrayList<SettlementNote>();
         List<TreasuryExemption> exemptionEntries = new ArrayList<TreasuryExemption>();
@@ -86,10 +109,9 @@ public class CustomerAccountingController extends AcademicTreasuryBaseController
             }
         }
 
-        paymentEntries =
-                SettlementNote.findByDebtAccount(debtAccount).filter(x -> x.isClosed() || x.isPreparing())
-                        .filter(x -> !x.getPaymentEntriesSet().isEmpty() || !x.getReimbursementEntriesSet().isEmpty())
-                        .collect(Collectors.toList());
+        paymentEntries = SettlementNote.findByDebtAccount(debtAccount).filter(x -> x.isClosed() || x.isPreparing())
+                .filter(x -> !x.getPaymentEntriesSet().isEmpty() || !x.getReimbursementEntriesSet().isEmpty())
+                .collect(Collectors.toList());
 
         if (debtAccount.getCustomer().isActive() && debtAccount.getCustomer().isPersonCustomer()) {
             for (final PersonCustomer inactivePersonCustomer : ((PersonCustomer) debtAccount.getCustomer()).getPerson()
@@ -98,8 +120,8 @@ public class CustomerAccountingController extends AcademicTreasuryBaseController
                     continue;
                 }
 
-                paymentEntries.addAll(
-                        SettlementNote
+                paymentEntries
+                        .addAll(SettlementNote
                                 .findByDebtAccount(
                                         inactivePersonCustomer.getDebtAccountFor(debtAccount.getFinantialInstitution()))
                                 .filter(x -> x.isClosed() || x.isPreparing())
@@ -118,9 +140,9 @@ public class CustomerAccountingController extends AcademicTreasuryBaseController
                     continue;
                 }
 
-                exemptionEntries.addAll(TreasuryExemption.findByDebtAccount(
-                        inactivePersonCustomer.getDebtAccountFor(debtAccount.getFinantialInstitution())).collect(
-                        Collectors.toList()));
+                exemptionEntries.addAll(TreasuryExemption
+                        .findByDebtAccount(inactivePersonCustomer.getDebtAccountFor(debtAccount.getFinantialInstitution()))
+                        .collect(Collectors.toList()));
             }
         }
 
@@ -137,7 +159,6 @@ public class CustomerAccountingController extends AcademicTreasuryBaseController
             }
         }
 
-        
         if (debtAccount.getCustomer().isActive() && debtAccount.getCustomer().isPersonCustomer()) {
             for (final PersonCustomer inactivePersonCustomer : ((PersonCustomer) debtAccount.getCustomer()).getPerson()
                     .getInactivePersonCustomersSet()) {
@@ -145,21 +166,22 @@ public class CustomerAccountingController extends AcademicTreasuryBaseController
                     continue;
                 }
 
-                for (InvoiceEntry entry : inactivePersonCustomer.getDebtAccountFor(debtAccount.getFinantialInstitution()).getPendingInvoiceEntriesSet()) {
+                for (InvoiceEntry entry : inactivePersonCustomer.getDebtAccountFor(debtAccount.getFinantialInstitution())
+                        .getPendingInvoiceEntriesSet()) {
                     if (entry.getFinantialDocument() == null) {
                         pendingInvoiceEntries.add(entry);
                     } else {
-                        if (pendingInvoiceEntries.stream().anyMatch(
-                                x -> x.getFinantialDocument() != null && x.getFinantialDocument().equals(entry.getFinantialDocument()))) {
+                        if (pendingInvoiceEntries.stream().anyMatch(x -> x.getFinantialDocument() != null
+                                && x.getFinantialDocument().equals(entry.getFinantialDocument()))) {
                             //if there is any entry for this document, don't add
                         } else {
                             pendingInvoiceEntries.add(entry);
                         }
-                    }                    
+                    }
                 }
             }
         }
-        
+
         model.addAttribute("pendingDocumentsDataSet", pendingInvoiceEntries);
         model.addAttribute("allDocumentsDataSet", allInvoiceEntries);
         model.addAttribute("paymentsDataSet", paymentEntries);
@@ -170,16 +192,23 @@ public class CustomerAccountingController extends AcademicTreasuryBaseController
             if (!invoiceEntry.isDebitNoteEntry()) {
                 continue;
             }
-           
-            usedPaymentCodeTargets.addAll(MultipleEntriesPaymentCode.findUsedByDebitEntry((DebitEntry) invoiceEntry).collect(Collectors.toSet()));
-            
-            if(invoiceEntry.getFinantialDocument() != null) {
-                usedPaymentCodeTargets.addAll(FinantialDocumentPaymentCode.findUsedByFinantialDocument(invoiceEntry.getFinantialDocument()).collect(Collectors.<PaymentCodeTarget>toSet()));
+
+            usedPaymentCodeTargets.addAll(
+                    MultipleEntriesPaymentCode.findUsedByDebitEntry((DebitEntry) invoiceEntry).collect(Collectors.toSet()));
+
+            if (invoiceEntry.getFinantialDocument() != null) {
+                usedPaymentCodeTargets
+                        .addAll(FinantialDocumentPaymentCode.findUsedByFinantialDocument(invoiceEntry.getFinantialDocument())
+                                .collect(Collectors.<PaymentCodeTarget> toSet()));
             }
         }
 
         model.addAttribute("usedPaymentCodeTargets", usedPaymentCodeTargets);
 
-        return "academicTreasury/customer/readDebtAccount";
+        return jspPage("readDebtAccount");
+    }
+
+    public String jspPage(final String page) {
+        return JSP_PATH + page;
     }
 }

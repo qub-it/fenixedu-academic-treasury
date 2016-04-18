@@ -36,12 +36,17 @@ ${portal.angularToolkit()}
     </h1>
 </div>
 <%-- NAVIGATION --%>
-<c:if test="${ debtAccount.customer.debtAccountsSet.size() != 1 }">
-    <div class="well well-sm" style="display: inline-block">
-        <span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span>&nbsp;<a class=""
-            href="${pageContext.request.contextPath}<%= CustomerAccountingController.READ_CUSTOMER_URL %>"><spring:message code="label.event.back" /></a> &nbsp;
-    </div>
-</c:if>
+<div class="well well-sm" style="display: inline-block">
+	<span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span>&nbsp;
+	<a class="" href="${pageContext.request.contextPath}${readCustomerUrl}">
+		<spring:message code="label.event.back" />
+	</a>
+	&nbsp;|&nbsp;
+	<span class="glyphicon glyphicon-cog" aria-hidden="true"></span>&nbsp;
+	<a class="" href="${pageContext.request.contextPath}${forwardPaymentUrl}/${debtAccount.externalId}">
+		<spring:message code="label.event.accounting.manageCustomer.forwardPayment" />
+	</a>
+</div>
 
 <c:if test="${not empty infoMessages}">
     <div class="alert alert-info" role="alert">
@@ -233,36 +238,6 @@ ${portal.angularToolkit()}
                                 <%--                                 <c:out value="${pendingEntry.debtAccount.finantialInstitution.currency.getValueFor(pendingEntry.openAmount)}" /> --%>
                             </div>
                         </datatables:column>
-                        <%-- 
-                        <datatables:column>
-                            <datatables:columnHead>
-                                <spring:message code="label.PaymentReferenceCode" />
-                            </datatables:columnHead>
-                            <c:if test="${pendingEntry.isDebitNoteEntry() }">
-                                <c:forEach var="paymentCode" items="${ pendingEntry.finantialDocument.paymentCodesSet }">
-                                    <c:if test="${ paymentCode.paymentReferenceCode.isUsed() }">
-                                        <p align=left>
-                                            <strong><spring:message code="label.customer.PaymentReferenceCode.entity" />: </strong>
-                                            <c:out value="[${paymentCode.paymentReferenceCode.paymentCodePool.entityReferenceCode}]" />
-                                            </br> <strong><spring:message code="label.customer.PaymentReferenceCode.reference" />: </strong>
-                                            <c:out value="${paymentCode.paymentReferenceCode.formattedCode}" />
-                                            </br> <strong><spring:message code="label.customer.PaymentReferenceCode.amount" />: </strong>
-                                            <c:if test="${not paymentCode.paymentReferenceCode.isFixedAmount() }">
-                                                <c:if test="${not empty pendingEntry.finantialDocument }">
-                                                    <c:out value="${pendingEntry.debtAccount.finantialInstitution.currency.getValueFor(pendingEntry.finantialDocument.openAmountWithInterests)}" />
-                                                </c:if>
-                                            </c:if>
-                                            <c:if test="${paymentCode.paymentReferenceCode.isFixedAmount() }">
-                                                <c:out value="${pendingEntry.debtAccount.finantialInstitution.currency.getValueFor(paymentCode.paymentReferenceCode.payableAmount)}" />
-                                            </c:if>
-
-                                        </p>
-                                    </c:if>
-                                </c:forEach>
-                                
-                            </c:if>
-                        </datatables:column>
-                        --%>
                     </datatables:table>
                     <script>
 																					createDataTables(
@@ -334,14 +309,6 @@ ${portal.angularToolkit()}
                                 <c:out value="${entry.debtAccount.finantialInstitution.currency.getValueFor(entry.totalAmount)}" />
                             </div>
                         </datatables:column>
-                        <%-- 						<datatables:column> --%>
-                        <%-- 							<datatables:columnHead> --%>
-                        <%-- 								<spring:message code="label.InvoiceEntry.creditAmount" /> --%>
-                        <%-- 							</datatables:columnHead> --%>
-                        <!-- 							<div align=right> -->
-                        <%-- 								<c:out value="${entry.debtAccount.finantialInstitution.currency.getValueFor(pendingEntry.creditAmount)}" /> --%>
-                        <!-- 							</div> -->
-                        <%-- 						</datatables:column> --%>
                         <datatables:column cssStyle="width:110px;align:right">
                             <datatables:columnHead>
                                 <spring:message code="label.InvoiceEntry.openAmount" />
@@ -353,14 +320,14 @@ ${portal.angularToolkit()}
                         </datatables:column>
                     </datatables:table>
                     <script>
-																					createDataTables(
-																							'allDocuments',
-																							false,
-																							false,
-																							false,
-																							"${pageContext.request.contextPath}",
-																							"${datatablesI18NUrl}");
-																				</script>
+						createDataTables(
+								'allDocuments',
+								false,
+								false,
+								false,
+								"${pageContext.request.contextPath}",
+								"${datatablesI18NUrl}");
+					</script>
                 </c:when>
                 <c:otherwise>
                     <div class="alert alert-warning" role="alert">
