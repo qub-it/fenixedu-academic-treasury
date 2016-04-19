@@ -1,3 +1,6 @@
+<%@page import="org.fenixedu.treasury.domain.debt.DebtAccount"%>
+<%@page import="org.fenixedu.treasury.domain.FinantialInstitution"%>
+<%@page import="org.fenixedu.treasury.domain.forwardpayments.ForwardPaymentConfiguration"%>
 <%@page import="org.fenixedu.academictreasury.ui.customer.CustomerAccountingController"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 <%@ taglib prefix="spring" uri="http://www.springframework.org/tags"%>
@@ -27,6 +30,10 @@ ${portal.angularToolkit()}
 <script type="text/javascript" src="${pageContext.request.contextPath}/webjars/bootbox/4.4.0/bootbox.js"></script>
 <script src="${pageContext.request.contextPath}/static/academicTreasury/js/omnis.js"></script>
 
+<%
+    DebtAccount debtAccount = (DebtAccount) request.getAttribute("debtAccount");
+%>
+
 
 <%-- TITLE --%>
 <div class="page-header">
@@ -41,11 +48,15 @@ ${portal.angularToolkit()}
 	<a class="" href="${pageContext.request.contextPath}${readCustomerUrl}">
 		<spring:message code="label.event.back" />
 	</a>
-	&nbsp;|&nbsp;
-	<span class="glyphicon glyphicon-cog" aria-hidden="true"></span>&nbsp;
-	<a class="" href="${pageContext.request.contextPath}${forwardPaymentUrl}/${debtAccount.externalId}">
-		<spring:message code="label.event.accounting.manageCustomer.forwardPayment" />
-	</a>
+	<% if(ForwardPaymentConfiguration.isActive(debtAccount.getFinantialInstitution())) { %>
+
+		&nbsp;|&nbsp;
+		<span class="glyphicon glyphicon-shopping-cart" aria-hidden="true"></span>&nbsp;
+		<a class="" href="${pageContext.request.contextPath}/read/${debtAccount.externalId}/forwardpayment">
+			<spring:message code="label.event.accounting.manageCustomer.forwardPayment" />
+		</a>
+	
+	<% } %>
 </div>
 
 <c:if test="${not empty infoMessages}">

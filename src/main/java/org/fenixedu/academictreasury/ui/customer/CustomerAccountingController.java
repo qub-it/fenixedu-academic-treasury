@@ -51,8 +51,12 @@ public class CustomerAccountingController extends AcademicTreasuryBaseController
         return CustomerAccountingController.READ_ACCOUNT_URL;
     }
 
-    protected String getForwardPaymentUrl() {
-        return CustomerAccountingForwardPaymentController.CHOOSE_INVOICE_ENTRIES_URL;
+    protected String getForwardPaymentUrl(final DebtAccount debtAccount) {
+        return FORWARD_PAYMENT_URL(debtAccount);
+    }
+    
+    public static String FORWARD_PAYMENT_URL(final DebtAccount debtAccount) {
+        return String.format(CONTROLLER_URL + "/read/%s/forwardpayment", debtAccount.getExternalId());
     }
 
     @RequestMapping
@@ -88,7 +92,6 @@ public class CustomerAccountingController extends AcademicTreasuryBaseController
     @RequestMapping(value = READ_ACCOUNT_URI + "{oid}")
     public String readAccount(@PathVariable(value = "oid") DebtAccount debtAccount, Model model) {
         model.addAttribute("debtAccount", debtAccount);
-        model.addAttribute("forwardPaymentUrl", getForwardPaymentUrl());
         
         List<InvoiceEntry> allInvoiceEntries = new ArrayList<InvoiceEntry>();
         List<SettlementNote> paymentEntries = new ArrayList<SettlementNote>();
@@ -208,6 +211,13 @@ public class CustomerAccountingController extends AcademicTreasuryBaseController
         return jspPage("readDebtAccount");
     }
 
+    @RequestMapping(value = "/read/{oid}/forwardpayment")
+    public String processReadToForwardPayment(@PathVariable("oid") DebtAccount debtAccount, final Model model,
+            final RedirectAttributes redirectAttributes) {
+        return redirect(CustomerAccountingForwardPaymentController.CHOOSE_INVOICE_ENTRIES_URL + debtAccount.getExternalId(),
+                model, redirectAttributes);
+    }
+    
     public String jspPage(final String page) {
         return JSP_PATH + page;
     }
