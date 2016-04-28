@@ -52,7 +52,7 @@ ${portal.angularToolkit()}
 
 		&nbsp;|&nbsp;
 		<span class="glyphicon glyphicon-shopping-cart" aria-hidden="true"></span>&nbsp;
-		<a class="" href="${pageContext.request.contextPath}/read/${debtAccount.externalId}/forwardpayment">
+		<a class="" href="${pageContext.request.contextPath}${fowardPaymentUrl}">
 			<spring:message code="label.event.accounting.manageCustomer.forwardPayment" />
 		</a>
 	

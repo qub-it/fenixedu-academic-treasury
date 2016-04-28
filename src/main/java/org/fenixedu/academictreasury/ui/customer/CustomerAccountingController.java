@@ -68,7 +68,7 @@ public class CustomerAccountingController extends AcademicTreasuryBaseController
     public String readCustomer(Model model, RedirectAttributes redirectAttributes) {
         model.addAttribute("readCustomerUrl", getReadCustomerUrl());
         model.addAttribute("readAccountUrl", getReadAccountUrl());
-
+        
         Customer customer = Authenticate.getUser().getPerson().getPersonCustomer();
         model.addAttribute("customer", customer);
 
@@ -90,8 +90,9 @@ public class CustomerAccountingController extends AcademicTreasuryBaseController
     }
 
     @RequestMapping(value = READ_ACCOUNT_URI + "{oid}")
-    public String readAccount(@PathVariable(value = "oid") DebtAccount debtAccount, Model model) {
+    public String readAccount(@PathVariable(value = "oid") final DebtAccount debtAccount, final Model model) {
         model.addAttribute("debtAccount", debtAccount);
+        model.addAttribute("fowardPaymentUrl", getForwardPaymentUrl(debtAccount));
         
         List<InvoiceEntry> allInvoiceEntries = new ArrayList<InvoiceEntry>();
         List<SettlementNote> paymentEntries = new ArrayList<SettlementNote>();
