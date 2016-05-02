@@ -73,8 +73,9 @@ public class CustomerAccountingController extends AcademicTreasuryBaseController
         model.addAttribute("customer", customer);
 
         if (customer == null) {
-            return redirect("/academicTreasury", model, redirectAttributes);
+            return redirect(getCustomerNotCreatedUrl(), model, redirectAttributes);
         }
+        
         if (customer.getDebtAccountsSet().size() == 1) {
             DebtAccount debtAccount = customer.getDebtAccountsSet().iterator().next();
             return redirect(getReadAccountUrl() + debtAccount.getExternalId(), model, redirectAttributes);
@@ -217,6 +218,18 @@ public class CustomerAccountingController extends AcademicTreasuryBaseController
             final RedirectAttributes redirectAttributes) {
         return redirect(CustomerAccountingForwardPaymentController.CHOOSE_INVOICE_ENTRIES_URL + debtAccount.getExternalId(),
                 model, redirectAttributes);
+    }
+    
+    private static final String CUSTOMER_NOT_CREATED_URI = "/customernotcreated";
+    public static final String CUSTOMER_NOT_CREATED_URL = CONTROLLER_URL + CUSTOMER_NOT_CREATED_URI;
+    
+    protected String getCustomerNotCreatedUrl() {
+        return CUSTOMER_NOT_CREATED_URL;
+    }
+    
+    @RequestMapping(value = CUSTOMER_NOT_CREATED_URI)
+    public String customernotcreated(final Model model) {
+        return jspPage("customernotcreated");
     }
     
     public String jspPage(final String page) {

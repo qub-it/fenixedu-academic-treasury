@@ -44,18 +44,11 @@ ${portal.angularToolkit()}
 </div>
 <%-- NAVIGATION --%>
 <div class="well well-sm" style="display: inline-block">
-	<span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span>&nbsp;
-	<a class="" href="${pageContext.request.contextPath}${readCustomerUrl}">
-		<spring:message code="label.event.back" />
-	</a>
 	<% if(ForwardPaymentConfiguration.isActive(debtAccount.getFinantialInstitution())) { %>
-
-		&nbsp;|&nbsp;
 		<span class="glyphicon glyphicon-shopping-cart" aria-hidden="true"></span>&nbsp;
 		<a class="" href="${pageContext.request.contextPath}${fowardPaymentUrl}">
 			<spring:message code="label.event.accounting.manageCustomer.forwardPayment" />
 		</a>
-	
 	<% } %>
 </div>
 
@@ -116,11 +109,7 @@ ${portal.angularToolkit()}
 
                     <tr>
                         <th scope="row" class="col-xs-3"><spring:message code="label.DebtAccount.customer" /></th>
-                        <td><c:out value='${debtAccount.customer.businessIdentification}' /> - <c:out value='${debtAccount.customer.name}' /></td>
-                    </tr>
-                    <tr>
-                        <th scope="row" class="col-xs-3"><spring:message code="label.DebtAccount.finantialInstitution" /></th>
-                        <td><c:out value='${debtAccount.finantialInstitution.name}' /></td>
+                        <td><c:out value='${debtAccount.customer.name}' /></td>
                     </tr>
                     <tr>
                         <th scope="row" class="col-xs-3"><spring:message code="label.DebtAccount.balance" /></th>
@@ -143,10 +132,10 @@ ${portal.angularToolkit()}
     </div>
 </div>
 
-<h2>Conta Corrente</h2>
+<h2><spring:message code="label.CustomerAccounting.checking.account" /></h2>
 
 <h4 style="margin-bottom: 30px; margin-top: 30px;">
-	<span class="label label-info">Para consultar as referências MB para pagamento clique no separador <strong>Referências para Pagamento</strong></span>
+	<span class="label label-info"><spring:message code="label.CustomerAccounting.view.sibs.references.message" /></span>
 </h4>
 
 <div id="content">
