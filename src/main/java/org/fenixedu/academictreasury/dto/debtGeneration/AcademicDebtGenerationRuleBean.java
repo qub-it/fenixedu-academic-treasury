@@ -9,6 +9,7 @@ import org.fenixedu.academic.domain.DegreeCurricularPlan;
 import org.fenixedu.academic.domain.ExecutionDegree;
 import org.fenixedu.academic.domain.ExecutionYear;
 import org.fenixedu.academic.domain.degree.DegreeType;
+import org.fenixedu.academictreasury.domain.debtGeneration.AcademicDebtGenerationRuleType;
 import org.fenixedu.academictreasury.domain.emoluments.AcademicTax;
 import org.fenixedu.academictreasury.domain.settings.AcademicTreasurySettings;
 import org.fenixedu.academictreasury.util.Constants;
@@ -64,6 +65,8 @@ public class AcademicDebtGenerationRuleBean implements Serializable, IBean {
         
     }
 
+    private AcademicDebtGenerationRuleType type;
+    
     private ExecutionYear executionYear;
     private boolean aggregateOnDebitNote;
     private boolean aggregateAllOrNothing;
@@ -92,7 +95,9 @@ public class AcademicDebtGenerationRuleBean implements Serializable, IBean {
     private List<TupleDataSourceBean> degreeTypeDataSource = Lists.newArrayList();
     private List<TupleDataSourceBean> degreeCurricularPlanDataSource = Lists.newArrayList();
 
-    public AcademicDebtGenerationRuleBean() {
+    public AcademicDebtGenerationRuleBean(final AcademicDebtGenerationRuleType type) {
+        this.type = type;
+        
         executionYearDataSource =
                 ExecutionYear.readNotClosedExecutionYears().stream()
                         .sorted(Collections.reverseOrder(ExecutionYear.COMPARATOR_BY_BEGIN_DATE))
@@ -125,7 +130,6 @@ public class AcademicDebtGenerationRuleBean implements Serializable, IBean {
         this.closeDebitNote = false;
         this.alignAllAcademicTaxesDebitToMaxDueDate = false;
         this.createPaymentReferenceCode = false;
-
     }
     
     public void chooseDegreeType() {
@@ -181,16 +185,40 @@ public class AcademicDebtGenerationRuleBean implements Serializable, IBean {
         degreeCurricularPlans.remove(entryIndex);
     }
     
-    public boolean isAggregateOnDebitNote() {
-        return aggregateOnDebitNote;
+    public AcademicDebtGenerationRuleType getType() {
+        return type;
     }
-
+    
+    public void setType(AcademicDebtGenerationRuleType type) {
+        this.type = type;
+    }
+    
+    public boolean isToAggregateDebitEntries() {
+        return getType().strategyImplementation().isToAggregateDebitEntries();
+    }
+    
+    public boolean isToCloseDebitNotes() {
+        return getType().strategyImplementation().isToCloseDebitNotes();
+    }
+    
+    public boolean isAggregateOnDebitNote() {
+        return isToAggregateDebitEntries() && aggregateOnDebitNote;
+    }
+    
+    public boolean isToCreatePaymentReferenceCodes() {
+        return getType().strategyImplementation().isToCreatePaymentReferenceCodes();
+    }
+    
+    public boolean isToCreateDebitEntries() {
+        return getType().strategyImplementation().isToCreateDebitEntries();
+    }
+    
     public void setAggregateOnDebitNote(boolean aggregateOnDebitNote) {
         this.aggregateOnDebitNote = aggregateOnDebitNote;
     }
 
     public boolean isCloseDebitNote() {
-        return closeDebitNote;
+        return isToCloseDebitNotes() && closeDebitNote;
     }
 
     public void setCloseDebitNote(boolean closeDebitNote) {
@@ -198,7 +226,7 @@ public class AcademicDebtGenerationRuleBean implements Serializable, IBean {
     }
     
     public boolean isAlignAllAcademicTaxesDebitToMaxDueDate() {
-        return alignAllAcademicTaxesDebitToMaxDueDate;
+        return isToCloseDebitNotes() && alignAllAcademicTaxesDebitToMaxDueDate;
     }
     
     public void setAlignAllAcademicTaxesDebitToMaxDueDate(boolean alignAllAcademicTaxesDebitToMaxDueDate) {
@@ -206,7 +234,7 @@ public class AcademicDebtGenerationRuleBean implements Serializable, IBean {
     }
 
     public boolean isCreatePaymentReferenceCode() {
-        return createPaymentReferenceCode;
+        return isToCreatePaymentReferenceCodes() && createPaymentReferenceCode;
     }
 
     public void setCreatePaymentReferenceCode(boolean createPaymentReferenceCode) {
@@ -226,7 +254,7 @@ public class AcademicDebtGenerationRuleBean implements Serializable, IBean {
     }
 
     public boolean isCreateDebt() {
-        return createDebt;
+        return isToCreateDebitEntries() && createDebt;
     }
 
     public void setCreateDebt(boolean createDebt) {
@@ -234,7 +262,7 @@ public class AcademicDebtGenerationRuleBean implements Serializable, IBean {
     }
     
     public boolean isToCreateAfterLastRegistrationStateDate() {
-        return toCreateAfterLastRegistrationStateDate;
+        return isToCreateDebitEntries() && toCreateAfterLastRegistrationStateDate;
     }
     
     public void setToCreateAfterLastRegistrationStateDate(boolean toCreateAfterLastRegistrationStateDate) {
@@ -258,7 +286,7 @@ public class AcademicDebtGenerationRuleBean implements Serializable, IBean {
     }
     
     public boolean isAggregateAllOrNothing() {
-        return aggregateAllOrNothing;
+        return isToAggregateDebitEntries() && aggregateAllOrNothing;
     }
 
     public void setAggregateAllOrNothing(boolean aggregateAllOrNothing) {
@@ -298,7 +326,7 @@ public class AcademicDebtGenerationRuleBean implements Serializable, IBean {
     }
     
     public boolean isForceCreation() {
-        return forceCreation;
+        return isToCreateDebitEntries() && forceCreation;
     }
     
     public void setForceCreation(boolean forceCreation) {
@@ -306,7 +334,7 @@ public class AcademicDebtGenerationRuleBean implements Serializable, IBean {
     }
     
     public boolean isLimitToRegisteredOnExecutionYear() {
-        return limitToRegisteredOnExecutionYear;
+        return isToCreateDebitEntries() && limitToRegisteredOnExecutionYear;
     }
     
     public void setLimitToRegisteredOnExecutionYear(boolean limitToRegisteredOnExecutionYear) {

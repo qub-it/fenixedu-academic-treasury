@@ -76,7 +76,7 @@ public class PaymentReferenceCodeEntryBean extends AbstractReportEntryBean {
             this.creationDate = paymentReferenceCode.getVersioningCreationDate();
 
             if (paymentReferenceCode.getTargetPayment() != null) {
-                DebtAccount referenceDebtAccount = paymentReferenceCode.getTargetPayment().getReferenceDebtAccount();
+                DebtAccount referenceDebtAccount = paymentReferenceCode.getTargetPayment().getDebtAccount();
                 this.customerId = referenceDebtAccount.getCustomer().getExternalId();
                 this.debtAccountId = referenceDebtAccount.getExternalId();
                 this.name = referenceDebtAccount.getCustomer().getName();

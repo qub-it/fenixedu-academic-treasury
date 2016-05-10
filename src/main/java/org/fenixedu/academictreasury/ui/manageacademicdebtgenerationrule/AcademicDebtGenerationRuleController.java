@@ -29,6 +29,7 @@ package org.fenixedu.academictreasury.ui.manageacademicdebtgenerationrule;
 import java.util.stream.Collectors;
 
 import org.fenixedu.academictreasury.domain.debtGeneration.AcademicDebtGenerationRule;
+import org.fenixedu.academictreasury.domain.debtGeneration.AcademicDebtGenerationRuleType;
 import org.fenixedu.academictreasury.dto.debtGeneration.AcademicDebtGenerationRuleBean;
 import org.fenixedu.academictreasury.ui.AcademicTreasuryBaseController;
 import org.fenixedu.academictreasury.ui.AcademicTreasuryController;
@@ -140,8 +141,8 @@ public class AcademicDebtGenerationRuleController extends AcademicTreasuryBaseCo
     public String processProcessAction(@PathVariable("oid") AcademicDebtGenerationRule academicDebtGenerationRule, Model model,
             RedirectAttributes redirectAttributes) {
 
-        academicDebtGenerationRule.process();
-
+        academicDebtGenerationRule.getAcademicDebtGenerationRuleType().strategyImplementation().process(academicDebtGenerationRule);
+        
         // CHANGE_ME Insert code here for processing rowAction inactivate
         // If you selected multiple exists you must choose which one to use below
         return redirect(SEARCH_URL, model, redirectAttributes);
@@ -152,7 +153,7 @@ public class AcademicDebtGenerationRuleController extends AcademicTreasuryBaseCo
 
     @RequestMapping(value = _CREATE_URI, method = RequestMethod.GET)
     public String create(Model model) {
-        AcademicDebtGenerationRuleBean bean = new AcademicDebtGenerationRuleBean();
+        AcademicDebtGenerationRuleBean bean = new AcademicDebtGenerationRuleBean(AcademicDebtGenerationRuleType.findByCode(AcademicDebtGenerationRuleType.DEPRECATED_STRATEGY_CODE).get());
 
         return _create(bean, model);
     }

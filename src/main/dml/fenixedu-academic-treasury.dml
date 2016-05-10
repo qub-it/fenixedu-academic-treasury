@@ -487,6 +487,22 @@ class event.LegacyAcademicTreasuryEvent extends event.AcademicTreasuryEvent{
  * --------------------------
  */
 
+class debtGeneration.AcademicDebtGenerationRuleType {
+	String code;
+	String name;
+	String strategyImplementation;
+}
+
+	relation AcademicDebtGenerationRuleTypeBennu {
+		.org.fenixedu.bennu.core.domain.Bennu playsRole bennu {
+			multiplicity 1..1;
+		}
+	
+		debtGeneration.AcademicDebtGenerationRuleType playsRole academicDebtGenerationRuleTypes {
+			multiplicity *;
+		}
+	}
+
 class debtGeneration.AcademicDebtGenerationRule {
 	boolean active;
 	boolean aggregateOnDebitNote;
@@ -495,6 +511,15 @@ class debtGeneration.AcademicDebtGenerationRule {
 	boolean alignAllAcademicTaxesDebitToMaxDueDate;
 	boolean createPaymentReferenceCode;
 }
+	relation AcademicDebtGenerationRuleGenerationRuleType {
+		debtGeneration.AcademicDebtGenerationRuleType playsRole academicDebtGenerationRuleType {
+			multiplicity 1..1;
+		}
+
+		debtGeneration.AcademicDebtGenerationRule playsRole academicDebtGenerationRules {
+			multiplicity *;
+		}
+	}
 
 	relation AcademicDebtGenerationRuleBennu {
 		.org.fenixedu.bennu.core.domain.Bennu playsRole bennu {
