@@ -510,7 +510,9 @@ class debtGeneration.AcademicDebtGenerationRule {
 	boolean closeDebitNote;
 	boolean alignAllAcademicTaxesDebitToMaxDueDate;
 	boolean createPaymentReferenceCode;
+	int days;
 }
+
 	relation AcademicDebtGenerationRuleGenerationRuleType {
 		debtGeneration.AcademicDebtGenerationRuleType playsRole academicDebtGenerationRuleType {
 			multiplicity 1..1;
