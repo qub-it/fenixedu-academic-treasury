@@ -10,7 +10,6 @@ import org.fenixedu.academictreasury.domain.customer.PersonCustomer;
 import org.fenixedu.academictreasury.domain.debtGeneration.AcademicDebtGenerationRule;
 import org.fenixedu.academictreasury.domain.debtGeneration.AcademicDebtGenerationRuleEntry;
 import org.fenixedu.academictreasury.domain.debtGeneration.IAcademicDebtGenerationRuleStrategy;
-import org.fenixedu.academictreasury.domain.debtGeneration.LogBean;
 import org.fenixedu.academictreasury.domain.emoluments.AcademicTax;
 import org.fenixedu.academictreasury.domain.event.AcademicTreasuryEvent;
 import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainException;
@@ -73,19 +72,14 @@ public class DeprecatedDebtGenerationRuleStrategy implements IAcademicDebtGenera
         return true;
     }
     
-    @Override
     @Atomic(mode = TxMode.READ)
+    @Override
     public void process(final AcademicDebtGenerationRule rule) {
-        logger.debug(String.format("[AcademicDebtGenerationRule] START: %s", rule.getExternalId()));
 
         if (!rule.isActive()) {
             throw new AcademicTreasuryDomainException("error.AcademicDebtGenerationRule.not.active.to.process");
         }
 
-        final LogBean logBean = new LogBean();
-        logBean.processDate = new DateTime();
-
-        long timeInMillis = System.currentTimeMillis();
         for (final DegreeCurricularPlan degreeCurricularPlan : rule.getDegreeCurricularPlansSet()) {
             for (final Registration registration : degreeCurricularPlan.getRegistrations()) {
 
@@ -111,72 +105,55 @@ public class DeprecatedDebtGenerationRuleStrategy implements IAcademicDebtGenera
                 }
                 
                 try {
-                    processDebtsForRegistration(rule, registration, logBean);
+                    processDebtsForRegistration(rule, registration);
                 } catch(final AcademicTreasuryDomainException e) {
                     logger.info(e.getMessage());
-                    logBean.registerException(registration, e);
                 } catch (final Exception e) {
                     e.printStackTrace();
-                    logBean.registerException(registration, e);
                 }
             }
         }
 
-        logger.debug(String.format("[AcademicDebtGenerationRule] Elapsed: %d", (System.currentTimeMillis() - timeInMillis)));
-
-        writeLog(logBean);
     }
 
     @Atomic(mode = TxMode.READ)
+    @Override
     public void process(final AcademicDebtGenerationRule rule, final Registration registration) {
-        final LogBean logBean = new LogBean();
         try {
-            process(rule, registration, logBean);
-        } catch(final AcademicTreasuryDomainException e) {
-            logger.info(e.getMessage());
-            logBean.registerException(registration, e);
-        } catch (final Exception e) {
-            e.printStackTrace();
-            logBean.registerException(registration, e);
-        }
-    }
-
-    public void process(final AcademicDebtGenerationRule rule, final Registration registration, final LogBean logBean) {
-        if (!rule.isActive()) {
-            throw new AcademicTreasuryDomainException("error.AcademicDebtGenerationRule.not.active.to.process");
-        }
-
-        if (registration.getStudentCurricularPlan(rule.getExecutionYear()) == null) {
-            return;
-        }
-
-        if (!rule.getDegreeCurricularPlansSet().contains(
-                registration.getStudentCurricularPlan(rule.getExecutionYear()).getDegreeCurricularPlan())) {
-            return;
-        }
-
-        logger.debug("AcademicDebtGenerationRule: Start");
-
-        logBean.processDate = new DateTime();
-
-        // Discard registrations not active and with no enrolments
-        if (!registration.hasAnyActiveState(rule.getExecutionYear())) {
-            logBean.registerStudentNotActiveInExecutionYear(registration, rule.getExecutionYear());
-            writeLog(logBean);
-            return;
-        }
-
-        if (!registration.hasAnyEnrolmentsIn(rule.getExecutionYear())) {
-            logBean.registerStudentWithNoEnrolments(registration, rule.getExecutionYear());
-            writeLog(logBean);
-
-            // only return is this rule has not entry that forces creation
-            if (!isRuleWithOnlyOneAcademicTaxEntryForcingCreation(rule)) {
+            if (!rule.isActive()) {
+                throw new AcademicTreasuryDomainException("error.AcademicDebtGenerationRule.not.active.to.process");
+            }
+            
+            if (registration.getStudentCurricularPlan(rule.getExecutionYear()) == null) {
                 return;
             }
+            
+            if (!rule.getDegreeCurricularPlansSet().contains(
+                    registration.getStudentCurricularPlan(rule.getExecutionYear()).getDegreeCurricularPlan())) {
+                return;
+            }
+            
+            logger.debug("AcademicDebtGenerationRule: Start");
+            
+            // Discard registrations not active and with no enrolments
+            if (!registration.hasAnyActiveState(rule.getExecutionYear())) {
+                return;
+            }
+            
+            if (!registration.hasAnyEnrolmentsIn(rule.getExecutionYear())) {
+                
+                // only return is this rule has not entry that forces creation
+                if (!isRuleWithOnlyOneAcademicTaxEntryForcingCreation(rule)) {
+                    return;
+                }
+            }
+            
+            processDebtsForRegistration(rule, registration);
+        } catch(final AcademicTreasuryDomainException e) {
+            logger.info(e.getMessage());
+        } catch (final Exception e) {
+            e.printStackTrace();
         }
-
-        processDebtsForRegistration(rule, registration, logBean);
     }
 
     private boolean isRuleWithOnlyOneAcademicTaxEntryForcingCreation(final AcademicDebtGenerationRule rule) {
@@ -193,11 +170,11 @@ public class DeprecatedDebtGenerationRuleStrategy implements IAcademicDebtGenera
 
 
     @Atomic(mode = TxMode.WRITE)
-    private void processDebtsForRegistration(final AcademicDebtGenerationRule rule, final Registration registration, final LogBean logBean) {
-        _processDebtsForRegistration(rule, registration, logBean);
+    private void processDebtsForRegistration(final AcademicDebtGenerationRule rule, final Registration registration) {
+        _processDebtsForRegistration(rule, registration);
     }
 
-    private void _processDebtsForRegistration(final AcademicDebtGenerationRule rule, final Registration registration, final LogBean logBean) {
+    private void _processDebtsForRegistration(final AcademicDebtGenerationRule rule, final Registration registration) {
         final ExecutionYear executionYear = rule.getExecutionYear();
 
         logger.debug(String.format("[AcademicDebtGenerationRule] processDebtsForRegistration for student '%d'", registration
@@ -214,13 +191,13 @@ public class DeprecatedDebtGenerationRuleStrategy implements IAcademicDebtGenera
             DebitEntry grabbedDebitEntry = null;
             // Check if the product is tuition kind
             if (AcademicTreasurySettings.getInstance().getTuitionProductGroup() == product.getProductGroup()) {
-                grabbedDebitEntry = grabOrCreateDebitEntryForTuition(rule, registration, entry, logBean);
+                grabbedDebitEntry = grabOrCreateDebitEntryForTuition(rule, registration, entry);
             } else if (AcademicTax.findUnique(product).isPresent()) {
                 // Check if the product is an academic tax
-                grabbedDebitEntry = grabOrCreateDebitEntryForAcademicTax(rule, registration, entry, logBean);
+                grabbedDebitEntry = grabOrCreateDebitEntryForAcademicTax(rule, registration, entry);
             } else {
                 // Check if the product is an academic tax
-                grabbedDebitEntry = grabDebitEntry(rule, registration, entry, logBean);
+                grabbedDebitEntry = grabDebitEntry(rule, registration, entry);
             }
 
             if (grabbedDebitEntry != null) {
@@ -236,7 +213,6 @@ public class DeprecatedDebtGenerationRuleStrategy implements IAcademicDebtGenera
         }
 
         if (debitEntries.isEmpty()) {
-            logBean.registerWithoutDebitEntriesToProcess(registration);
             return;
         }
 
@@ -244,17 +220,15 @@ public class DeprecatedDebtGenerationRuleStrategy implements IAcademicDebtGenera
 
         DebitNote debitNote = null;
         if (isAllWithClosedDebitNote(debitEntries)) {
-            logBean.registerAllWithClosedDebitNote(registration);
 
             if (!allWithTheSameClosedDebitNote(debitEntries)) {
-                logBean.registerDebitEntriesWithDifferentClosedDebitNotes(registration, debitNote);
                 return;
             }
 
             debitNote = (DebitNote) debitEntries.iterator().next().getFinantialDocument();
         } else {
 
-            debitNote = grabPreparingOrCreateDebitEntry(registration, debitEntries, logBean);
+            debitNote = grabPreparingOrCreateDebitEntry(registration, debitEntries);
 
             for (final DebitEntry debitEntry : debitEntries) {
                 if (debitEntry.getFinantialDocument() == null) {
@@ -266,7 +240,6 @@ public class DeprecatedDebtGenerationRuleStrategy implements IAcademicDebtGenera
                 throw new AcademicTreasuryDomainException("error.AcademicDebtGenerationRule.debit.note.without.debit.entries");
             }
 
-            logBean.registerDebitEntriesOnDebitNote(registration, debitNote);
 
             if (debitNote.isPreparing() && rule.isCloseDebitNote()) {
                 final LocalDate maxDebitEntryDueDate = maxDebitEntryDueDate(debitNote);
@@ -282,7 +255,6 @@ public class DeprecatedDebtGenerationRuleStrategy implements IAcademicDebtGenera
                 }
 
                 debitNote.closeDocument();
-                logBean.registerDebitNoteClosing(registration, debitNote);
             }
 
             if (rule.isAggregateAllOrNothing()) {
@@ -323,8 +295,6 @@ public class DeprecatedDebtGenerationRuleStrategy implements IAcademicDebtGenera
 
             
             FinantialDocumentPaymentCode paymentCode = FinantialDocumentPaymentCode.create(debitNote, paymentReferenceCode, true);
-
-            logBean.registerCreatedPaymentReference(registration, paymentCode);
         }
 
         logger.debug(String.format("[AcademicDebtGenerationRule][%d] Payment codes in: %d", registration.getStudent().getNumber(),
@@ -332,7 +302,7 @@ public class DeprecatedDebtGenerationRuleStrategy implements IAcademicDebtGenera
 
     }
 
-    private DebitEntry grabDebitEntry(final AcademicDebtGenerationRule rule, final Registration registration, final AcademicDebtGenerationRuleEntry entry, final LogBean logBean) {
+    private DebitEntry grabDebitEntry(final AcademicDebtGenerationRule rule, final Registration registration, final AcademicDebtGenerationRuleEntry entry) {
         if (AcademicTreasurySettings.getInstance().getTuitionProductGroup() == entry.getProduct().getProductGroup()) {
             throw new AcademicTreasuryDomainException("error.AcademicDebtGenerationRule.entry.is.tuition");
         }
@@ -416,8 +386,7 @@ public class DeprecatedDebtGenerationRuleStrategy implements IAcademicDebtGenera
         return true;
     }
 
-    private DebitNote grabPreparingOrCreateDebitEntry(final Registration registration, final Set<DebitEntry> debitEntries,
-            final LogBean logBean) {
+    private DebitNote grabPreparingOrCreateDebitEntry(final Registration registration, final Set<DebitEntry> debitEntries) {
 
         for (final DebitEntry debitEntry : debitEntries) {
             if (debitEntry.getFinantialDocument() != null && debitEntry.getFinantialDocument().isPreparing()) {
@@ -431,13 +400,11 @@ public class DeprecatedDebtGenerationRuleStrategy implements IAcademicDebtGenera
                         DocumentNumberSeries.findUniqueDefault(FinantialDocumentType.findForDebitNote(),
                                 debitEntries.iterator().next().getDebtAccount().getFinantialInstitution()).get(), new DateTime());
 
-        logBean.registerDebitNoteCreation(registration, debitNote);
-
         return debitNote;
     }
 
     private DebitEntry grabOrCreateDebitEntryForAcademicTax(final AcademicDebtGenerationRule rule, final Registration registration,
-            final AcademicDebtGenerationRuleEntry entry, final LogBean logBean) {
+            final AcademicDebtGenerationRuleEntry entry) {
         final Product product = entry.getProduct();
         final ExecutionYear executionYear = rule.getExecutionYear();
         final AcademicTax academicTax = AcademicTax.findUnique(product).get();
@@ -452,9 +419,7 @@ public class DeprecatedDebtGenerationRuleStrategy implements IAcademicDebtGenera
                 /* HACK: For now limit forcing for first time students only */
                 boolean forceCreation = entry.isCreateDebt() && registration.isFirstTime(rule.getExecutionYear());
 
-                if (AcademicTaxServices.createAcademicTax(registration, executionYear, academicTax, forceCreation)) {
-                    logBean.registerCreatedAcademicTreasuryEvent(registration, academicTax);
-                }
+                AcademicTaxServices.createAcademicTax(registration, executionYear, academicTax, forceCreation);
             }
         }
 
@@ -469,7 +434,7 @@ public class DeprecatedDebtGenerationRuleStrategy implements IAcademicDebtGenera
     }
 
     private DebitEntry grabOrCreateDebitEntryForTuition(final AcademicDebtGenerationRule rule, final Registration registration,
-            final AcademicDebtGenerationRuleEntry entry, final LogBean logBean) {
+            final AcademicDebtGenerationRuleEntry entry) {
         final Product product = entry.getProduct();
         final ExecutionYear executionYear = rule.getExecutionYear();
 
@@ -511,10 +476,6 @@ public class DeprecatedDebtGenerationRuleStrategy implements IAcademicDebtGenera
             return null;
         }
 
-        if (createdTuition) {
-            logBean.registerCreatedTuition(registration);
-        }
-
         final AcademicTreasuryEvent academicTreasuryEvent =
                 TuitionServices.findAcademicTreasuryEventTuitionForRegistration(registration, executionYear);
 
@@ -525,19 +486,4 @@ public class DeprecatedDebtGenerationRuleStrategy implements IAcademicDebtGenera
         return DebitEntry.findActive(academicTreasuryEvent, product).findFirst().get();
     }
  
-    //HACK: RSP DISABLE FOR TESTING LOCK's ON DATABASE
-    @Atomic(mode = TxMode.WRITE)
-    private void writeLog(final LogBean logBean) {
-//        int MAX_LENGTH = 32 * 1024;
-//        int length = logBean.log.length();
-//        if (length <= MAX_LENGTH) {
-//            TreasuryOperationLog.create(logBean.log.toString(), this.getExternalId(), TREASURY_OPERATION_LOG_TYPE);
-//        } else {
-//            List<String> splitToList = Splitter.fixedLength(MAX_LENGTH).splitToList(logBean.log.toString());
-//            for (String str : splitToList) {
-//                TreasuryOperationLog.create(str, this.getExternalId(), TREASURY_OPERATION_LOG_TYPE);
-//            }
-//        }
-    }
-
 }

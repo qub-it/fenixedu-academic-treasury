@@ -491,6 +491,7 @@ class debtGeneration.AcademicDebtGenerationRuleType {
 	String code;
 	String name;
 	String strategyImplementation;
+	int orderNumber;
 }
 
 	relation AcademicDebtGenerationRuleTypeBennu {
@@ -505,12 +506,14 @@ class debtGeneration.AcademicDebtGenerationRuleType {
 
 class debtGeneration.AcademicDebtGenerationRule {
 	boolean active;
+	boolean backgroundExecution;
 	boolean aggregateOnDebitNote;
 	boolean aggregateAllOrNothing;
 	boolean closeDebitNote;
 	boolean alignAllAcademicTaxesDebitToMaxDueDate;
 	boolean createPaymentReferenceCode;
 	int days;
+	int orderNumber;
 }
 
 	relation AcademicDebtGenerationRuleGenerationRuleType {

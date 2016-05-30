@@ -77,7 +77,7 @@ public class AcademicDebtGenerationRegistrationController extends AcademicTreasu
 
         try {
 
-            AcademicDebtGenerationRule.runAllActiveForRegistration(registration);
+            AcademicDebtGenerationRule.runAllActiveForRegistration(registration, false);
             
             return redirect(DebtAccountController.READ_URL + debtAccount.getExternalId(), model, redirectAttributes);
         } catch (final DomainException e) {

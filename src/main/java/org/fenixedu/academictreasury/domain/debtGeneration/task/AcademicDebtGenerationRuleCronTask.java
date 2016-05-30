@@ -10,6 +10,6 @@ public class AcademicDebtGenerationRuleCronTask extends CronTask {
     @Override
     public void runTask() throws Exception {
         
-        AcademicDebtGenerationRule.runAllActive();
+        AcademicDebtGenerationRule.runAllActive(true);
     }
 }

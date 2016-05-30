@@ -2,11 +2,14 @@ package org.fenixedu.academictreasury.domain.debtGeneration;
 
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.fenixedu.academic.domain.DegreeCurricularPlan;
 import org.fenixedu.academic.domain.ExecutionDegree;
+import org.fenixedu.academic.domain.ExecutionYear;
 import org.fenixedu.academic.domain.student.Registration;
 import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainException;
 import org.fenixedu.academictreasury.dto.debtGeneration.AcademicDebtGenerationRuleBean;
@@ -25,7 +28,16 @@ import pt.ist.fenixframework.FenixFramework;
 public class AcademicDebtGenerationRule extends AcademicDebtGenerationRule_Base {
 
     public static final String TREASURY_OPERATION_LOG_TYPE = "AcademicDebtGenerationRuleLog";
-    private static Logger logger = LoggerFactory.getLogger(AcademicDebtGenerationRule.class);
+
+    public static final Comparator<AcademicDebtGenerationRule> COMPARE_BY_ORDER_NUMBER =
+            new Comparator<AcademicDebtGenerationRule>() {
+
+                @Override
+                public int compare(final AcademicDebtGenerationRule o1, final AcademicDebtGenerationRule o2) {
+                    int c = Integer.compare(o1.getOrderNumber(), o2.getOrderNumber());
+                    return c != 0 ? c : o1.getExternalId().compareTo(o2.getExternalId());
+                }
+            };
 
     public static Comparator<AcademicDebtGenerationRule> COMPARATOR_BY_EXECUTION_YEAR =
             new Comparator<AcademicDebtGenerationRule>() {
@@ -47,6 +59,7 @@ public class AcademicDebtGenerationRule extends AcademicDebtGenerationRule_Base 
         this();
 
         setActive(true);
+        setBackgroundExecution(true);
 
         setAcademicDebtGenerationRuleType(bean.getType());
         setExecutionYear(bean.getExecutionYear());
@@ -64,6 +77,11 @@ public class AcademicDebtGenerationRule extends AcademicDebtGenerationRule_Base 
         }
 
         getDegreeCurricularPlansSet().addAll((bean.getDegreeCurricularPlans()));
+
+        setOrderNumber(-1);
+        final Optional<AcademicDebtGenerationRule> max = findAll().max(COMPARE_BY_ORDER_NUMBER);
+
+        setOrderNumber(max.isPresent() ? max.get().getOrderNumber() + 1 : 1);
 
         checkRules();
     }
@@ -110,11 +128,14 @@ public class AcademicDebtGenerationRule extends AcademicDebtGenerationRule_Base 
                         degreeCurricularPlan.getName());
             }
         }
-
     }
 
     public boolean isActive() {
         return getActive();
+    }
+
+    public boolean isBackgroundExecution() {
+        return getBackgroundExecution();
     }
 
     public boolean isAggregateOnDebitNote() {
@@ -179,6 +200,101 @@ public class AcademicDebtGenerationRule extends AcademicDebtGenerationRule_Base 
         checkRules();
     }
 
+    @Atomic
+    public void toggleBackgroundExecution() {
+        setBackgroundExecution(!isBackgroundExecution());
+    }
+
+    private AcademicDebtGenerationRule findPrevious(final AcademicDebtGenerationRule rule) {
+        List<AcademicDebtGenerationRule> list =
+                findAll().filter(l -> l.getAcademicDebtGenerationRuleType() == rule.getAcademicDebtGenerationRuleType())
+                .filter(l -> l.getExecutionYear() == this.getExecutionYear())
+                        .sorted(COMPARE_BY_ORDER_NUMBER).collect(Collectors.toList());
+
+        AcademicDebtGenerationRule result = null;
+        for (final AcademicDebtGenerationRule r : list) {
+            if (rule.getOrderNumber() >= r.getOrderNumber()) {
+                continue;
+            }
+
+            if (result == null) {
+                result = r;
+                continue;
+            }
+
+            if (result.getOrderNumber() < r.getOrderNumber()) {
+                result = r;
+                continue;
+            }
+        }
+
+        return result;
+    }
+
+    private AcademicDebtGenerationRule findNext(final AcademicDebtGenerationRule rule) {
+        List<AcademicDebtGenerationRule> list =
+                findAll().filter(l -> l.getAcademicDebtGenerationRuleType() == rule.getAcademicDebtGenerationRuleType())
+                .filter(l -> l.getExecutionYear() == this.getExecutionYear())
+                        .sorted(COMPARE_BY_ORDER_NUMBER).collect(Collectors.toList());
+
+        AcademicDebtGenerationRule result = null;
+        for (final AcademicDebtGenerationRule r : list) {
+            if (rule.getOrderNumber() <= r.getOrderNumber()) {
+                continue;
+            }
+
+            if (result == null) {
+                result = r;
+                continue;
+            }
+
+            if (result.getOrderNumber() > r.getOrderNumber()) {
+                result = r;
+                continue;
+            }
+        }
+
+        return result;
+    }
+
+    public boolean isFirst() {
+        return findAll().filter(l -> l.getAcademicDebtGenerationRuleType() == this.getAcademicDebtGenerationRuleType())
+                .filter(l -> l.getExecutionYear() == this.getExecutionYear()).min(COMPARE_BY_ORDER_NUMBER).get() == this;
+    }
+
+    public boolean isLast() {
+        return findAll().filter(l -> l.getAcademicDebtGenerationRuleType() == this.getAcademicDebtGenerationRuleType())
+                .filter(l -> l.getExecutionYear() == this.getExecutionYear()).max(COMPARE_BY_ORDER_NUMBER).get() == this;
+    }
+
+    @Atomic
+    public void orderUp() {
+        final AcademicDebtGenerationRule previous = findPrevious(this);
+
+        if (previous == null) {
+            return;
+        }
+
+        int t = previous.getOrderNumber();
+
+        previous.setOrderNumber(getOrderNumber());
+        this.setOrderNumber(t);
+    }
+
+    @Atomic
+    public void orderDown() {
+        final AcademicDebtGenerationRule next = findNext(this);
+
+        if (next == null) {
+            return;
+        }
+
+        int t = next.getOrderNumber();
+
+        next.setOrderNumber(getOrderNumber());
+        this.setOrderNumber(t);
+    }
+
     // @formatter: off
     /************
      * SERVICES *
@@ -189,8 +305,18 @@ public class AcademicDebtGenerationRule extends AcademicDebtGenerationRule_Base 
         return Bennu.getInstance().getAcademicDebtGenerationRuleSet().stream();
     }
 
+    public static Stream<AcademicDebtGenerationRule> find(final AcademicDebtGenerationRuleType type,
+            final ExecutionYear executionYear) {
+        return findAll().filter(r -> r.getAcademicDebtGenerationRuleType() == type)
+                .filter(r -> r.getExecutionYear() == executionYear);
+    }
+
     public static Stream<AcademicDebtGenerationRule> findActive() {
         return findAll().filter(AcademicDebtGenerationRule::isActive);
+    }
+
+    public static Stream<AcademicDebtGenerationRule> findActiveByType(final AcademicDebtGenerationRuleType type) {
+        return findActive().filter(r -> r.getAcademicDebtGenerationRuleType() == type);
     }
 
     @Atomic
@@ -198,37 +324,63 @@ public class AcademicDebtGenerationRule extends AcademicDebtGenerationRule_Base 
         return new AcademicDebtGenerationRule(bean);
     }
 
-    public static void runAllActive() {
-        for (final AcademicDebtGenerationRule academicDebtGenerationRule : AcademicDebtGenerationRule.findActive()
-                .collect(Collectors.toSet())) {
-            final RuleExecutor exec = new RuleExecutor(academicDebtGenerationRule);
+    public static void runAllActive(final boolean runOnlyWithBackgroundExecution) {
+        for (final AcademicDebtGenerationRuleType type : AcademicDebtGenerationRuleType.findAll()
+                .sorted(AcademicDebtGenerationRuleType.COMPARE_BY_ORDER_NUMBER).collect(Collectors.toList())) {
+            for (final AcademicDebtGenerationRule academicDebtGenerationRule : AcademicDebtGenerationRule.findActiveByType(type)
+                    .sorted(COMPARE_BY_ORDER_NUMBER).collect(Collectors.toList())) {
 
-            try {
-                exec.start();
-                exec.join();
-            } catch (InterruptedException e) {
+                if (runOnlyWithBackgroundExecution && !academicDebtGenerationRule.isBackgroundExecution()) {
+                    continue;
+                }
+
+                final RuleExecutor exec = new RuleExecutor(academicDebtGenerationRule);
+
+                try {
+                    exec.start();
+                    exec.join();
+                } catch (InterruptedException e) {
+                }
             }
         }
     }
 
-    public static void runAllActiveForRegistration(final Registration registration) {
-        for (final AcademicDebtGenerationRule academicDebtGenerationRule : AcademicDebtGenerationRule.findActive()
-                .collect(Collectors.toSet())) {
-            final RuleExecutor exec = new RuleExecutor(academicDebtGenerationRule, registration);
+    public static void runAllActiveForRegistration(final Registration registration,
+            final boolean runOnlyWithBackgroundExecution) {
+        for (final AcademicDebtGenerationRuleType type : AcademicDebtGenerationRuleType.findAll()
+                .sorted(AcademicDebtGenerationRuleType.COMPARE_BY_ORDER_NUMBER).collect(Collectors.toList())) {
+            for (final AcademicDebtGenerationRule academicDebtGenerationRule : AcademicDebtGenerationRule.findActiveByType(type)
+                    .sorted(COMPARE_BY_ORDER_NUMBER).collect(Collectors.toList())) {
 
-            try {
-                exec.start();
-                exec.join();
-            } catch (InterruptedException e) {
+                if (runOnlyWithBackgroundExecution && !academicDebtGenerationRule.isBackgroundExecution()) {
+                    continue;
+                }
+
+                final RuleExecutor exec = new RuleExecutor(academicDebtGenerationRule, registration);
+
+                try {
+                    exec.start();
+                    exec.join();
+                } catch (InterruptedException e) {
+                }
             }
         }
     }
 
     @Atomic(mode = TxMode.WRITE)
-    public static void runAllActiveForRegistrationAtomically(final Registration registration) {
-        final LogBean logBean = new LogBean();
-        for (final AcademicDebtGenerationRule rule : AcademicDebtGenerationRule.findActive().collect(Collectors.toSet())) {
-            rule.getAcademicDebtGenerationRuleType().strategyImplementation().process(rule, registration, logBean);
+    public static void runAllActiveForRegistrationAtomically(final Registration registration,
+            final boolean runOnlyWithBackgroundExecution) {
+        for (final AcademicDebtGenerationRuleType type : AcademicDebtGenerationRuleType.findAll()
+                .sorted(AcademicDebtGenerationRuleType.COMPARE_BY_ORDER_NUMBER).collect(Collectors.toList())) {
+            for (final AcademicDebtGenerationRule rule : AcademicDebtGenerationRule.findActiveByType(type)
+                    .sorted(COMPARE_BY_ORDER_NUMBER).collect(Collectors.toList())) {
+
+                if (runOnlyWithBackgroundExecution && !rule.isBackgroundExecution()) {
+                    continue;
+                }
+
+                rule.getAcademicDebtGenerationRuleType().strategyImplementation().process(rule, registration);
+            }
         }
     }
 

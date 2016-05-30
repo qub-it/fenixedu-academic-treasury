@@ -26,14 +26,19 @@
  */
 package org.fenixedu.academictreasury.ui.manageacademicdebtgenerationrule;
 
+import java.util.Collections;
+import java.util.SortedSet;
 import java.util.stream.Collectors;
 
+import org.codehaus.jackson.map.util.Comparators;
+import org.fenixedu.academic.domain.ExecutionYear;
 import org.fenixedu.academictreasury.domain.debtGeneration.AcademicDebtGenerationRule;
 import org.fenixedu.academictreasury.domain.debtGeneration.AcademicDebtGenerationRuleType;
 import org.fenixedu.academictreasury.dto.debtGeneration.AcademicDebtGenerationRuleBean;
 import org.fenixedu.academictreasury.ui.AcademicTreasuryBaseController;
 import org.fenixedu.academictreasury.ui.AcademicTreasuryController;
 import org.fenixedu.academictreasury.util.Constants;
+import org.fenixedu.bennu.core.domain.Bennu;
 import org.fenixedu.bennu.core.domain.exceptions.DomainException;
 import org.fenixedu.bennu.core.i18n.BundleUtil;
 import org.fenixedu.bennu.spring.portal.SpringFunctionality;
@@ -44,6 +49,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import com.google.common.collect.Sets;
 
 //@Component("org.fenixedu.academictreasury.ui.manageacademicdebtgenerationrule") <-- Use for duplicate controller name disambiguation
 @SpringFunctionality(app = AcademicTreasuryController.class, title = "label.title.manageacademicdebtgenerationrule",
@@ -58,23 +65,46 @@ public class AcademicDebtGenerationRuleController extends AcademicTreasuryBaseCo
     @RequestMapping
     public String home(Model model) {
         //this is the default behaviour, for handling in a Spring Functionality
-        return "forward:" + CONTROLLER_URL + "/";
+        return "forward:" + CHOOSE_TYPE_URL;
     }
 
-    private void setAcademicDebtGenerationRule(AcademicDebtGenerationRule academicDebtGenerationRule, Model model) {
-        model.addAttribute("academicDebtGenerationRule", academicDebtGenerationRule);
+    private static final String _CHOOSE_TYPE_URI = "/choosetype";
+    public static final String CHOOSE_TYPE_URL = CONTROLLER_URL + _CHOOSE_TYPE_URI;
+
+    @RequestMapping(value = _CHOOSE_TYPE_URI)
+    public String choosetype(Model model) {
+        model.addAttribute("academicDebtGenerationRuleTypesSet", Bennu.getInstance().getAcademicDebtGenerationRuleTypesSet());
+
+        return jspPage("choosetype");
     }
 
-    private static final String _SEARCH_URI = "/";
+    private static final String _CHOOSE_EXECUTION_YEAR_URI = "/chooseexecutionyear";
+    public static final String CHOOSE_EXECUTION_YEAR_URL = CONTROLLER_URL + _CHOOSE_EXECUTION_YEAR_URI;
+
+    @RequestMapping(value = _CHOOSE_EXECUTION_YEAR_URI + "/{typeId}")
+    public String chooseexecutionyear(@PathVariable("typeId") final AcademicDebtGenerationRuleType type, final Model model) {
+        model.addAttribute("academicDebtGenerationRuleType", type);
+
+        final SortedSet<ExecutionYear> executionYearsSet =
+                Sets.newTreeSet(Collections.reverseOrder(ExecutionYear.COMPARATOR_BY_YEAR));
+        executionYearsSet.addAll(ExecutionYear.readNotClosedExecutionYears());
+
+        model.addAttribute("executionYearsSet", executionYearsSet);
+
+        return jspPage("chooseexecutionyear");
+    }
+
+    private static final String _SEARCH_URI = "/search";
     public static final String SEARCH_URL = CONTROLLER_URL + _SEARCH_URI;
 
-    @RequestMapping(value = _SEARCH_URI)
-    public String search(Model model) {
+    @RequestMapping(value = _SEARCH_URI + "/{typeId}/{executionYearId}")
+    public String search(@PathVariable("typeId") final AcademicDebtGenerationRuleType type,
+            @PathVariable("executionYearId") final ExecutionYear executionYear, final Model model) {
+        model.addAttribute("academicDebtGenerationRuleType", type);
+        model.addAttribute("executionYear", executionYear);
 
-        model.addAttribute(
-                "searchacademicdebtgenerationruleResultsDataSet",
-                AcademicDebtGenerationRule.findAll().sorted(AcademicDebtGenerationRule.COMPARATOR_BY_EXECUTION_YEAR)
-                        .collect(Collectors.toList()));
+        model.addAttribute("searchacademicdebtgenerationruleResultsDataSet", AcademicDebtGenerationRule.find(type, executionYear)
+                .sorted(AcademicDebtGenerationRule.COMPARE_BY_ORDER_NUMBER).collect(Collectors.toList()));
 
         return jspPage("search");
     }
@@ -82,54 +112,75 @@ public class AcademicDebtGenerationRuleController extends AcademicTreasuryBaseCo
     private static final String _SEARCH_TO_DELETE_ACTION_URI = "/search/delete/";
     public static final String SEARCH_TO_DELETE_ACTION_URL = CONTROLLER_URL + _SEARCH_TO_DELETE_ACTION_URI;
 
-    @RequestMapping(value = _SEARCH_TO_DELETE_ACTION_URI + "{oid}", method = RequestMethod.POST)
-    public String processSearchToDeleteAction(@PathVariable("oid") final AcademicDebtGenerationRule academicDebtGenerationRule,
-            final Model model, final RedirectAttributes redirectAttributes) {
-        setAcademicDebtGenerationRule(academicDebtGenerationRule, model);
+    @RequestMapping(value = _SEARCH_TO_DELETE_ACTION_URI + "/{typeId}/{executionYearId}/{oid}", method = RequestMethod.POST)
+    public String processSearchToDeleteAction(@PathVariable("typeId") final AcademicDebtGenerationRuleType type,
+            @PathVariable("executionYearId") final ExecutionYear executionYear,
+            @PathVariable("oid") final AcademicDebtGenerationRule academicDebtGenerationRule, final Model model,
+            final RedirectAttributes redirectAttributes) {
+        model.addAttribute("academicDebtGenerationRuleType", type);
+        model.addAttribute("executionYear", executionYear);
+
+        model.addAttribute("academicDebtGenerationRule", academicDebtGenerationRule);
         try {
             academicDebtGenerationRule.delete();
 
             addInfoMessage(BundleUtil.getString(Constants.BUNDLE, "label.AcademicDebtGenerationRule.delete.success"), model);
-            return redirect(SEARCH_URL, model, redirectAttributes);
+            return redirect(String.format("%s/%s/%s", SEARCH_URL, type.getExternalId(), executionYear.getExternalId()), model,
+                    redirectAttributes);
         } catch (DomainException ex) {
             addErrorMessage(ex.getLocalizedMessage(), model);
         }
 
-        return search(model);
+        return search(type, executionYear, model);
     }
 
     private static final String _SEARCH_TO_INACTIVATE_ACTION_URI = "/search/inactivate/";
     public static final String SEARCH_TO_INACTIVATE_ACTION_URL = CONTROLLER_URL + _SEARCH_TO_INACTIVATE_ACTION_URI;
 
-    @RequestMapping(value = _SEARCH_TO_INACTIVATE_ACTION_URI + "{oid}")
-    public String processSearchToInactivateAction(@PathVariable("oid") AcademicDebtGenerationRule academicDebtGenerationRule,
-            Model model, RedirectAttributes redirectAttributes) {
+    @RequestMapping(value = _SEARCH_TO_INACTIVATE_ACTION_URI + "/{typeId}/{executionYearId}/{oid}")
+    public String processSearchToInactivateAction(@PathVariable("typeId") final AcademicDebtGenerationRuleType type,
+            @PathVariable("executionYearId") final ExecutionYear executionYear,
+            @PathVariable("oid") AcademicDebtGenerationRule academicDebtGenerationRule, Model model,
+            RedirectAttributes redirectAttributes) {
+        model.addAttribute("academicDebtGenerationRuleType", type);
+        model.addAttribute("executionYear", executionYear);
 
         academicDebtGenerationRule.inactivate();
 
         // CHANGE_ME Insert code here for processing rowAction inactivate
         // If you selected multiple exists you must choose which one to use below
-        return redirect(SEARCH_URL, model, redirectAttributes);
+        return redirect(String.format("%s/%s/%s", SEARCH_URL, type.getExternalId(), executionYear.getExternalId()), model,
+                redirectAttributes);
     }
 
     private static final String _SEARCH_TO_ACTIVATE_ACTION_URI = "/search/activate/";
     public static final String SEARCH_TO_ACTIVATE_ACTION_URL = CONTROLLER_URL + _SEARCH_TO_ACTIVATE_ACTION_URI;
 
-    @RequestMapping(value = _SEARCH_TO_ACTIVATE_ACTION_URI + "{oid}")
-    public String processSearchToActivateAction(@PathVariable("oid") final AcademicDebtGenerationRule academicDebtGenerationRule,
-            Model model, RedirectAttributes redirectAttributes) {
+    @RequestMapping(value = _SEARCH_TO_ACTIVATE_ACTION_URI + "/{typeId}/{executionYearId}/{oid}")
+    public String processSearchToActivateAction(@PathVariable("typeId") final AcademicDebtGenerationRuleType type,
+            @PathVariable("executionYearId") final ExecutionYear executionYear,
+            @PathVariable("oid") final AcademicDebtGenerationRule academicDebtGenerationRule, Model model,
+            RedirectAttributes redirectAttributes) {
+        model.addAttribute("academicDebtGenerationRuleType", type);
+        model.addAttribute("executionYear", executionYear);
 
         academicDebtGenerationRule.activate();
 
-        return redirect(SEARCH_URL, model, redirectAttributes);
+        return redirect(String.format("%s/%s/%s", SEARCH_URL, type.getExternalId(), executionYear.getExternalId()), model,
+                redirectAttributes);
     }
 
     private static final String _SEARCH_TO_READ_LOG_ACTION_URI = "/readlog/";
     public static final String SEARCH_TO_READ_LOG_ACTION_URL = CONTROLLER_URL + _SEARCH_TO_READ_LOG_ACTION_URI;
 
-    @RequestMapping(value = _SEARCH_TO_READ_LOG_ACTION_URI + "{oid}")
-    public String processSearchToReadLogAction(@PathVariable("oid") final AcademicDebtGenerationRule academicDebtGenerationRule,
-            Model model, RedirectAttributes redirectAttributes) {
+    @RequestMapping(value = _SEARCH_TO_READ_LOG_ACTION_URI + "/{typeId}/{executionYearId}/{oid}")
+    public String processSearchToReadLogAction(@PathVariable("typeId") final AcademicDebtGenerationRuleType type,
+            @PathVariable("executionYearId") final ExecutionYear executionYear,
+            @PathVariable("oid") final AcademicDebtGenerationRule academicDebtGenerationRule, Model model,
+            RedirectAttributes redirectAttributes) {
+        model.addAttribute("academicDebtGenerationRuleType", type);
+        model.addAttribute("executionYear", executionYear);
+
         return redirect(TreasuryOperationLogController.READ_URL + academicDebtGenerationRule.getExternalId(), model,
                 redirectAttributes);
     }
@@ -137,41 +188,55 @@ public class AcademicDebtGenerationRuleController extends AcademicTreasuryBaseCo
     private static final String _PROCESS_ACTION_URI = "/search/process/";
     public static final String PROCESS_ACTION_URL = CONTROLLER_URL + _PROCESS_ACTION_URI;
 
-    @RequestMapping(value = _PROCESS_ACTION_URI + "{oid}")
-    public String processProcessAction(@PathVariable("oid") AcademicDebtGenerationRule academicDebtGenerationRule, Model model,
+    @RequestMapping(value = _PROCESS_ACTION_URI + "/{typeId}/{executionYearId}/{oid}")
+    public String processProcessAction(@PathVariable("typeId") final AcademicDebtGenerationRuleType type,
+            @PathVariable("executionYearId") final ExecutionYear executionYear,
+            @PathVariable("oid") AcademicDebtGenerationRule academicDebtGenerationRule, Model model,
             RedirectAttributes redirectAttributes) {
+        model.addAttribute("academicDebtGenerationRuleType", type);
+        model.addAttribute("executionYear", executionYear);
 
-        academicDebtGenerationRule.getAcademicDebtGenerationRuleType().strategyImplementation().process(academicDebtGenerationRule);
-        
+        academicDebtGenerationRule.getAcademicDebtGenerationRuleType().strategyImplementation()
+                .process(academicDebtGenerationRule);
+
         // CHANGE_ME Insert code here for processing rowAction inactivate
         // If you selected multiple exists you must choose which one to use below
-        return redirect(SEARCH_URL, model, redirectAttributes);
+        return redirect(String.format("%s/%s/%s", SEARCH_URL, type.getExternalId(), executionYear.getExternalId()), model,
+                redirectAttributes);
     }
 
     private static final String _CREATE_URI = "/create";
     public static final String CREATE_URL = CONTROLLER_URL + _CREATE_URI;
 
-    @RequestMapping(value = _CREATE_URI, method = RequestMethod.GET)
-    public String create(Model model) {
-        AcademicDebtGenerationRuleBean bean = new AcademicDebtGenerationRuleBean(AcademicDebtGenerationRuleType.findByCode(AcademicDebtGenerationRuleType.DEPRECATED_STRATEGY_CODE).get());
+    @RequestMapping(value = _CREATE_URI + "/{typeId}/{executionYearId}", method = RequestMethod.GET)
+    public String create(@PathVariable("typeId") final AcademicDebtGenerationRuleType type,
+            @PathVariable("executionYearId") final ExecutionYear executionYear, final Model model) {
+        AcademicDebtGenerationRuleBean bean = new AcademicDebtGenerationRuleBean(type, executionYear);
 
-        return _create(bean, model);
+        return _create(bean, type, executionYear, model);
     }
-    
-    private String _create(final AcademicDebtGenerationRuleBean bean, Model model) {
+
+    private String _create(final AcademicDebtGenerationRuleBean bean, final AcademicDebtGenerationRuleType type,
+            final ExecutionYear executionYear, Model model) {
+        model.addAttribute("academicDebtGenerationRuleType", type);
+        model.addAttribute("executionYear", executionYear);
 
         model.addAttribute("academicDebtGenerationRuleBean", bean);
         model.addAttribute("academicDebtGenerationRuleBeanJson", getBeanJson(bean));
 
         return jspPage("create");
     }
-    
+
     private static final String _ADDPRODUCT_URI = "/addproduct";
     public static final String ADDPRODUCT_URL = CONTROLLER_URL + _ADDPRODUCT_URI;
 
-    @RequestMapping(value = _ADDPRODUCT_URI, method = RequestMethod.POST)
-    public String addproduct(@RequestParam(value = "bean", required = false) final AcademicDebtGenerationRuleBean bean,
-            final Model model) {
+    @RequestMapping(value = _ADDPRODUCT_URI + "/{typeId}/{executionYearId}", method = RequestMethod.POST)
+    public String addproduct(@PathVariable("typeId") final AcademicDebtGenerationRuleType type,
+            @PathVariable("executionYearId") final ExecutionYear executionYear,
+            @RequestParam(value = "bean", required = false) final AcademicDebtGenerationRuleBean bean, final Model model) {
+
+        model.addAttribute("academicDebtGenerationRuleType", type);
+        model.addAttribute("executionYear", executionYear);
 
         bean.addEntry();
 
@@ -180,30 +245,37 @@ public class AcademicDebtGenerationRuleController extends AcademicTreasuryBaseCo
 
         return jspPage("create");
     }
-    
+
     private static final String _CHOOSEEXECUTIONYEARPOSTBACK_URI = "/chooseexecutionyearpostback";
     public static final String CHOOSEEXECUTIONYEARPOSTBACK_URL = CONTROLLER_URL + _CHOOSEEXECUTIONYEARPOSTBACK_URI;
-    
-    @RequestMapping(value= _CHOOSEEXECUTIONYEARPOSTBACK_URI, method=RequestMethod.POST)
-    public String chooseExecutionYearPostback(
+
+    @RequestMapping(value = _CHOOSEEXECUTIONYEARPOSTBACK_URI + "/{typeId}/{executionYearId}", method = RequestMethod.POST)
+    public String chooseExecutionYearPostback(@PathVariable("typeId") final AcademicDebtGenerationRuleType type,
+            @PathVariable("executionYearId") final ExecutionYear executionYear,
             @RequestParam(value = "bean", required = false) final AcademicDebtGenerationRuleBean bean, final Model model) {
-        
+
+        model.addAttribute("academicDebtGenerationRuleType", type);
+        model.addAttribute("executionYear", executionYear);
+
         model.addAttribute("academicDebtGenerationRuleBean", bean);
         model.addAttribute("academicDebtGenerationRuleBeanJson", getBeanJson(bean));
 
         return jspPage("create");
     }
-    
-    
+
     private static final String _CHOOSEDEGREETYPEPOSTBACK_URI = "/choosedegreetypepostback";
     public static final String CHOOSEDEGREETYPEPOSTBACK_URL = CONTROLLER_URL + _CHOOSEDEGREETYPEPOSTBACK_URI;
-    
-    @RequestMapping(value = _CHOOSEDEGREETYPEPOSTBACK_URI, method=RequestMethod.POST)
-    public String chooseDegreeTypePostback(
+
+    @RequestMapping(value = _CHOOSEDEGREETYPEPOSTBACK_URI + "/{typeId}/{executionYearId}", method = RequestMethod.POST)
+    public String chooseDegreeTypePostback(@PathVariable("typeId") final AcademicDebtGenerationRuleType type,
+            @PathVariable("executionYearId") final ExecutionYear executionYear,
             @RequestParam(value = "bean", required = false) final AcademicDebtGenerationRuleBean bean, final Model model) {
-        
+
+        model.addAttribute("academicDebtGenerationRuleType", type);
+        model.addAttribute("executionYear", executionYear);
+
         bean.chooseDegreeType();
-        
+
         model.addAttribute("academicDebtGenerationRuleBean", bean);
         model.addAttribute("academicDebtGenerationRuleBeanJson", getBeanJson(bean));
 
@@ -213,43 +285,53 @@ public class AcademicDebtGenerationRuleController extends AcademicTreasuryBaseCo
     private static final String _ADDDEGREECURRICULARPLANS_URI = "/adddegreecurricularplans";
     public static final String ADDDEGREECURRICULARPLANS_URL = CONTROLLER_URL + _ADDDEGREECURRICULARPLANS_URI;
 
-    @RequestMapping(value = _ADDDEGREECURRICULARPLANS_URI, method = RequestMethod.POST)
-    public String adddegreeCurricularPlans(
+    @RequestMapping(value = _ADDDEGREECURRICULARPLANS_URI + "/{typeId}/{executionYearId}", method = RequestMethod.POST)
+    public String adddegreeCurricularPlans(@PathVariable("typeId") final AcademicDebtGenerationRuleType type,
+            @PathVariable("executionYearId") final ExecutionYear executionYear,
             @RequestParam(value = "bean", required = false) final AcademicDebtGenerationRuleBean bean, final Model model) {
 
+        model.addAttribute("academicDebtGenerationRuleType", type);
+        model.addAttribute("executionYear", executionYear);
+
         bean.addDegreeCurricularPlans();
-        
+
         model.addAttribute("academicDebtGenerationRuleBean", bean);
         model.addAttribute("academicDebtGenerationRuleBeanJson", getBeanJson(bean));
 
         return jspPage("create");
     }
-    
+
     private static final String _REMOVEDEGREECURRICULARPLAN_URI = "/removedegreecurricularplan";
     public static final String REMOVEDEGREECURRICULARPLAN_URL = CONTROLLER_URL + _REMOVEDEGREECURRICULARPLAN_URI;
-    
-    @RequestMapping(value = _REMOVEDEGREECURRICULARPLAN_URI + "/{entryIndex}", method=RequestMethod.POST)
-    public String removeDegreeCurricularPlan(@PathVariable("entryIndex") int entryIndex,
+
+    @RequestMapping(value = _REMOVEDEGREECURRICULARPLAN_URI + "/{typeId}/{executionYearId}/{entryIndex}",
+            method = RequestMethod.POST)
+    public String removeDegreeCurricularPlan(@PathVariable("typeId") final AcademicDebtGenerationRuleType type,
+            @PathVariable("executionYearId") final ExecutionYear executionYear, @PathVariable("entryIndex") int entryIndex,
             @RequestParam(value = "bean", required = false) final AcademicDebtGenerationRuleBean bean, final Model model) {
-        
+
+        model.addAttribute("academicDebtGenerationRuleType", type);
+        model.addAttribute("executionYear", executionYear);
+
         bean.removeDegreeCurricularPlan(entryIndex);
-        
+
         model.addAttribute("academicDebtGenerationRuleBean", bean);
         model.addAttribute("academicDebtGenerationRuleBeanJson", getBeanJson(bean));
 
-        
-        
         return jspPage("create");
-        
-        
+
     }
 
     private static final String _REMOVEPRODUCT_URI = "/removeproduct";
     public static final String REMOVEPRODUCT_URL = CONTROLLER_URL + _REMOVEPRODUCT_URI;
 
-    @RequestMapping(value = _REMOVEPRODUCT_URI + "/{entryIndex}", method = RequestMethod.POST)
-    public String removeproduct(@PathVariable("entryIndex") int entryIndex,
+    @RequestMapping(value = _REMOVEPRODUCT_URI + "/{typeId}/{executionYearId}/{entryIndex}", method = RequestMethod.POST)
+    public String removeproduct(@PathVariable("typeId") final AcademicDebtGenerationRuleType type,
+            @PathVariable("executionYearId") final ExecutionYear executionYear, @PathVariable("entryIndex") int entryIndex,
             @RequestParam(value = "bean", required = false) final AcademicDebtGenerationRuleBean bean, final Model model) {
+
+        model.addAttribute("academicDebtGenerationRuleType", type);
+        model.addAttribute("executionYear", executionYear);
 
         bean.removEntry(entryIndex);
 
@@ -259,8 +341,10 @@ public class AcademicDebtGenerationRuleController extends AcademicTreasuryBaseCo
         return jspPage("create");
     }
 
-    @RequestMapping(value = _CREATE_URI, method = RequestMethod.POST)
-    public String create(@RequestParam(value = "bean", required = false) final AcademicDebtGenerationRuleBean bean, Model model,
+    @RequestMapping(value = _CREATE_URI + "/{typeId}/{executionYearId}", method = RequestMethod.POST)
+    public String create(@PathVariable("typeId") final AcademicDebtGenerationRuleType type,
+            @PathVariable("executionYearId") final ExecutionYear executionYear,
+            @RequestParam(value = "bean", required = false) final AcademicDebtGenerationRuleBean bean, Model model,
             RedirectAttributes redirectAttributes) {
         try {
 
@@ -269,13 +353,56 @@ public class AcademicDebtGenerationRuleController extends AcademicTreasuryBaseCo
             //Success Validation
             //Add the bean to be used in the View
             model.addAttribute("academicDebtGenerationRule", academicDebtGenerationRule);
-            return redirect(SEARCH_URL, model, redirectAttributes);
+            return redirect(String.format("%s/%s/%s", SEARCH_URL, type.getExternalId(), executionYear.getExternalId()), model,
+                    redirectAttributes);
 
         } catch (DomainException de) {
             addErrorMessage(de.getLocalizedMessage(), model);
-            
-            return _create(bean, model);
+
+            return _create(bean, type, executionYear, model);
         }
+    }
+
+    private static final String _TOGGLE_BACKGROUND_EXECUTION_URI = "/togglebackgroundexecution";
+    public static final String TOGGLE_BACKGROUND_EXECUTION_URL = CONTROLLER_URL + _TOGGLE_BACKGROUND_EXECUTION_URI;
+
+    @RequestMapping(value = _TOGGLE_BACKGROUND_EXECUTION_URI + "/{typeId}/{executionYearId}/{oid}")
+    public String toggleBackgroundExecution(@PathVariable("typeId") final AcademicDebtGenerationRuleType type,
+            @PathVariable("executionYearId") final ExecutionYear executionYear,
+            @PathVariable("oid") final AcademicDebtGenerationRule academicDebtGenerationRule, final Model model,
+            final RedirectAttributes redirectAttributes) {
+
+        academicDebtGenerationRule.toggleBackgroundExecution();
+        return redirect(String.format("%s/%s/%s", SEARCH_URL, type.getExternalId(), executionYear.getExternalId()), model,
+                redirectAttributes);
+    }
+
+    private static final String _ORDER_UP_URI = "/orderup";
+    public static final String ORDER_UP_URL = CONTROLLER_URL + _ORDER_UP_URI;
+
+    @RequestMapping(value = _ORDER_UP_URI + "/{typeId}/{executionYearId}/{oid}")
+    public String orderup(@PathVariable("typeId") final AcademicDebtGenerationRuleType type,
+            @PathVariable("executionYearId") final ExecutionYear executionYear,
+            @PathVariable("oid") final AcademicDebtGenerationRule academicDebtGenerationRule, final Model model,
+            final RedirectAttributes redirectAttributes) {
+
+        academicDebtGenerationRule.orderUp();
+        return redirect(String.format("%s/%s/%s", SEARCH_URL, type.getExternalId(), executionYear.getExternalId()), model,
+                redirectAttributes);
+    }
+
+    private static final String _ORDER_DOWN_URI = "/orderdown";
+    public static final String ORDER_DOWN_URL = CONTROLLER_URL + _ORDER_DOWN_URI;
+
+    @RequestMapping(value = _ORDER_DOWN_URI + "/{typeId}/{executionYearId}/{oid}")
+    public String orderdown(@PathVariable("typeId") final AcademicDebtGenerationRuleType type,
+            @PathVariable("executionYearId") final ExecutionYear executionYear,
+            @PathVariable("oid") final AcademicDebtGenerationRule academicDebtGenerationRule, final Model model,
+            final RedirectAttributes redirectAttributes) {
+
+        academicDebtGenerationRule.orderDown();
+        return redirect(String.format("%s/%s/%s", SEARCH_URL, type.getExternalId(), executionYear.getExternalId()), model,
+                redirectAttributes);
     }
 
     private String jspPage(final String page) {

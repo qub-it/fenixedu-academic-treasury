@@ -43,7 +43,7 @@ public class PendingAcademicDebtGenerationRuleCronTask extends CronTask {
         @Override
         @Atomic(mode=TxMode.READ)
         public void run() {
-            AcademicDebtGenerationRule.runAllActiveForRegistration(FenixFramework.getDomainObject(registrationId));
+            AcademicDebtGenerationRule.runAllActiveForRegistration(FenixFramework.getDomainObject(registrationId), true);
         }
     }
 }

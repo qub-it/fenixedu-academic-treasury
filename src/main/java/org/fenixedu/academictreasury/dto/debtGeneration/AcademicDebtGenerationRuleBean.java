@@ -95,8 +95,14 @@ public class AcademicDebtGenerationRuleBean implements Serializable, IBean {
     private List<TupleDataSourceBean> degreeTypeDataSource = Lists.newArrayList();
     private List<TupleDataSourceBean> degreeCurricularPlanDataSource = Lists.newArrayList();
 
-    public AcademicDebtGenerationRuleBean(final AcademicDebtGenerationRuleType type) {
+    private boolean toAggregateDebitEntries;
+    private boolean toCloseDebitNotes;
+    private boolean toCreatePaymentReferenceCodes;
+    private boolean toCreateDebitEntries;
+    
+    public AcademicDebtGenerationRuleBean(final AcademicDebtGenerationRuleType type, final ExecutionYear executionYear) {
         this.type = type;
+        this.executionYear = executionYear;
         
         executionYearDataSource =
                 ExecutionYear.readNotClosedExecutionYears().stream()
@@ -130,6 +136,11 @@ public class AcademicDebtGenerationRuleBean implements Serializable, IBean {
         this.closeDebitNote = false;
         this.alignAllAcademicTaxesDebitToMaxDueDate = false;
         this.createPaymentReferenceCode = false;
+        
+        toAggregateDebitEntries = type.strategyImplementation().isToAggregateDebitEntries();
+        toCloseDebitNotes = type.strategyImplementation().isToCloseDebitNotes();
+        toCreatePaymentReferenceCodes = type.strategyImplementation().isToCreatePaymentReferenceCodes();
+        toCreateDebitEntries = type.strategyImplementation().isToCreateDebitEntries();
     }
     
     public void chooseDegreeType() {
@@ -162,8 +173,8 @@ public class AcademicDebtGenerationRuleBean implements Serializable, IBean {
             return;
         }
 
-        entries.add(new ProductEntry(this.product, this.createDebt, this.toCreateAfterLastRegistrationStateDate, 
-                this.forceCreation, this.limitToRegisteredOnExecutionYear));
+        entries.add(new ProductEntry(this.product, isToCreateDebitEntries() && this.createDebt, isToCreateDebitEntries() && this.toCreateAfterLastRegistrationStateDate, 
+                isToCreateDebitEntries() && this.forceCreation, isToCreateDebitEntries() && this.limitToRegisteredOnExecutionYear));
 
         this.product = null;
         this.createDebt = false;
@@ -194,23 +205,23 @@ public class AcademicDebtGenerationRuleBean implements Serializable, IBean {
     }
     
     public boolean isToAggregateDebitEntries() {
-        return getType().strategyImplementation().isToAggregateDebitEntries();
+        return toAggregateDebitEntries;
     }
     
     public boolean isToCloseDebitNotes() {
-        return getType().strategyImplementation().isToCloseDebitNotes();
+        return toCloseDebitNotes;
+    }
+    
+    public boolean isToCreatePaymentReferenceCodes() {
+        return toCreatePaymentReferenceCodes;
+    }
+    
+    public boolean isToCreateDebitEntries() {
+        return toCreateDebitEntries;
     }
     
     public boolean isAggregateOnDebitNote() {
         return isToAggregateDebitEntries() && aggregateOnDebitNote;
-    }
-    
-    public boolean isToCreatePaymentReferenceCodes() {
-        return getType().strategyImplementation().isToCreatePaymentReferenceCodes();
-    }
-    
-    public boolean isToCreateDebitEntries() {
-        return getType().strategyImplementation().isToCreateDebitEntries();
     }
     
     public void setAggregateOnDebitNote(boolean aggregateOnDebitNote) {

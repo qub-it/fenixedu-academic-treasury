@@ -230,7 +230,7 @@ public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
 
     @Override
     public void createAcademicDebts(final Registration registration) {
-        AcademicDebtGenerationRule.runAllActiveForRegistration(registration);
+        AcademicDebtGenerationRule.runAllActiveForRegistration(registration, true);
     }
 
 }

@@ -55,7 +55,7 @@ ${portal.angularToolkit()}
     <h1>
         <spring:message
             code="label.manageacademicdebtgenerationrule.createAcademicDebtGenerationRule" />
-        <small></small>
+        <small><c:out value="${academicDebtGenerationRuleType.name}" />&nbsp;/&nbsp;<c:out value="${executionYear.qualifiedName}" /></small>
     </h1>
 </div>
 
@@ -63,7 +63,7 @@ ${portal.angularToolkit()}
 <div class="well well-sm" style="display: inline-block">
     <span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span>&nbsp;<a
         class=""
-        href="${pageContext.request.contextPath}/academictreasury/manageacademicdebtgenerationrule/academicdebtgenerationrule/"><spring:message
+        href="${pageContext.request.contextPath}<%= AcademicDebtGenerationRuleController.SEARCH_URL %>/${academicDebtGenerationRuleType.externalId}/${executionYear.externalId}"><spring:message
             code="label.event.back" /></a> &nbsp;
 </div>
 <c:if test="${not empty infoMessages}">
@@ -158,40 +158,17 @@ angular.module('angularAppAcademicDebtGenerationRule', ['ngSanitize', 'ui.select
     </h3>
     
     <form id="execution-year-select-form" name='form' method="post" class="form-horizontal"
-        action='${pageContext.request.contextPath}<%= AcademicDebtGenerationRuleController.CREATE_URL %>'>
+        action='${pageContext.request.contextPath}<%= AcademicDebtGenerationRuleController.CREATE_URL %>/${academicDebtGenerationRuleType.externalId}/${executionYear.externalId}'>
 
         <input name="bean" type="hidden" value="{{ object }}" />
 
 		<input id="execution-year-postback" type="hidden" name="postback"
-			value='${pageContext.request.contextPath}<%= AcademicDebtGenerationRuleController.CHOOSEEXECUTIONYEARPOSTBACK_URL %>' />
+			value='${pageContext.request.contextPath}<%= AcademicDebtGenerationRuleController.CHOOSEEXECUTIONYEARPOSTBACK_URL %>/${academicDebtGenerationRuleType.externalId}/${executionYear.externalId}' />
 
         <div class="panel panel-default">
             <div class="panel-body">
                 
-                <div class="form-group row">
-                    <div class="col-sm-2 control-label">
-                        <spring:message
-                            code="label.AcademicDebtGenerationRule.executionYear" />
-                    </div>
-
-                    <div class="col-sm-4">
-                        <%-- Relation to side 1 drop down rendered in input --%>
-                        <ui-select
-                            id="academicDebtGenerationRule_executionYear"
-                            class="" name="executionyear"
-                            ng-model="$parent.object.executionYear"
-                            on-select="onExecutionYearChange($product, $model)"
-                            theme="bootstrap" ng-disabled="disabled">
-                        <ui-select-match>{{$select.selected.text}}</ui-select-match>
-                        <ui-select-choices
-                            repeat="executionYear.id as executionYear in object.executionYearDataSource | filter: $select.search">
-                        <span
-                            ng-bind-html="executionYear.text | highlight: $select.search"></span>
-                        </ui-select-choices> </ui-select>
-                    </div>
-                </div>
-                
-                <div class="form-group row">
+                <div class="form-group row" ng-show="object.toAggregateDebitEntries === true">
                     <div class="col-sm-2 control-label">
                         <spring:message
                             code="label.AcademicDebtGenerationRule.aggregateOnDebitNote" />
@@ -209,7 +186,7 @@ angular.module('angularAppAcademicDebtGenerationRule', ['ngSanitize', 'ui.select
                     </div>
                 </div>
                 <div class="form-group row"
-                    ng-show="object.aggregateOnDebitNote === true">
+                    ng-show="object.toAggregateDebitEntries === true && object.aggregateOnDebitNote === true">
                     <div class="col-sm-2 control-label">
                         <spring:message
                             code="label.AcademicDebtGenerationRule.aggregateAllOrNothing" />
@@ -226,7 +203,7 @@ angular.module('angularAppAcademicDebtGenerationRule', ['ngSanitize', 'ui.select
                     </div>
                 </div>
                 <div class="form-group row"
-                    ng-show="object.aggregateOnDebitNote === true">
+                    ng-show="object.toCloseDebitNote === true && object.aggregateOnDebitNote === true">
                     <div class="col-sm-2 control-label">
                         <spring:message
                             code="label.AcademicDebtGenerationRule.closeDebitNote" />
@@ -243,7 +220,7 @@ angular.module('angularAppAcademicDebtGenerationRule', ['ngSanitize', 'ui.select
                 </div>
 
                 <div class="form-group row"
-                    ng-show="object.aggregateOnDebitNote === true && object.closeDebitNote === true">
+                    ng-show="object.toCloseDebitNote === true && object.closeDebitNote === true">
                     <div class="col-sm-2 control-label">
                         <spring:message
                             code="label.AcademicDebtGenerationRule.alignAllAcademicTaxesDebitToMaxDueDate" />
@@ -261,7 +238,7 @@ angular.module('angularAppAcademicDebtGenerationRule', ['ngSanitize', 'ui.select
                 </div>
                 
                 <div class="form-group row"
-                    ng-show="object.aggregateOnDebitNote === true && object.closeDebitNote === true">
+                    ng-show="object.toCreatePaymentReferenceCodes === true">
                     <div class="col-sm-2 control-label">
                         <spring:message
                             code="label.AcademicDebtGenerationRule.createPaymentReferenceCode" />
@@ -280,7 +257,7 @@ angular.module('angularAppAcademicDebtGenerationRule', ['ngSanitize', 'ui.select
                 
                 
                 <div class="form-group row"
-                	ng-show="object.createPaymentReferenceCode === true && object.createPaymentReferenceCode === true">
+                	ng-show="object.createPaymentReferenceCode === true">
                     <div class="col-sm-2 control-label">
                         <spring:message
                             code="label.AcademicDebtGenerationRule.paymentCodePool" />
@@ -376,7 +353,7 @@ angular.module('angularAppAcademicDebtGenerationRule', ['ngSanitize', 'ui.select
 						</td>
 						<td>
 							<form name='form' method="post" class="form-horizontal"
-								action='${pageContext.request.contextPath}<%= AcademicDebtGenerationRuleController.REMOVEPRODUCT_URL %>/${loopStatus.index}'>
+								action='${pageContext.request.contextPath}<%= AcademicDebtGenerationRuleController.REMOVEPRODUCT_URL %>/${academicDebtGenerationRuleType.externalId}/${executionYear.externalId}/${loopStatus.index}'>
 								<input name="bean" type="hidden" value="{{ object }}" />
 								
 								<input type="submit" class="btn btn-xs btn-default" role="button" value="<spring:message code="label.delete" />" />
@@ -398,7 +375,7 @@ angular.module('angularAppAcademicDebtGenerationRule', ['ngSanitize', 'ui.select
 </c:choose>
 
 <form id="productForm" name='form' method="post" class="form-horizontal"
-	action='${pageContext.request.contextPath}<%= AcademicDebtGenerationRuleController.ADDPRODUCT_URL %>'>
+	action='${pageContext.request.contextPath}<%= AcademicDebtGenerationRuleController.ADDPRODUCT_URL %>/${academicDebtGenerationRuleType.externalId}/${executionYear.externalId}'>
 
 	<input name="bean" type="hidden" value="{{ object }}" />
 
@@ -422,7 +399,7 @@ angular.module('angularAppAcademicDebtGenerationRule', ['ngSanitize', 'ui.select
 					</ui-select-choices> </ui-select>
 				</div>
 			</div>
-			<div class="form-group row" >
+			<div class="form-group row" ng-show="object.toAggregateDebitEntries === true" >
 				<div class="col-sm-2 control-label">
 					<spring:message
 						code="label.AcademicDebtGenerationRuleEntry.createDebt" />
@@ -437,8 +414,7 @@ angular.module('angularAppAcademicDebtGenerationRule', ['ngSanitize', 'ui.select
                 </div>
             </div>
             
-			<div class="form-group row" 
-				ng-show="object.createDebt === true">
+			<div class="form-group row" ng-show="object.createDebt === true">
 				<div class="col-sm-2 control-label">
 					<spring:message
 						code="label.AcademicDebtGenerationRuleEntry.forceCreation" />
@@ -524,7 +500,7 @@ angular.module('angularAppAcademicDebtGenerationRule', ['ngSanitize', 'ui.select
 						</td>
 						<td>
 							<form name='form' method="post" class="form-horizontal"
-								action='${pageContext.request.contextPath}<%= AcademicDebtGenerationRuleController.REMOVEDEGREECURRICULARPLAN_URL %>/${loopStatus.index}'>
+								action='${pageContext.request.contextPath}<%= AcademicDebtGenerationRuleController.REMOVEDEGREECURRICULARPLAN_URL %>/${academicDebtGenerationRuleType.externalId}/${executionYear.externalId}/${loopStatus.index}'>
 								<input name="bean" type="hidden" value="{{ object }}" />
 								
 								<input type="submit" class="btn btn-xs btn-default" role="button" value="<spring:message code="label.delete" />" />
@@ -546,12 +522,12 @@ angular.module('angularAppAcademicDebtGenerationRule', ['ngSanitize', 'ui.select
 </c:choose>
     
     <form id="degree-type-form" name='form' method="post" class="form-horizontal"
-        action='${pageContext.request.contextPath}<%= AcademicDebtGenerationRuleController.ADDDEGREECURRICULARPLANS_URL %>'>
+        action='${pageContext.request.contextPath}<%= AcademicDebtGenerationRuleController.ADDDEGREECURRICULARPLANS_URL %>/${academicDebtGenerationRuleType.externalId}/${executionYear.externalId}'>
 
         <input name="bean" type="hidden" value="{{ object }}" />
 
 		<input id="degree-type-postback" type="hidden" name="postback"
-			value='${pageContext.request.contextPath}<%= AcademicDebtGenerationRuleController.CHOOSEDEGREETYPEPOSTBACK_URL %>' />
+			value='${pageContext.request.contextPath}<%= AcademicDebtGenerationRuleController.CHOOSEDEGREETYPEPOSTBACK_URL %>/${academicDebtGenerationRuleType.externalId}/${executionYear.externalId}' />
 
         <div class="panel panel-default">
             <div class="panel-body">
@@ -596,7 +572,7 @@ angular.module('angularAppAcademicDebtGenerationRule', ['ngSanitize', 'ui.select
     </form>
     
     <form id="form" name='form' method="post" class="form-horizontal"
-        action='${pageContext.request.contextPath}<%= AcademicDebtGenerationRuleController.CREATE_URL %>'>
+        action='${pageContext.request.contextPath}<%= AcademicDebtGenerationRuleController.CREATE_URL %>/${academicDebtGenerationRuleType.externalId}/${executionYear.externalId}'>
 
         <input name="bean" type="hidden" value="{{ object }}" />
 
