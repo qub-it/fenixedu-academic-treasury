@@ -105,11 +105,6 @@ public class AcademicDebtGenerationRule extends AcademicDebtGenerationRule_Base 
                     "error.AcademicDebtGenerationRule.aggregateAllOrNothing.requires.aggregateOnDebitNote");
         }
 
-        if (isCreatePaymentReferenceCode() && !isCloseDebitNote()) {
-            throw new AcademicTreasuryDomainException(
-                    "error.AcademicDebtGenerationRule.createPaymentReferenceCode.requires.closeDebitNote");
-        }
-
         if (getAcademicDebtGenerationRuleEntriesSet().isEmpty()) {
             throw new AcademicTreasuryDomainException("error.AcademicDebtGenerationRule.entries.required");
         }

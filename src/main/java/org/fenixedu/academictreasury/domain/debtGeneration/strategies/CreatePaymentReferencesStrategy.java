@@ -209,8 +209,7 @@ public class CreatePaymentReferencesStrategy implements IAcademicDebtGenerationR
 
         final PaymentReferenceCode paymentCode = rule.getPaymentCodePool().getReferenceCodeGenerator()
                 .generateNewCodeFor(currency.getValueWithScale(amount), new LocalDate(), maxDebitEntryDueDate(debitEntries), false);
-        MultipleEntriesPaymentCode.create(debitEntries, paymentCode, true);
-
+        paymentCode.createPaymentTargetTo(debitEntries, amount);
     }
 
     private DebitEntry grabDebitEntryForAcademicTax(final AcademicDebtGenerationRule rule,
