@@ -96,7 +96,7 @@ public class AcademicDebtGenerationRuleBean implements Serializable, IBean {
     private List<TupleDataSourceBean> degreeCurricularPlanDataSource = Lists.newArrayList();
 
     private boolean toAggregateDebitEntries;
-    private boolean toCloseDebitNotes;
+    private boolean toCloseDebitNote;
     private boolean toCreatePaymentReferenceCodes;
     private boolean toCreateDebitEntries;
     
@@ -138,7 +138,7 @@ public class AcademicDebtGenerationRuleBean implements Serializable, IBean {
         this.createPaymentReferenceCode = false;
         
         toAggregateDebitEntries = type.strategyImplementation().isToAggregateDebitEntries();
-        toCloseDebitNotes = type.strategyImplementation().isToCloseDebitNotes();
+        toCloseDebitNote = type.strategyImplementation().isToCloseDebitNote();
         toCreatePaymentReferenceCodes = type.strategyImplementation().isToCreatePaymentReferenceCodes();
         toCreateDebitEntries = type.strategyImplementation().isToCreateDebitEntries();
     }
@@ -208,8 +208,8 @@ public class AcademicDebtGenerationRuleBean implements Serializable, IBean {
         return toAggregateDebitEntries;
     }
     
-    public boolean isToCloseDebitNotes() {
-        return toCloseDebitNotes;
+    public boolean isToCloseDebitNote() {
+        return toCloseDebitNote;
     }
     
     public boolean isToCreatePaymentReferenceCodes() {
@@ -229,7 +229,7 @@ public class AcademicDebtGenerationRuleBean implements Serializable, IBean {
     }
 
     public boolean isCloseDebitNote() {
-        return isToCloseDebitNotes() && closeDebitNote;
+        return isToCloseDebitNote() && closeDebitNote;
     }
 
     public void setCloseDebitNote(boolean closeDebitNote) {
@@ -237,7 +237,7 @@ public class AcademicDebtGenerationRuleBean implements Serializable, IBean {
     }
     
     public boolean isAlignAllAcademicTaxesDebitToMaxDueDate() {
-        return isToCloseDebitNotes() && alignAllAcademicTaxesDebitToMaxDueDate;
+        return isToCloseDebitNote() && alignAllAcademicTaxesDebitToMaxDueDate;
     }
     
     public void setAlignAllAcademicTaxesDebitToMaxDueDate(boolean alignAllAcademicTaxesDebitToMaxDueDate) {

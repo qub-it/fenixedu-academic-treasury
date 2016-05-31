@@ -63,7 +63,7 @@ public class DeprecatedDebtGenerationRuleStrategy implements IAcademicDebtGenera
     }
 
     @Override
-    public boolean isToCloseDebitNotes() {
+    public boolean isToCloseDebitNote() {
         return true;
     }
 

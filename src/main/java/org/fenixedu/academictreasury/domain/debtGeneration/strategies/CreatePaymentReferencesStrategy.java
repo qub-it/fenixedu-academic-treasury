@@ -63,7 +63,7 @@ public class CreatePaymentReferencesStrategy implements IAcademicDebtGenerationR
     }
 
     @Override
-    public boolean isToCloseDebitNotes() {
+    public boolean isToCloseDebitNote() {
         return false;
     }
 

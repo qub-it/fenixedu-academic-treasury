@@ -38,7 +38,7 @@ ${portal.toolkit()}
 <div class="page-header">
 	<h1>
 		<spring:message code="label.manageacademicdebtgenerationrule.searchAcademicDebtGenerationRule" />
-		<small><c:out value="${academicDebtGenerationRuleType.name}" />&nbsp;/&nbsp;<c:out value="${executionYear.qualifiedName}" /></small>
+		<small><c:out value="${academicDebtGenerationRuleType.name}" />&nbsp;[<c:out value="${executionYear.qualifiedName}" />]</small>
 	</h1>
 </div>
 <%-- NAVIGATION --%>
@@ -166,6 +166,9 @@ ${portal.toolkit()}
 				<tr>
 					<%--!!!  Field names here --%>
 					<th>
+						#
+					</th>
+					<th>
 						<spring:message code="label.AcademicDebtGenerationRule.academicDebtGenerationRuleEntries" />
 					</th>
 					<th>
@@ -178,6 +181,9 @@ ${portal.toolkit()}
 			<tbody>
 				<c:forEach var="rule" items="${searchacademicdebtgenerationruleResultsDataSet}">
 					<tr>
+						<td>
+							<c:out value="${rule.orderNumber}" />
+						</td>
 						<td>
 							<c:forEach var="entry" items="${rule.academicDebtGenerationRuleEntriesSet}">
 								<p>
@@ -223,7 +229,6 @@ ${portal.toolkit()}
 									</strong>
 								</span>
 								<span>${rule.executionYear.qualifiedName}</span>
-								<strong>Order: </strong><c:out value="${rule.orderNumber}" />
 							</p>
 
 							<p>
@@ -432,13 +437,16 @@ ${portal.toolkit()}
 											language : {
 												url : "${datatablesI18NUrl}",
 											},
+											
+											"order": [[ 0, "asc" ]],
+											
 											//CHANGE_ME adjust the actions column width if needed
 											"columnDefs" : [
 											//74
 											//222
 											{
 												"width" : "222px",
-												"targets" : 2
+												"targets" : 3
 											} ],
 											//Documentation: https://datatables.net/reference/option/dom
 											//"dom": '<"col-sm-6"l><"col-sm-3"f><"col-sm-3"T>rtip', //FilterBox = YES && ExportOptions = YES

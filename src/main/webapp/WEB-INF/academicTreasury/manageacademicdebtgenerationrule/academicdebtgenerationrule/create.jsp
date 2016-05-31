@@ -55,7 +55,7 @@ ${portal.angularToolkit()}
     <h1>
         <spring:message
             code="label.manageacademicdebtgenerationrule.createAcademicDebtGenerationRule" />
-        <small><c:out value="${academicDebtGenerationRuleType.name}" />&nbsp;/&nbsp;<c:out value="${executionYear.qualifiedName}" /></small>
+        <small><c:out value="${academicDebtGenerationRuleType.name}" />&nbsp;[<c:out value="${executionYear.qualifiedName}" />]</small>
     </h1>
 </div>
 

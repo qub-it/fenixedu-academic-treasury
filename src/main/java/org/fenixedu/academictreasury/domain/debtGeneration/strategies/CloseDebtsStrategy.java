@@ -57,7 +57,7 @@ public class CloseDebtsStrategy implements IAcademicDebtGenerationRuleStrategy {
     }
 
     @Override
-    public boolean isToCloseDebitNotes() {
+    public boolean isToCloseDebitNote() {
         return true;
     }
 

@@ -205,15 +205,13 @@ public class AcademicDebtGenerationRule extends AcademicDebtGenerationRule_Base 
         setBackgroundExecution(!isBackgroundExecution());
     }
 
-    private AcademicDebtGenerationRule findPrevious(final AcademicDebtGenerationRule rule) {
-        List<AcademicDebtGenerationRule> list =
-                findAll().filter(l -> l.getAcademicDebtGenerationRuleType() == rule.getAcademicDebtGenerationRuleType())
-                .filter(l -> l.getExecutionYear() == this.getExecutionYear())
-                        .sorted(COMPARE_BY_ORDER_NUMBER).collect(Collectors.toList());
+    private AcademicDebtGenerationRule findPrevious() {
+        List<AcademicDebtGenerationRule> list = find(getAcademicDebtGenerationRuleType(), getExecutionYear())
+                .sorted(COMPARE_BY_ORDER_NUMBER).collect(Collectors.toList());
 
         AcademicDebtGenerationRule result = null;
         for (final AcademicDebtGenerationRule r : list) {
-            if (rule.getOrderNumber() >= r.getOrderNumber()) {
+            if (r.getOrderNumber() >= getOrderNumber()) {
                 continue;
             }
 
@@ -222,7 +220,7 @@ public class AcademicDebtGenerationRule extends AcademicDebtGenerationRule_Base 
                 continue;
             }
 
-            if (result.getOrderNumber() < r.getOrderNumber()) {
+            if (r.getOrderNumber() > result.getOrderNumber()) {
                 result = r;
                 continue;
             }
@@ -231,15 +229,13 @@ public class AcademicDebtGenerationRule extends AcademicDebtGenerationRule_Base 
         return result;
     }
 
-    private AcademicDebtGenerationRule findNext(final AcademicDebtGenerationRule rule) {
-        List<AcademicDebtGenerationRule> list =
-                findAll().filter(l -> l.getAcademicDebtGenerationRuleType() == rule.getAcademicDebtGenerationRuleType())
-                .filter(l -> l.getExecutionYear() == this.getExecutionYear())
-                        .sorted(COMPARE_BY_ORDER_NUMBER).collect(Collectors.toList());
+    private AcademicDebtGenerationRule findNext() {
+        List<AcademicDebtGenerationRule> list = find(getAcademicDebtGenerationRuleType(), getExecutionYear())
+                .sorted(COMPARE_BY_ORDER_NUMBER).collect(Collectors.toList());
 
         AcademicDebtGenerationRule result = null;
         for (final AcademicDebtGenerationRule r : list) {
-            if (rule.getOrderNumber() <= r.getOrderNumber()) {
+            if (r.getOrderNumber() <= getOrderNumber()) {
                 continue;
             }
 
@@ -248,7 +244,7 @@ public class AcademicDebtGenerationRule extends AcademicDebtGenerationRule_Base 
                 continue;
             }
 
-            if (result.getOrderNumber() > r.getOrderNumber()) {
+            if (r.getOrderNumber() < result.getOrderNumber()) {
                 result = r;
                 continue;
             }
@@ -269,7 +265,7 @@ public class AcademicDebtGenerationRule extends AcademicDebtGenerationRule_Base 
 
     @Atomic
     public void orderUp() {
-        final AcademicDebtGenerationRule previous = findPrevious(this);
+        final AcademicDebtGenerationRule previous = findPrevious();
 
         if (previous == null) {
             return;
@@ -283,7 +279,7 @@ public class AcademicDebtGenerationRule extends AcademicDebtGenerationRule_Base 
 
     @Atomic
     public void orderDown() {
-        final AcademicDebtGenerationRule next = findNext(this);
+        final AcademicDebtGenerationRule next = findNext();
 
         if (next == null) {
             return;
