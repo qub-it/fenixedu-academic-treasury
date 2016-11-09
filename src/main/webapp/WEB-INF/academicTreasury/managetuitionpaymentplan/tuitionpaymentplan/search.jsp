@@ -128,9 +128,17 @@ ${portal.toolkit()}
         <div class="panel panel-default">
             <div class="panel-heading">
                 <div style="float:left; display:inline">
-                    <span class="badge">${loopStatus.index + 1}</span>&nbsp;&nbsp;<strong><c:out value="${paymentPlan.name.content}" /></strong> &nbsp; <em><c:if test="${paymentPlan.defaultPaymentPlan}">
-                            <spring:message code="label.TuitionPaymentPlan.defaultPaymentPlan" />
-                        </c:if></em>
+                    <p>
+	                    <span class="badge">${loopStatus.index + 1}</span>&nbsp;&nbsp;<strong> <c:out value="${paymentPlan.name.content}" /></strong>&nbsp;
+	                    <em>
+		                    <c:if test="${paymentPlan.defaultPaymentPlan}">
+	                            <spring:message code="label.TuitionPaymentPlan.defaultPaymentPlan" />
+		                    </c:if>
+	                    </em>
+                    </p>
+                    <c:if test="${paymentPlan.payorDebtAccount != null}">
+                    	<p><strong><spring:message code="label.TuitionPaymentPlan.payorDebtAccount" /></strong>: <c:out value="${paymentPlan.payorDebtAccount.customer.name}" /></p>
+                    </c:if>
                 </div>
                 <div style="float:right; display:inline">
                 <a class="btn btn-default" data-toggle="collapse" data-target="#collapsePayment${loopStatus.index}" href="#collapsePayment${loopStatus.index}">
@@ -276,7 +284,6 @@ ${portal.toolkit()}
 	                                        <span class="label label-danger"><em><spring:message code="error.TuitionInstallmentTariff.default.payment.plan.not.defined" /></em></span>
 	                                    </p>
 	                                </c:if>
-	                               
                                 </c:if>
                             </c:when>
                         </c:choose>
