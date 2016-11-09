@@ -342,9 +342,30 @@ class tuition.TuitionPaymentPlan {
 	
 	relation TuitionPaymentPlanStatuteType {
 		.org.fenixedu.academic.domain.student.StatuteType playsRole statuteType {
+			multiplicity 0..1;
 		}
-			
+
 		tuition.TuitionPaymentPlan playsRole tuitionPaymentPlans {
+			multiplicity *;
+		}
+	}
+	
+	relation TuitionPaymentPlanDebtAccount {
+		.org.fenixedu.treasury.domain.debt.DebtAccount playsRole payorDebtAccount {
+			multiplicity 0..1;
+		}
+		
+		tuition.TuitionPaymentPlan playsRole tuitionPaymentPlans {
+			multiplicity *;
+		}
+	}
+	
+	relation debitEntryTuitionPayorDebtAccount {
+		.org.fenixedu.treasury.domain.debt.DebtAccount playsRole payorDebtAccount {
+			multiplicity 0..1;
+		}
+		
+		.org.fenixedu.treasury.domain.document.DebitEntry playsRole debitEntries {
 			multiplicity *;
 		}
 	}
@@ -1050,4 +1071,161 @@ class importation.TreasuryImportFile extends .org.fenixedu.bennu.io.domain.Gener
 			multiplicity *;
 		}
 		
+	}
+
+/* *****************
+ * ERP TUITIONS INFO
+ * *****************
+ */
+
+class integration.tuitioninfo.ERPTuitionInfoSettings {
+}
+
+	relation ERPTuitionInfoSettingsBennu {
+		.org.fenixedu.bennu.core.domain.Bennu playsRole bennu {
+			multiplicity 1..1;
+		}
+		
+		integration.tuitioninfo.ERPTuitionInfoSettings playsRole erpTuitionInfoSettings {
+			multiplicity 0..1;
+		}
+	}
+
+	relation ERPTuitionInfoSettingsSeries {
+		.org.fenixedu.treasury.domain.document.Series playsRole series {
+			multiplicity 1..1;
+		}
+		
+		integration.tuitioninfo.ERPTuitionInfoSettings playsRole erpTuitionInfoSettings {
+			multiplicity 0..1;
+		}
+	}
+
+class integration.tuitioninfo.ERPTuitionInfoType {
+	boolean forRegistration;
+	boolean forStandalone;
+	boolean forExtracurricular;
+}
+
+	relation ERPTuitionInfoTypeBennu {
+		.org.fenixedu.bennu.core.domain.Bennu playsRole bennu {
+			multiplicity 1..1;
+		}
+		
+		integration.tuitioninfo.ERPTuitionInfoType playsRole erpTuitionInfoTypes {
+			multiplicity *;
+		}
+	}
+	
+	relation ERPTuitionInfoSettingsERPTuitionInfoType {
+		integration.tuitioninfo.ERPTuitionInfoSettings playsRole erpTuitionInfoSettings {
+			multiplicity 1..1;
+		}
+
+		integration.tuitioninfo.ERPTuitionInfoType playsRole erpTuitionInfoTypes {
+			multiplicity *;
+		}
+	}
+	
+	relation ERPTuitionInfoTypeProduct {
+		.org.fenixedu.treasury.domain.Product playsRole product {
+			multiplicity 1..1;
+		}
+
+		integration.tuitioninfo.ERPTuitionInfoType playsRole erpTuitionInfoTypes {
+			multiplicity *;
+		}
+	}
+	
+	relation ERPTuitionInfoTypeDegreeType {
+		.org.fenixedu.academic.domain.degree.DegreeType playsRole degreeType {
+			multiplicity 0..1;
+		}
+
+		integration.tuitioninfo.ERPTuitionInfoType playsRole erpTuitionInfoTypes {
+			multiplicity *;
+		}	
+	}
+	
+class integration.tuitioninfo.ERPTuitionInfo {
+	DateTime creationDate;
+	String documentNumber;
+	BigDecimalT tuitionTotalAmount;
+	BigDecimalT deltaTuitionAmount;
+	LocalDate beginDate;
+	LocalDate endDate;
+	boolean integrationSuccess;
+	String integrationMessage;
+}
+
+	relation ERPTuitionInfoBennu {
+		.org.fenixedu.bennu.core.domain.Bennu playsRole bennu {
+			multiplicity 1..1;
+		}
+		
+		integration.tuitioninfo.ERPTuitionInfo playsRole erpTuitionInfos {
+			multiplicity *;
+		}
+	}
+	
+	relation ERPTuitionInfoBennuPendingToExport {
+		.org.fenixedu.bennu.core.domain.Bennu playsRole bennuPendingToExport {
+			multiplicity 0..1;
+		}
+		
+		integration.tuitioninfo.ERPTuitionInfo playsRole erpTuitionInfosPendingToExport {
+			multiplicity *;
+		}
+	}
+	
+	relation ERPTuitionInfoCustomer {
+		.org.fenixedu.treasury.domain.Customer playsRole customer {
+			multiplicity 1..1;
+		}
+		
+		integration.tuitioninfo.ERPTuitionInfo playsRole erpTuitionInfos {
+			multiplicity *;
+		}
+	}
+	
+	relation ERPTuitionInfoExecutionYear {
+		.org.fenixedu.academic.domain.ExecutionYear playsRole executionYear {
+			multiplicity 1..1;
+		}
+		
+		integration.tuitioninfo.ERPTuitionInfo playsRole erpTuitionInfos {
+			multiplicity *;
+		}
+	}
+	
+	relation ERPTuitionInfoDocumentNumberSeries {
+		.org.fenixedu.treasury.domain.document.DocumentNumberSeries playsRole documentNumberSeries {
+			multiplicity 1..1;
+		}
+		
+		integration.tuitioninfo.ERPTuitionInfo playsRole erpTuitionInfos {
+			multiplicity *;
+		}
+	}
+	
+	relation ERPTuitionInfoProduct {
+		.org.fenixedu.treasury.domain.Product playsRole product {
+			multiplicity 1..1;
+		}
+		
+		integration.tuitioninfo.ERPTuitionInfo playsRole erpTuitionInfos {
+			multiplicity *;
+		}
+	}
+
+class integration.ERPTuitionInfoExportOperation extends .org.fenixedu.treasury.domain.integration.IntegrationOperation {
+}
+
+	relation ERPTuitionInfoERPTuitionInfoExportOperation {
+		integration.tuitioninfo.ERPTuitionInfo playsRole erpTuitionInfos {
+			multiplicity 1..1;
+		}
+		
+		integration.ERPTuitionInfoExportOperation playsRole erpTuitionInfoExportOperation {
+		}
 	}

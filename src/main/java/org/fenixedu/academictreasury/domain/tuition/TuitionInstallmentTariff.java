@@ -342,6 +342,10 @@ if (!TuitionPaymentPlan.isDefaultPaymentPlanDefined(getTuitionPaymentPlan().getD
         if (isBlockAcademicActsOnDebt()) {
             debitEntry.markBlockAcademicActsOnDebt();
         }
+        
+        if(getTuitionPaymentPlan().isPayorDebtAccountDefined()) {
+            debitEntry.setPayorDebtAccount(getTuitionPaymentPlan().getPayorDebtAccount());
+        }
 
         return debitEntry;
     }

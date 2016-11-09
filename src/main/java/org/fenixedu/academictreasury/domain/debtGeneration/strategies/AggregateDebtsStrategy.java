@@ -176,11 +176,15 @@ public class AggregateDebtsStrategy implements IAcademicDebtGenerationRuleStrate
             return;
         }
         
-        DebitNote debitNote = grabPreparingOrCreateDebitNote(debitEntries);
+        final DebitNote debitNote = grabPreparingOrCreateDebitNote(debitEntries);
         
         for (final DebitEntry debitEntry : debitEntries) {
             if (debitEntry.getFinantialDocument() == null) {
                 debitEntry.setFinantialDocument(debitNote);
+            }
+            
+            if(debitNote.getPayorDebtAccount() == null && debitEntry.getPayorDebtAccount() != null) {
+                debitNote.edit(debitEntry.getPayorDebtAccount(), debitNote.getDocumentDate().toLocalDate(), debitNote.getDocumentDueDate(), debitNote.getOriginDocumentNumber());
             }
         }
         

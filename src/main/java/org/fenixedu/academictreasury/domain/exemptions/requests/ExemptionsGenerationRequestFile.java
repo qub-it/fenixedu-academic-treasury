@@ -105,12 +105,12 @@ public class ExemptionsGenerationRequestFile extends ExemptionsGenerationRequest
                         DebitEntry tuitionDebitEntry = row.getTuitionDebitEntry(installmentOrder);
                         if (tuitionDebitEntry != null) {
                             TreasuryExemption.create(getTreasuryExemptionType(), row.getTreasuryEvent(), row.getReason(),
-                                    row.getDiscountAmount(installmentOrder), tuitionDebitEntry, true);
+                                    row.getDiscountAmount(installmentOrder), tuitionDebitEntry);
                         }
                     }
                 } else {
                     TreasuryExemption.create(getTreasuryExemptionType(), row.getTreasuryEvent(), row.getReason(),
-                            row.getDiscountAmount(), row.getDebitEntry(), true);
+                            row.getDiscountAmount(), row.getDebitEntry());
                 }
             } catch (final DomainException e) {
                 throw new AcademicTreasuryDomainException("error.ExemptionsGenerationRequestFile.unable.to.create.exemption",

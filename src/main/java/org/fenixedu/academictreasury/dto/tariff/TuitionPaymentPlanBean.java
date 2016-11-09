@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.stream.Collectors;
 
 import org.fenixedu.academic.domain.CurricularYear;
@@ -30,6 +31,7 @@ import org.fenixedu.bennu.TupleDataSourceBean;
 import org.fenixedu.bennu.core.domain.Bennu;
 import org.fenixedu.treasury.domain.FinantialEntity;
 import org.fenixedu.treasury.domain.Product;
+import org.fenixedu.treasury.domain.debt.DebtAccount;
 import org.fenixedu.treasury.domain.tariff.DueDateCalculationType;
 import org.fenixedu.treasury.domain.tariff.InterestType;
 import org.joda.time.LocalDate;
@@ -62,6 +64,7 @@ public class TuitionPaymentPlanBean implements Serializable, IBean {
     private boolean firstTimeStudent;
     private boolean customized;
     private StatuteType statuteType;
+    private DebtAccount payorDebtAccount;
 
     // TODO: Anil Use LocalizedString when web component is compatible with AngularJS
     private String name;
@@ -76,6 +79,7 @@ public class TuitionPaymentPlanBean implements Serializable, IBean {
     private List<TupleDataSourceBean> curricularYearDataSource = null;
     private List<TupleDataSourceBean> semesterDataSource = null;
     private List<TupleDataSourceBean> statuteTypeDataSource = null;
+    private List<TupleDataSourceBean> payorDebtAccountDataSource = null;
 
     private List<TupleDataSourceBean> tuitionCalculationTypeDataSource = null;
     private List<TupleDataSourceBean> ectsCalculationTypeDataSource = null;
@@ -228,6 +232,8 @@ public class TuitionPaymentPlanBean implements Serializable, IBean {
                 tuitionInstallmentProductDataSource(getTuitionPaymentPlanGroup(), this.tuitionInstallmentBeans.size() + 1);
 
         this.statuteTypeDataSource = statuteTypeDataSource();
+
+        this.payorDebtAccountDataSource = payorDebtAccountDataSource();
 
         this.executionYearDataSource = executionYearDataSource();
 
@@ -427,7 +433,7 @@ public class TuitionPaymentPlanBean implements Serializable, IBean {
         this.maximumAmount = null;
         this.academicalActBlockingOn = true;
         this.blockAcademicActsOnDebt = false;
-        
+
         if (tuitionPaymentPlanGroup.isForExtracurricular() || tuitionPaymentPlanGroup.isForStandalone()) {
             setTuitionInstallmentProduct(tuitionPaymentPlanGroup.getCurrentProduct());
         }
@@ -611,6 +617,14 @@ public class TuitionPaymentPlanBean implements Serializable, IBean {
 
     public List<TupleDataSourceBean> getTuitionInstallmentProductDataSource() {
         return tuitionInstallmentProductDataSource;
+    }
+
+    public DebtAccount getPayorDebtAccount() {
+        return payorDebtAccount;
+    }
+
+    public void setPayorDebtAccount(DebtAccount payorDebtAccount) {
+        this.payorDebtAccount = payorDebtAccount;
     }
 
     /*
@@ -983,6 +997,18 @@ public class TuitionPaymentPlanBean implements Serializable, IBean {
         return result.stream().sorted(COMPARE_BY_ID_AND_TEXT).collect(Collectors.toList());
     }
 
+    private List<TupleDataSourceBean> payorDebtAccountDataSource() {
+        final SortedSet<DebtAccount> payorDebtAccountsSet =
+                DebtAccount.findAdhocDebtAccountsSortedByCustomerName(finantialEntity.getFinantialInstitution());
+
+        final List<TupleDataSourceBean> result = payorDebtAccountsSet.stream().map(l -> new TupleDataSourceBean(l.getExternalId(),
+                String.format("%s - %s", l.getCustomer().getFiscalNumber(), l.getCustomer()))).collect(Collectors.toList());
+        
+        result.add(Constants.SELECT_OPTION);
+        
+        return result.stream().sorted(COMPARE_BY_ID_AND_TEXT).collect(Collectors.toList());
+    }
+
     private List<TupleDataSourceBean> executionYearDataSource() {
         final List<TupleDataSourceBean> result = ExecutionYear.readNotClosedExecutionYears().stream()
                 .sorted(ExecutionYear.REVERSE_COMPARATOR_BY_YEAR).collect(Collectors.toList()).stream()
@@ -1002,8 +1028,8 @@ public class TuitionPaymentPlanBean implements Serializable, IBean {
         if (isCustomized() && (isDefaultPaymentPlan() || hasStudentConditionSelected())) {
             result.add("error.TuitionPaymentPlan.customized.plan.cannot.have.other.options");
         }
-        
-        if(isDefaultPaymentPlan() && hasStudentConditionSelected()) {
+
+        if (isDefaultPaymentPlan() && hasStudentConditionSelected()) {
             result.add("error.TuitionPaymentPlan.default.payment.plan.cannot.have.other.options");
         }
 
@@ -1011,9 +1037,9 @@ public class TuitionPaymentPlanBean implements Serializable, IBean {
     }
 
     private boolean hasStudentConditionSelected() {
-        return getRegistrationRegimeType() != null || getRegistrationProtocol() != null
-                || getIngression() != null || getCurricularYear() != null || getExecutionSemester() != null
-                || isFirstTimeStudent() || getStatuteType() != null;
+        return getRegistrationRegimeType() != null || getRegistrationProtocol() != null || getIngression() != null
+                || getCurricularYear() != null || getExecutionSemester() != null || isFirstTimeStudent()
+                || getStatuteType() != null;
     }
 
     private boolean hasAtLeastOneConditionSpecified() {

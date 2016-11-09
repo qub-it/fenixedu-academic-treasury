@@ -232,7 +232,20 @@ angular.module('angularAppTuitionPaymentPlan', ['ngSanitize', 'ui.select','bennu
 				<div class="col-sm-10">
 					<input id="tuitionPaymentPlan_customizedName" class="form-control" type="text" name="customizedname" ng-model="object.name" />
 				</div>
-			</div>		
+			</div>	
+			<div class="form-group row">
+				<div class="col-sm-2 control-label"><spring:message code="label.TuitionPaymentPlan.payorDebtAccount"/></div> 
+				
+				<div class="col-sm-4">
+					<%-- Relation to side 1 drop down rendered in input --%>
+					<ui-select id="tuitionPaymentPlan_payorDebtAccount" name="payorDebtAccount" ng-model="$parent.object.payorDebtAccount" theme="bootstrap" >
+						<ui-select-match >{{$select.selected.text}}</ui-select-match>
+						<ui-select-choices repeat="payorDebtAccount.id as payorDebtAccount in object.payorDebtAccountDataSource | filter: $select.search">
+							<span ng-bind-html="payorDebtAccount.text | highlight: $select.search"></span>
+						</ui-select-choices>
+					</ui-select>
+				</div>
+			</div>			
 		</div>
 		
 		<div class="panel-footer">

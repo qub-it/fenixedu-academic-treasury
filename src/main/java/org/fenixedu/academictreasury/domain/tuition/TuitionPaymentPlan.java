@@ -74,6 +74,7 @@ public class TuitionPaymentPlan extends TuitionPaymentPlan_Base {
         setIngression(tuitionPaymentPlanBean.getIngression());
         setCurricularYear(tuitionPaymentPlanBean.getCurricularYear());
         setStatuteType(tuitionPaymentPlanBean.getStatuteType());
+        setPayorDebtAccount(tuitionPaymentPlanBean.getPayorDebtAccount());
         setSemester(tuitionPaymentPlanBean.getExecutionSemester() != null ? tuitionPaymentPlanBean.getExecutionSemester()
                 .getSemester() : null);
         setFirstTimeStudent(tuitionPaymentPlanBean.isFirstTimeStudent());
@@ -556,6 +557,10 @@ public class TuitionPaymentPlan extends TuitionPaymentPlan_Base {
     // To be extended
     public boolean isStudentMustBeEnrolled() {
         return true;
+    }
+
+    public boolean isPayorDebtAccountDefined() {
+        return getPayorDebtAccount() != null;
     }
 
     // @formatter:off
