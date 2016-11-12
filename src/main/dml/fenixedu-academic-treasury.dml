@@ -1217,7 +1217,17 @@ class integration.tuitioninfo.ERPTuitionInfo {
 			multiplicity *;
 		}
 	}
-
+	
+	relation ERPTuitionInfoFirst {
+		integration.tuitioninfo.ERPTuitionInfo playsRole firstERPTuitionInfo {
+			multiplicity 0..1;
+		}
+		
+		integration.tuitioninfo.ERPTuitionInfo playsRole erpTuitionInfos {
+			multiplicity *;
+		}
+	}
+	
 class integration.ERPTuitionInfoExportOperation extends .org.fenixedu.treasury.domain.integration.IntegrationOperation {
 }
 
