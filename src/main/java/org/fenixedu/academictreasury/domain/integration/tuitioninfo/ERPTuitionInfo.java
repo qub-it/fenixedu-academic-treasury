@@ -14,9 +14,12 @@ import org.fenixedu.bennu.core.domain.Bennu;
 import org.fenixedu.treasury.domain.Customer;
 import org.fenixedu.treasury.domain.Product;
 import org.fenixedu.treasury.domain.document.DocumentNumberSeries;
+import org.fenixedu.treasury.domain.document.FinantialDocumentType;
+import org.fenixedu.treasury.domain.document.Series;
 import org.fenixedu.treasury.util.Constants;
 import org.joda.time.DateTime;
 import org.joda.time.LocalDate;
+import org.springframework.beans.factory.serviceloader.ServiceFactoryBean;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ArrayListMultimap;
@@ -36,13 +39,39 @@ public class ERPTuitionInfo extends ERPTuitionInfo_Base {
         }
     };
 
+    public ERPTuitionInfo() {
+        super();
+        setBennu(Bennu.getInstance());
+    }
+    
     public ERPTuitionInfo(final Customer customer, final ExecutionYear executionYear, final Product product,
             final BigDecimal tuitionTotalAmount, final BigDecimal deltaTuitionAmount, final LocalDate beginDate,
             final LocalDate endDate) {
-        super();
-        setBennu(Bennu.getInstance());
-        setCreationDate(new DateTime());
+        this();
 
+        setCreationDate(new DateTime());
+        setCustomer(customer);
+        setExecutionYear(executionYear);
+        setProduct(product);
+        setTuitionTotalAmount(tuitionTotalAmount);
+        setDeltaTuitionAmount(deltaTuitionAmount);
+        setBeginDate(beginDate);
+        setEndDate(endDate);
+        
+        
+        final Series series = ERPTuitionInfoSettings.getInstance().getSeries();
+        DocumentNumberSeries documentNumberSeries = null;
+        
+        if(Constants.isPositive(getDeltaTuitionAmount())) {
+            documentNumberSeries = DocumentNumberSeries.find(FinantialDocumentType.findForDebitNote(), series);
+        } else if(Constants.isNegative(getDeltaTuitionAmount())) {
+            documentNumberSeries = DocumentNumberSeries.find(FinantialDocumentType.findForDebitNote(), series);
+        }
+        
+        setDocumentNumberSeries(documentNumberSeries);
+        
+        this.setDocumentNumber("" + this.getDocumentNumberSeries().getSequenceNumberAndIncrement());
+        
         checkRules();
     }
 
@@ -74,8 +103,8 @@ public class ERPTuitionInfo extends ERPTuitionInfo_Base {
         if (getDeltaTuitionAmount() == null) {
             throw new AcademicTreasuryDomainException("error.ERPTuitionInfo.deltaTuitionAmount.required");
         }
-        
-        if(Constants.isZero(getDeltaTuitionAmount())) {
+
+        if (Constants.isZero(getDeltaTuitionAmount())) {
             throw new AcademicTreasuryDomainException("error.ERPTuitionInfo.deltaTuitionAmount.cannot.be.zero");
         }
 
@@ -86,14 +115,23 @@ public class ERPTuitionInfo extends ERPTuitionInfo_Base {
         if (getEndDate() == null) {
             throw new AcademicTreasuryDomainException("error.ERPTuitionInfo.deltaTuitionAmount.endDate");
         }
-        
-        if(getBeginDate().isAfter(getEndDate())) {
+
+        if (getBeginDate().isAfter(getEndDate())) {
             throw new AcademicTreasuryDomainException("error.ERPTuitionInfo.deltaTuitionAmount.endDate");
         }
-        
-        if(Constants.isPositive(getDeltaTuitionAmount() && !getDocumentNumberSeries().getFinantialDocumentType().getType().isDebitNote()) {
-            throw new AcademicTreasuryDomainException("error.ERPTuitionInfo.deltaTuitionAmount.positve");
+
+        if (Constants.isPositive(getDeltaTuitionAmount())
+                && !getDocumentNumberSeries().getFinantialDocumentType().getType().isDebitNote()) {
+            throw new AcademicTreasuryDomainException(
+                    "error.ERPTuitionInfo.deltaTuitionAmount.positive.but.finantialDocument.not.debit.note");
         }
+
+        if (Constants.isNegative(getDeltaTuitionAmount())
+                && !getDocumentNumberSeries().getFinantialDocumentType().getType().isCreditNote()) {
+            throw new AcademicTreasuryDomainException(
+                    "error.ERPTuitionInfo.deltaTuitionAmount.negative.but.finantialDocument.not.credit.note");
+        }
+        
     }
 
     public boolean isPendingToExport() {
@@ -164,7 +202,7 @@ public class ERPTuitionInfo extends ERPTuitionInfo_Base {
     }
 
     public static void exportTuitionInformation() {
-        for (final PersonCustomer customer : PersonCustomer.findAll().collect(Collectors.toSet())) {
+        for (final PersonCustomer customer : PersonCustomer.findAll().collect(Collectors.<PersonCustomer> toSet())) {
             final ERPTuitionInfoExporterThread thread = new ERPTuitionInfoExporterThread(customer);
             thread.start();
 
@@ -200,7 +238,7 @@ public class ERPTuitionInfo extends ERPTuitionInfo_Base {
         final Multimap<ExecutionYear, AcademicTreasuryEvent> treasuryEventsMap = ArrayListMultimap.create();
 
         for (final ERPTuitionInfoType type : ERPTuitionInfoType.findByProduct(product).collect(Collectors.toSet())) {
-            for (final AcademicTreasuryEvent event : AcademicTreasuryEvent.find(customer).collect(Collectors.toSet())) {
+            for (final AcademicTreasuryEvent event : AcademicTreasuryEvent.find(customer).collect(Collectors.<AcademicTreasuryEvent> toSet())) {
                 if (type.isForRegistration() && event.isForRegistrationTuition()
                         && type.getDegreeType() == event.getRegistration().getDegreeType()) {
                     treasuryEventsMap.put(event.getExecutionYear(), event);
