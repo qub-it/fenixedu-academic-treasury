@@ -229,7 +229,7 @@ public class PersonCustomer extends PersonCustomer_Base {
     // TODO: Ask IST-DSI
     @Override
     public String getFiscalCountry() {
-        return getNationalityCountryCode();
+        return getCountryCode();
     }
 
     @Override
