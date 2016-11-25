@@ -1079,6 +1079,9 @@ class importation.TreasuryImportFile extends .org.fenixedu.bennu.io.domain.Gener
  */
 
 class integration.tuitioninfo.ERPTuitionInfoSettings {
+	String expectedSeriesDebitCode;
+	String expectedSeriesCreditCode;
+	String exporterClassName;
 }
 
 	relation ERPTuitionInfoSettingsBennu {
@@ -1154,8 +1157,8 @@ class integration.tuitioninfo.ERPTuitionInfo {
 	BigDecimalT deltaTuitionAmount;
 	LocalDate beginDate;
 	LocalDate endDate;
-	boolean integrationSuccess;
-	String integrationMessage;
+	boolean exportationSuccess;
+	String exportationMessage;
 }
 
 	relation ERPTuitionInfoBennu {
@@ -1223,7 +1226,7 @@ class integration.tuitioninfo.ERPTuitionInfo {
 			multiplicity 0..1;
 		}
 		
-		integration.tuitioninfo.ERPTuitionInfo playsRole erpTuitionInfos {
+		integration.tuitioninfo.ERPTuitionInfo playsRole subsequentsErpTuitionInfos {
 			multiplicity *;
 		}
 	}
@@ -1232,10 +1235,11 @@ class integration.ERPTuitionInfoExportOperation extends .org.fenixedu.treasury.d
 }
 
 	relation ERPTuitionInfoERPTuitionInfoExportOperation {
-		integration.tuitioninfo.ERPTuitionInfo playsRole erpTuitionInfos {
+		integration.tuitioninfo.ERPTuitionInfo playsRole erpTuitionInfo {
 			multiplicity 1..1;
 		}
 		
-		integration.ERPTuitionInfoExportOperation playsRole erpTuitionInfoExportOperation {
+		integration.ERPTuitionInfoExportOperation playsRole erpTuitionInfoExportOperations {
+			multiplicity *;
 		}
 	}
