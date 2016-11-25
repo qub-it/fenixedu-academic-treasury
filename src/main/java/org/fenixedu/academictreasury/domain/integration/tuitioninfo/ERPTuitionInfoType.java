@@ -14,6 +14,7 @@ public class ERPTuitionInfoType extends ERPTuitionInfoType_Base {
     public ERPTuitionInfoType() {
         super();
         setBennu(Bennu.getInstance());
+        setErpTuitionInfoSettings(ERPTuitionInfoSettings.getInstance());
     }
     
     public ERPTuitionInfoType(final Product product, final DegreeType degreeType) {
