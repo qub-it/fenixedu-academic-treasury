@@ -1,5 +1,6 @@
 package org.fenixedu.academictreasury.domain.integration.tuitioninfo;
 
+import org.fenixedu.academictreasury.domain.integration.tuitioninfo.exporter.ERPTuitionInfoExporterForSAP;
 import org.fenixedu.bennu.core.domain.Bennu;
 import org.fenixedu.treasury.domain.document.Series;
 
@@ -18,6 +19,17 @@ public class ERPTuitionInfoSettings extends ERPTuitionInfoSettings_Base {
         setExpectedSeriesDebitCode(expectedSeriesDebitCode);
         setExpectedSeriesCreditCode(expectedSeriesCreditCode);
     }
+    
+    public IERPTuitionInfoExporter exporter() {
+        return new ERPTuitionInfoExporterForSAP();
+    }
+    
+    // @formatter:off
+    /* ********
+     * SERVICES
+     * ********
+     */
+    // @formatter:on
     
     @Atomic
     public static ERPTuitionInfoSettings getInstance() {

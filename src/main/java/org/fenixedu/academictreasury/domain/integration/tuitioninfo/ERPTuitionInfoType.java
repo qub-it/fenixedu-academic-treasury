@@ -1,20 +1,33 @@
 package org.fenixedu.academictreasury.domain.integration.tuitioninfo;
 
+import java.util.Comparator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.fenixedu.academic.domain.degree.DegreeType;
-import org.fenixedu.academictreasury.domain.customer.PersonCustomer;
 import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainException;
 import org.fenixedu.bennu.core.domain.Bennu;
 import org.fenixedu.treasury.domain.Product;
 
 public class ERPTuitionInfoType extends ERPTuitionInfoType_Base {
     
+    public static final Comparator<ERPTuitionInfoType> COMPARE_BY_NAME = new Comparator<ERPTuitionInfoType>() {
+
+        @Override
+        public int compare(final ERPTuitionInfoType o1, final ERPTuitionInfoType o2) {
+            int c = o1.getName().compareTo(o2.getName());
+            
+            return c != 0 ? c : o1.getExternalId().compareTo(o2.getExternalId());
+        }
+        
+    };
+    
+    
     public ERPTuitionInfoType() {
         super();
         setBennu(Bennu.getInstance());
         setErpTuitionInfoSettings(ERPTuitionInfoSettings.getInstance());
+        setActive(true);
     }
     
     public ERPTuitionInfoType(final Product product, final DegreeType degreeType) {
@@ -64,6 +77,14 @@ public class ERPTuitionInfoType extends ERPTuitionInfoType_Base {
         }
     }
     
+    public String getCode() {
+        return getProduct().getCode();
+    }
+    
+    public String getName() {
+        return getProduct().getName().getContent();
+    }
+    
     public boolean isForRegistration() {
         return getForRegistration();
     }
@@ -75,7 +96,10 @@ public class ERPTuitionInfoType extends ERPTuitionInfoType_Base {
     public boolean isForExtracurricular() {
         return getForExtracurricular();
     }
-
+    
+    public boolean isActive() {
+        return getActive();
+    }
     
     // @formatter:off
     /* ********
@@ -88,7 +112,11 @@ public class ERPTuitionInfoType extends ERPTuitionInfoType_Base {
         return ERPTuitionInfoSettings.getInstance().getErpTuitionInfoTypesSet().stream();
     }
     
-    public static Stream<Product> findProducts() {
+    public static Stream<ERPTuitionInfoType> findActive() {
+        return findAll().filter(e -> e.isActive());
+    }
+    
+    public static Stream<Product> _findProducts() {
         return findAll().map(t -> t.getProduct()).collect(Collectors.toSet()).stream();
     }
     

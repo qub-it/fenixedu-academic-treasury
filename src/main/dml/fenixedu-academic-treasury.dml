@@ -1103,11 +1103,24 @@ class integration.tuitioninfo.ERPTuitionInfoSettings {
 			multiplicity 0..1;
 		}
 	}
+	
+	relation ERPTuitionInfoSettingsExecutionYear {
+		integration.tuitioninfo.ERPTuitionInfoSettings playsRole erpTuitionInfoSettings {
+			multiplicity *;
+		}
+		
+		.org.fenixedu.academic.domain.ExecutionYear playsRole activeExecutionYears {
+			multiplicity *;
+		}
+	}
 
 class integration.tuitioninfo.ERPTuitionInfoType {
+	String code;
+	String name;
 	boolean forRegistration;
 	boolean forStandalone;
 	boolean forExtracurricular;
+	boolean active;
 }
 
 	relation ERPTuitionInfoTypeBennu {
@@ -1154,7 +1167,7 @@ class integration.tuitioninfo.ERPTuitionInfo {
 	DateTime creationDate;
 	String documentNumber;
 	BigDecimalT tuitionTotalAmount;
-	BigDecimalT deltaTuitionAmount;
+	BigDecimalT tuitionDeltaAmount;
 	LocalDate beginDate;
 	LocalDate endDate;
 	boolean exportationSuccess;
@@ -1228,6 +1241,16 @@ class integration.tuitioninfo.ERPTuitionInfo {
 		
 		integration.tuitioninfo.ERPTuitionInfo playsRole subsequentsErpTuitionInfos {
 			multiplicity *;
+		}
+	}
+	
+	relation ERPTuitionInfoLast {
+		integration.tuitioninfo.ERPTuitionInfo playsRole lastSuccessfulSentERPTuitionInfo {
+			multiplicity 0..1;
+		}
+
+		integration.tuitioninfo.ERPTuitionInfo playsRole nextERPTuitionInfo {
+			multiplicity 0..1;
 		}
 	}
 	
