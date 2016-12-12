@@ -175,6 +175,12 @@ public class ERPTuitionInfo extends ERPTuitionInfo_Base {
         return getUiDocumentNumber().replaceAll(seriesCode, erpSeriesCode);
     }
 
+    public String getUiSettlementDocumentNumberForERP() {
+        return getUiDocumentNumber().replaceAll(
+                this.getDocumentNumberSeries().getFinantialDocumentType().getDocumentNumberSeriesPrefix(),
+                FinantialDocumentType.findForSettlementNote().getDocumentNumberSeriesPrefix());
+    }
+
     public boolean isPendingToExport() {
         return getBennuPendingToExport() != null;
     }
