@@ -25,6 +25,7 @@ import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainExc
 import org.fenixedu.academictreasury.domain.integration.ERPTuitionInfoExportOperation;
 import org.fenixedu.academictreasury.domain.integration.tuitioninfo.ERPTuitionInfo;
 import org.fenixedu.academictreasury.domain.integration.tuitioninfo.IERPTuitionInfoExporter;
+import org.fenixedu.academictreasury.util.Constants;
 import org.fenixedu.bennu.core.i18n.BundleUtil;
 import org.fenixedu.treasury.domain.FinantialInstitution;
 import org.fenixedu.treasury.domain.Product;
@@ -40,9 +41,15 @@ import org.fenixedu.treasury.generated.sources.saft.sap.AddressStructurePT;
 import org.fenixedu.treasury.generated.sources.saft.sap.AuditFile;
 import org.fenixedu.treasury.generated.sources.saft.sap.Header;
 import org.fenixedu.treasury.generated.sources.saft.sap.OrderReferences;
+import org.fenixedu.treasury.generated.sources.saft.sap.PaymentMethod;
+import org.fenixedu.treasury.generated.sources.saft.sap.SAFTPTPaymentType;
+import org.fenixedu.treasury.generated.sources.saft.sap.SAFTPTSettlementType;
 import org.fenixedu.treasury.generated.sources.saft.sap.SAFTPTSourceBilling;
+import org.fenixedu.treasury.generated.sources.saft.sap.SAFTPTSourcePayment;
 import org.fenixedu.treasury.generated.sources.saft.sap.SourceDocuments;
 import org.fenixedu.treasury.generated.sources.saft.sap.SourceDocuments.Payments;
+import org.fenixedu.treasury.generated.sources.saft.sap.SourceDocuments.Payments.Payment;
+import org.fenixedu.treasury.generated.sources.saft.sap.SourceDocuments.Payments.Payment.Line.SourceDocumentID;
 import org.fenixedu.treasury.generated.sources.saft.sap.SourceDocuments.WorkingDocuments.WorkDocument;
 import org.fenixedu.treasury.generated.sources.saft.sap.SourceDocuments.WorkingDocuments.WorkDocument.Line.Metadata;
 import org.fenixedu.treasury.generated.sources.saft.sap.Tax;
@@ -52,7 +59,6 @@ import org.fenixedu.treasury.services.integration.erp.dto.DocumentStatusWS;
 import org.fenixedu.treasury.services.integration.erp.dto.DocumentsInformationInput;
 import org.fenixedu.treasury.services.integration.erp.dto.DocumentsInformationOutput;
 import org.fenixedu.treasury.services.integration.erp.sap.SAPExporter;
-import org.fenixedu.treasury.util.Constants;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -157,10 +163,6 @@ public class ERPTuitionInfoExporterForSAP implements IERPTuitionInfoExporter {
         SourceDocuments.WorkingDocuments workingDocuments = new SourceDocuments.WorkingDocuments();
         Payments paymentsDocuments = new Payments();
 
-        BigInteger numberOfPaymentsDocuments = BigInteger.ZERO;
-        BigDecimal totalDebitOfPaymentsDocuments = BigDecimal.ZERO;
-        BigDecimal totalCreditOfPaymentsDocuments = BigDecimal.ZERO;
-
         BigInteger numberOfWorkingDocuments = BigInteger.ZERO;
         BigDecimal totalDebitOfWorkingDocuments = BigDecimal.ZERO;
         BigDecimal totalCreditOfWorkingDocuments = BigDecimal.ZERO;
@@ -175,7 +177,8 @@ public class ERPTuitionInfoExporterForSAP implements IERPTuitionInfoExporter {
         if (erpTuitionInfo.isDebit()) {
             totalDebitOfWorkingDocuments = totalDebitOfWorkingDocuments.add(workDocument.getDocumentTotals().getNetTotal());
         } else if (erpTuitionInfo.isCredit()) {
-            totalCreditOfWorkingDocuments = totalCreditOfWorkingDocuments.add(workDocument.getDocumentTotals().getNetTotal()).abs();
+            totalCreditOfWorkingDocuments =
+                    totalCreditOfWorkingDocuments.add(workDocument.getDocumentTotals().getNetTotal()).abs();
         }
 
         // AcumulateValues
@@ -190,15 +193,24 @@ public class ERPTuitionInfoExporterForSAP implements IERPTuitionInfoExporter {
 
         //PROCESSING PAYMENTS TABLE
 
-        paymentsDocuments.setNumberOfEntries(BigInteger.ZERO);
-        paymentsDocuments.setTotalCredit(BigDecimal.ZERO);
-        paymentsDocuments.setTotalDebit(BigDecimal.ZERO);
+        if (erpTuitionInfo.isCredit()) {
+            paymentsDocuments.setNumberOfEntries(new BigInteger("2"));
+            paymentsDocuments.setTotalCredit(erpTuitionInfo.getTuitionDeltaAmount().abs());
+            paymentsDocuments.setTotalDebit(erpTuitionInfo.getTuitionDeltaAmount().abs());
 
-        // Update Totals of Payment Documents
-        paymentsDocuments.setNumberOfEntries(numberOfPaymentsDocuments);
-        paymentsDocuments.setTotalCredit(totalCreditOfPaymentsDocuments.setScale(2, RoundingMode.HALF_EVEN));
-        paymentsDocuments.setTotalDebit(totalDebitOfPaymentsDocuments.setScale(2, RoundingMode.HALF_EVEN));
-        sourceDocuments.setPayments(paymentsDocuments);
+            Payment paymentDocument = convertToSAFTPaymentDocument(erpTuitionInfo);
+            paymentsDocuments.getPayment().add(paymentDocument);
+
+            sourceDocuments.setPayments(paymentsDocuments);
+        } else {
+            paymentsDocuments.setNumberOfEntries(BigInteger.ZERO);
+            paymentsDocuments.setTotalCredit(BigDecimal.ZERO);
+            paymentsDocuments.setTotalDebit(BigDecimal.ZERO);
+
+            // Update Totals of Payment Documents
+            paymentsDocuments.setNumberOfEntries(BigInteger.ZERO);
+            sourceDocuments.setPayments(paymentsDocuments);
+        }
 
         // Update the Customer Table in SAFT
         for (final ERPCustomerFieldsBean customerBean : customerMap.values()) {
@@ -500,15 +512,15 @@ public class ERPTuitionInfoExporterForSAP implements IERPTuitionInfoExporter {
             line.setDescription(erpTuitionInfo.getProduct().getName().getContent());
             List<OrderReferences> orderReferences = line.getOrderReferences();
 
-            line.setMetadata(fillMetadata(erpTuitionInfo));
+            line.setMetadata(fillMetadata(erpTuitionInfo, dataTypeFactory));
 
             if (erpTuitionInfo.getFirstERPTuitionInfo() != null) {
                 final ERPTuitionInfo firstERPTuitionInfo = erpTuitionInfo.getFirstERPTuitionInfo();
 
                 OrderReferences reference = new OrderReferences();
                 reference.setOriginatingON(firstERPTuitionInfo.getUiDocumentNumberForERP());
-                reference.setOrderDate(SAPExporter.convertToXMLDate(dataTypeFactory,
-                        erpTuitionInfo.getFirstERPTuitionInfo().getVersioningCreationDate()));
+                reference.setOrderDate(SAPExporter.convertToXMLDateTime(dataTypeFactory,
+                        erpTuitionInfo.getFirstERPTuitionInfo().getCreationDate()));
                 reference.setLineNumber(BigInteger.ONE);
 
                 orderReferences.add(reference);
@@ -551,7 +563,7 @@ public class ERPTuitionInfoExporterForSAP implements IERPTuitionInfoExporter {
         return line;
     }
 
-    private Metadata fillMetadata(final ERPTuitionInfo erpTuitionInfo) {
+    private Metadata fillMetadata(final ERPTuitionInfo erpTuitionInfo, final DatatypeFactory dataTypeFactory) {
         final Map<String, String> metadataPropertiesMap = Maps.newHashMap();
 
         metadataPropertiesMap.put("TOTAL_TUITION_AMOUNT", erpTuitionInfo.getTuitionTotalAmount().toString());
@@ -562,6 +574,11 @@ public class ERPTuitionInfoExporterForSAP implements IERPTuitionInfoExporter {
         } else {
             metadataPropertiesMap.put("LAST_SUCCESSFUL_EXPORTATION", "");
         }
+
+        metadataPropertiesMap.put("START_DATE",
+                erpTuitionInfo.getBeginDate().toString(org.fenixedu.academictreasury.util.Constants.STANDARD_DATE_FORMAT_YYYY_MM_DD));
+        metadataPropertiesMap.put("END_DATE",
+                erpTuitionInfo.getEndDate().toString(org.fenixedu.academictreasury.util.Constants.STANDARD_DATE_FORMAT_YYYY_MM_DD));
 
         final GsonBuilder builder = new GsonBuilder();
 
@@ -621,19 +638,19 @@ public class ERPTuitionInfoExporterForSAP implements IERPTuitionInfoExporter {
         }
 
         if (erpIntegrationConfiguration.getActive() == false) {
-            operation.appendErrorLog(BundleUtil.getString(Constants.BUNDLE, "info.ERPExporter.configuration.inactive"));
+            operation.appendErrorLog(Constants.bundle("info.ERPExporter.configuration.inactive"));
             return false;
         }
         IERPExternalService service = erpIntegrationConfiguration.getERPExternalServiceImplementation();
-        operation.appendInfoLog(BundleUtil.getString(Constants.BUNDLE, "info.ERPExporter.sending.inforation"));
+        operation.appendInfoLog(Constants.bundle("info.ERPExporter.sending.inforation"));
         DocumentsInformationInput input = new DocumentsInformationInput();
         if (operation.getFile().getSize() <= erpIntegrationConfiguration.getMaxSizeBytesToExportOnline()) {
             input.setData(operation.getFile().getContent());
             DocumentsInformationOutput sendInfoOnlineResult = service.sendInfoOnline(input);
 
             operation.setErpOperationId(sendInfoOnlineResult.getRequestId());
-            operation.appendInfoLog(BundleUtil.getString(Constants.BUNDLE, "info.ERPExporter.sucess.sending.inforation.online",
-                    sendInfoOnlineResult.getRequestId()));
+            operation.appendInfoLog(
+                    Constants.bundle("info.ERPExporter.sucess.sending.inforation.online", sendInfoOnlineResult.getRequestId()));
 
             //if we have result in online situation, then check the information of integration STATUS
             for (DocumentStatusWS status : sendInfoOnlineResult.getDocumentStatus()) {
@@ -727,4 +744,127 @@ public class ERPTuitionInfoExporterForSAP implements IERPTuitionInfoExporter {
         operation.setFile(binaryStream);
     }
 
+    private Payment convertToSAFTPaymentDocument(final ERPTuitionInfo erpTuitionInfo) {
+
+        final Payment payment = new Payment();
+
+        // MovementDate
+        DatatypeFactory dataTypeFactory;
+        try {
+            dataTypeFactory = DatatypeFactory.newInstance();
+            final DateTime documentDate = erpTuitionInfo.getCreationDate();
+
+            // SystemEntryDate
+            payment.setSystemEntryDate(SAPExporter.convertToXMLDateTime(dataTypeFactory, documentDate));
+
+            /* ANIL: 2015/10/20 converted from dateTime to Date */
+            payment.setTransactionDate(SAPExporter.convertToXMLDate(dataTypeFactory, documentDate));
+
+            /* SAP: 2016/09/19 This element is required */
+            payment.setPaymentType(SAFTPTPaymentType.RG);
+
+            // DocumentNumber
+            payment.setPaymentRefNo(erpTuitionInfo.getUiSettlementDocumentNumberForERP());
+
+            // Finantial Transaction Reference
+            payment.setFinantialTransactionReference("");
+
+            //OriginDocumentNumber
+            payment.setSourceID(" ");
+
+            // CustomerID
+            payment.setCustomerID(erpTuitionInfo.getCustomer().getCode());
+
+            // DocumentStatus
+            /*
+             * Deve ser preenchido com: ?N? ? Normal; Texto 1 ?T? ? Por conta de
+             * terceiros; ?A? ? Documento anulado.
+             */
+            SourceDocuments.Payments.Payment.DocumentStatus status = new SourceDocuments.Payments.Payment.DocumentStatus();
+            status.setPaymentStatus("N");
+
+            status.setPaymentStatusDate(SAPExporter.convertToXMLDate(dataTypeFactory, erpTuitionInfo.getCreationDate()));
+
+            // Utilizador responsável pelo estado atual do docu-mento.
+            status.setSourceID(
+                    !Strings.isNullOrEmpty(erpTuitionInfo.getVersioningCreator()) ? erpTuitionInfo.getVersioningCreator() : " ");
+            status.setReason("");
+
+            // Deve ser preenchido com:
+            // 'P' - Documento produzido na aplicacao;
+            status.setSourcePayment(SAFTPTSourcePayment.P);
+
+            payment.setDocumentStatus(status);
+
+            final PaymentMethod voidMethod = new PaymentMethod();
+            voidMethod.setPaymentAmount(BigDecimal.ZERO);
+
+            /* ANIL: 2015/10/20 converted from dateTime to Date */
+            voidMethod.setPaymentDate(SAPExporter.convertToXMLDate(dataTypeFactory, erpTuitionInfo.getCreationDate()));
+
+            voidMethod.setPaymentMechanism("OU");
+            voidMethod.setPaymentMethodReference("");
+
+            payment.getPaymentMethod().add(voidMethod);
+            payment.setSettlementType(SAFTPTSettlementType.NN);
+
+            // DocumentTotals
+            SourceDocuments.Payments.Payment.DocumentTotals docTotals = new SourceDocuments.Payments.Payment.DocumentTotals();
+
+            //Lines
+            {
+                final SourceDocuments.Payments.Payment.Line line = new SourceDocuments.Payments.Payment.Line();
+                line.setLineNumber(BigInteger.ONE);
+                //SourceDocument
+
+                final SourceDocumentID sourceDocument = new SourceDocumentID();
+                sourceDocument.setLineNumber(BigInteger.ONE);
+                sourceDocument.setOriginatingON(erpTuitionInfo.getFirstERPTuitionInfo().getUiDocumentNumberForERP());
+
+                /* ANIL: 2015/10/20 converted from dateTime to Date */
+                sourceDocument.setInvoiceDate(SAPExporter.convertToXMLDate(dataTypeFactory, erpTuitionInfo.getCreationDate()));
+
+                sourceDocument.setDescription(erpTuitionInfo.getProduct().getName().getContent());
+                line.getSourceDocumentID().add(sourceDocument);
+
+                //SettlementAmount
+                line.setSettlementAmount(BigDecimal.ZERO);
+                line.setDebitAmount(erpTuitionInfo.getTuitionDeltaAmount().abs());
+                payment.getLine().add(line);
+            }
+
+            {
+                final SourceDocuments.Payments.Payment.Line line = new SourceDocuments.Payments.Payment.Line();
+                line.setLineNumber(new BigInteger("2"));
+                //SourceDocument
+
+                final SourceDocumentID sourceDocument = new SourceDocumentID();
+                sourceDocument.setLineNumber(BigInteger.ONE);
+                sourceDocument.setOriginatingON(erpTuitionInfo.getUiDocumentNumberForERP());
+
+                /* ANIL: 2015/10/20 converted from dateTime to Date */
+                sourceDocument.setInvoiceDate(SAPExporter.convertToXMLDate(dataTypeFactory, erpTuitionInfo.getCreationDate()));
+
+                sourceDocument.setDescription(erpTuitionInfo.getProduct().getName().getContent());
+                line.getSourceDocumentID().add(sourceDocument);
+
+                //SettlementAmount
+                line.setSettlementAmount(BigDecimal.ZERO);
+                line.setCreditAmount(erpTuitionInfo.getTuitionDeltaAmount().abs());
+                payment.getLine().add(line);
+            }
+
+            docTotals.setGrossTotal(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_EVEN));
+            docTotals.setNetTotal(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_EVEN));
+            docTotals.setTaxPayable(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_EVEN));
+            payment.setDocumentTotals(docTotals);
+
+            payment.setPeriod(erpTuitionInfo.getCreationDate().getMonthOfYear());
+
+        } catch (DatatypeConfigurationException e) {
+            e.printStackTrace();
+        }
+
+        return payment;
+    }
 }
