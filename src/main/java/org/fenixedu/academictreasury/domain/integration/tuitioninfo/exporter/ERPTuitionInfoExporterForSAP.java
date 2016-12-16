@@ -36,6 +36,7 @@ import org.fenixedu.treasury.domain.document.ERPCustomerFieldsBean;
 import org.fenixedu.treasury.domain.document.FinantialDocument;
 import org.fenixedu.treasury.domain.exceptions.TreasuryDomainException;
 import org.fenixedu.treasury.domain.integration.ERPConfiguration;
+import org.fenixedu.treasury.domain.integration.IntegrationOperationLogBean;
 import org.fenixedu.treasury.domain.integration.OperationFile;
 import org.fenixedu.treasury.generated.sources.saft.sap.AddressStructurePT;
 import org.fenixedu.treasury.generated.sources.saft.sap.AuditFile;
@@ -85,25 +86,31 @@ public class ERPTuitionInfoExporterForSAP implements IERPTuitionInfoExporter {
             throw new AcademicTreasuryDomainException("error.ERPTuitionInfoExporterForSAP.export.not.pending");
         }
 
-        ERPTuitionInfoExportOperation operation = createSaftExportOperation(erpTuitionInfo, null, institution, new DateTime());
+        final IntegrationOperationLogBean logBean = new IntegrationOperationLogBean();
+
+        final ERPTuitionInfoExportOperation operation =
+                createSaftExportOperation(erpTuitionInfo, null, institution, new DateTime());
         try {
-            operation.appendInfoLog(
+            logBean.appendIntegrationLog(
                     Constants.bundle("label.ERPTuitionInfoExporterForSAP.starting.finantialdocuments.integration"));
 
             final String xml = generateERPFile(erpTuitionInfo);
 
-            operation.appendInfoLog(Constants.bundle("label.ERPTuitionInfoExporterForSAP.erp.xml.content.generated"));
+            logBean.appendIntegrationLog(Constants.bundle("label.ERPTuitionInfoExporterForSAP.erp.xml.content.generated"));
 
             writeContentToExportOperation(xml, operation);
 
             boolean success = sendDocumentsInformationToIntegration(operation);
 
             operation.setSuccess(success);
-            operation.appendInfoLog(
+            logBean.appendIntegrationLog(
                     Constants.bundle("label.ERPTuitionInfoExporterForSAP.finished.finantialdocuments.integration"));
 
         } catch (Exception ex) {
-            writeError(operation, ex);
+            writeError(operation, logBean, ex);
+        } finally {
+            operation.appendLog(logBean.getErrorLog(), logBean.getIntegrationLog(), logBean.getSoapInboundMessage(),
+                    logBean.getSoapOutboundMessage());
         }
 
         return operation;
@@ -111,7 +118,6 @@ public class ERPTuitionInfoExporterForSAP implements IERPTuitionInfoExporter {
 
     private String generateERPFile(final ERPTuitionInfo erpTuitionInfo) {
         final FinantialInstitution institution = erpTuitionInfo.getDocumentNumberSeries().getSeries().getFinantialInstitution();
-        final DateTime now = new DateTime();
 
         // Build SAFT-AuditFile
         AuditFile auditFile = new AuditFile();
@@ -575,10 +581,10 @@ public class ERPTuitionInfoExporterForSAP implements IERPTuitionInfoExporter {
             metadataPropertiesMap.put("LAST_SUCCESSFUL_EXPORTATION", "");
         }
 
-        metadataPropertiesMap.put("START_DATE",
-                erpTuitionInfo.getBeginDate().toString(org.fenixedu.academictreasury.util.Constants.STANDARD_DATE_FORMAT_YYYY_MM_DD));
-        metadataPropertiesMap.put("END_DATE",
-                erpTuitionInfo.getEndDate().toString(org.fenixedu.academictreasury.util.Constants.STANDARD_DATE_FORMAT_YYYY_MM_DD));
+        metadataPropertiesMap.put("START_DATE", erpTuitionInfo.getBeginDate()
+                .toString(org.fenixedu.academictreasury.util.Constants.STANDARD_DATE_FORMAT_YYYY_MM_DD));
+        metadataPropertiesMap.put("END_DATE", erpTuitionInfo.getEndDate()
+                .toString(org.fenixedu.academictreasury.util.Constants.STANDARD_DATE_FORMAT_YYYY_MM_DD));
 
         final GsonBuilder builder = new GsonBuilder();
 
@@ -628,101 +634,91 @@ public class ERPTuitionInfoExporterForSAP implements IERPTuitionInfoExporter {
         return operation;
     }
 
-    private boolean sendDocumentsInformationToIntegration(ERPTuitionInfoExportOperation operation) throws MalformedURLException {
+    private boolean sendDocumentsInformationToIntegration(final ERPTuitionInfoExportOperation operation) throws MalformedURLException {
         final FinantialInstitution institution = operation.getFinantialInstitution();
+        final IntegrationOperationLogBean logBean = new IntegrationOperationLogBean();
 
-        boolean success = true;
-        ERPConfiguration erpIntegrationConfiguration = institution.getErpIntegrationConfiguration();
-        if (erpIntegrationConfiguration == null) {
-            throw new TreasuryDomainException("error.ERPExporter.invalid.erp.configuration");
-        }
+        try {
 
-        if (erpIntegrationConfiguration.getActive() == false) {
-            operation.appendErrorLog(Constants.bundle("info.ERPExporter.configuration.inactive"));
-            return false;
-        }
-        IERPExternalService service = erpIntegrationConfiguration.getERPExternalServiceImplementation();
-        operation.appendInfoLog(Constants.bundle("info.ERPExporter.sending.inforation"));
-        DocumentsInformationInput input = new DocumentsInformationInput();
-        if (operation.getFile().getSize() <= erpIntegrationConfiguration.getMaxSizeBytesToExportOnline()) {
-            input.setData(operation.getFile().getContent());
-            DocumentsInformationOutput sendInfoOnlineResult = service.sendInfoOnline(input);
+            boolean success = true;
+            ERPConfiguration erpIntegrationConfiguration = institution.getErpIntegrationConfiguration();
+            if (erpIntegrationConfiguration == null) {
+                throw new TreasuryDomainException("error.ERPExporter.invalid.erp.configuration");
+            }
 
-            operation.setErpOperationId(sendInfoOnlineResult.getRequestId());
-            operation.appendInfoLog(
-                    Constants.bundle("info.ERPExporter.sucess.sending.inforation.online", sendInfoOnlineResult.getRequestId()));
+            if (erpIntegrationConfiguration.getActive() == false) {
+                logBean.appendErrorLog(Constants.bundle("info.ERPExporter.configuration.inactive"));
+                return false;
+            }
 
-            //if we have result in online situation, then check the information of integration STATUS
-            for (DocumentStatusWS status : sendInfoOnlineResult.getDocumentStatus()) {
-                if (status.isIntegratedWithSuccess()) {
+            logBean.appendIntegrationLog(Constants.bundle("info.ERPExporter.sending.inforation"));
 
-                    FinantialDocument document =
-                            FinantialDocument.findByUiDocumentNumber(institution, status.getDocumentNumber());
-                    if (document != null) {
-                        final String message = BundleUtil.getString(Constants.BUNDLE,
-                                "info.ERPExporter.sucess.integrating.document", document.getUiDocumentNumber());
-                        operation.appendInfoLog(message);
-                        document.clearDocumentToExport(message);
+            final IERPExternalService service = erpIntegrationConfiguration.getERPExternalServiceImplementation();
+            final DocumentsInformationInput input = new DocumentsInformationInput();
+            if (operation.getFile().getSize() <= erpIntegrationConfiguration.getMaxSizeBytesToExportOnline()) {
+                input.setData(operation.getFile().getContent());
+                DocumentsInformationOutput sendInfoOnlineResult = service.sendInfoOnline(input);
+
+                operation.setErpOperationId(sendInfoOnlineResult.getRequestId());
+                logBean.appendIntegrationLog(Constants.bundle("info.ERPExporter.sucess.sending.inforation.online",
+                        sendInfoOnlineResult.getRequestId()));
+
+                //if we have result in online situation, then check the information of integration STATUS
+                for (DocumentStatusWS status : sendInfoOnlineResult.getDocumentStatus()) {
+                    if (status.isIntegratedWithSuccess()) {
+
+                        FinantialDocument document =
+                                FinantialDocument.findByUiDocumentNumber(institution, status.getDocumentNumber());
+                        if (document != null) {
+                            final String message = BundleUtil.getString(Constants.BUNDLE,
+                                    "info.ERPExporter.sucess.integrating.document", document.getUiDocumentNumber());
+                            logBean.appendIntegrationLog(message);
+                            document.clearDocumentToExport(message);
+                        } else {
+                            success = false;
+                            logBean.appendIntegrationLog(Constants.bundle("info.ERPExporter.error.integrating.document",
+                                    status.getDocumentNumber(), status.getErrorDescription()));
+                            logBean.appendErrorLog(Constants.bundle("info.ERPExporter.error.integrating.document",
+                                    status.getDocumentNumber(), status.getErrorDescription()));
+                        }
                     } else {
                         success = false;
-                        operation.appendInfoLog(Constants.bundle("info.ERPExporter.error.integrating.document",
+                        logBean.appendIntegrationLog(Constants.bundle("info.ERPExporter.error.integrating.document",
                                 status.getDocumentNumber(), status.getErrorDescription()));
-                        operation.appendErrorLog(Constants.bundle("info.ERPExporter.error.integrating.document",
+                        logBean.appendErrorLog(Constants.bundle("info.ERPExporter.error.integrating.document",
                                 status.getDocumentNumber(), status.getErrorDescription()));
+
                     }
-                } else {
-                    success = false;
-                    operation.appendInfoLog(Constants.bundle("info.ERPExporter.error.integrating.document",
-                            status.getDocumentNumber(), status.getErrorDescription()));
-                    operation.appendErrorLog(Constants.bundle("info.ERPExporter.error.integrating.document",
-                            status.getDocumentNumber(), status.getErrorDescription()));
-
-                }
-            }
-
-            for (final String m : sendInfoOnlineResult.getOtherMessages()) {
-                operation.appendInfoLog(m);
-                operation.appendErrorLog(m);
-            }
-
-            operation.defineSoapInboundMessage(sendInfoOnlineResult.getSoapInboundMessage());
-            operation.defineSoapOutboutMessage(sendInfoOnlineResult.getSoapOutboundMessage());
-
-        } else {
-            try {
-                String sharedURI = "";
-                if (institution.getErpIntegrationConfiguration().getExternalURL().startsWith("file://")) {
-                    sharedURI = institution.getErpIntegrationConfiguration().getExternalURL() + "\\"
-                            + operation.getFile().getFilename();
-                    institution.getErpIntegrationConfiguration().getExternalURL();
-                    File destFile = new File(sharedURI);
-
-                    com.google.common.io.Files.write(operation.getFile().getContent(), destFile);
-
-                } else //ftp or else
-                {
-                    throw new TreasuryDomainException("error.ERPExporter.noExternalURL.defined.in.erpintegrationconfiguration");
                 }
 
-                input.setDataURI(sharedURI);
-                String sendInfoOnlineResult = service.sendInfoOffline(input);
-                operation.appendInfoLog(
-                        Constants.bundle("info.ERPExporter.sucess.sending.inforation.offline", sendInfoOnlineResult));
-                operation.appendInfoLog("#" + sendInfoOnlineResult);
-            } catch (IOException e) {
-                success = false;
-                operation.appendErrorLog(e.getLocalizedMessage());
+                for (final String m : sendInfoOnlineResult.getOtherMessages()) {
+                    logBean.appendIntegrationLog(m);
+                }
+
+                logBean.defineSoapInboundMessage(sendInfoOnlineResult.getSoapInboundMessage());
+                logBean.defineSoapOutboundMessage(sendInfoOnlineResult.getSoapOutboundMessage());
+
+            } else {
+                throw new TreasuryDomainException(
+                        "error.ERPExporter.sendDocumentsInformationToIntegration.maxSizeBytesToExportOnline.exceeded");
             }
+            
+            return success;
+        } finally {
+            operation.appendLog(logBean.getErrorLog(), logBean.getIntegrationLog(), logBean.getSoapInboundMessage(),
+                    logBean.getSoapOutboundMessage());
         }
-        return success;
     }
 
-    private void writeError(final ERPTuitionInfoExportOperation operation, final Throwable t) {
+    private void writeError(final ERPTuitionInfoExportOperation operation, final IntegrationOperationLogBean logBean,
+            final Throwable t) {
         StringWriter out = new StringWriter();
         PrintWriter writer = new PrintWriter(out);
         t.printStackTrace(writer);
+
+        logBean.appendErrorLog(out.toString());
+
         operation.setProcessed(true);
-        operation.appendErrorLog(out.toString());
     }
 
     // SERVICE
