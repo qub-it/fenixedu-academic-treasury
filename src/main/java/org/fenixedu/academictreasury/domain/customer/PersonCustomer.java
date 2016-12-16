@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import org.fenixedu.academic.domain.Person;
+import org.fenixedu.academic.domain.contacts.PhysicalAddress;
 import org.fenixedu.academic.dto.person.PersonBean;
 import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainException;
 import org.fenixedu.academictreasury.domain.settings.AcademicTreasurySettings;
@@ -88,26 +89,31 @@ public class PersonCustomer extends PersonCustomer_Base {
     
     @Override
     public String getFirstNames() {
-        return getPerson().getProfile().getGivenNames();
+        final Person person = isActive() ? getPerson() : getPersonForInactivePersonCustomer();
+        return person.getProfile().getGivenNames();
     }
     
     @Override
     public String getLastNames() {
-        return getPerson().getProfile().getFamilyNames();
+        final Person person = isActive() ? getPerson() : getPersonForInactivePersonCustomer();
+        return person.getProfile().getFamilyNames();
     }
     
     @Override
     public String getEmail() {
-        return getPerson().getDefaultEmailAddressValue();
+        final Person person = isActive() ? getPerson() : getPersonForInactivePersonCustomer();
+        return person.getDefaultEmailAddressValue();
     }
     
     @Override
     public String getPhoneNumber() {
-        if(!Strings.isNullOrEmpty(getPerson().getDefaultPhoneNumber())) {
-            return getPerson().getDefaultPhoneNumber();
+        final Person person = isActive() ? getPerson() : getPersonForInactivePersonCustomer();
+
+        if(!Strings.isNullOrEmpty(person.getDefaultPhoneNumber())) {
+            return person.getDefaultPhoneNumber();
         }
         
-        return getPerson().getDefaultMobilePhoneNumber();
+        return person.getDefaultMobilePhoneNumber();
     }
 
     @Override
@@ -119,33 +125,47 @@ public class PersonCustomer extends PersonCustomer_Base {
         return getPerson().getDocumentIdNumber();
     }
 
+    private PhysicalAddress getPhysicalAddress() {
+        return getPhysicalAddress(isActive() ? getPerson() : getPersonForInactivePersonCustomer());
+    }
+    
+    private static PhysicalAddress getPhysicalAddress(final Person person) {
+        if(person.getDefaultPhysicalAddress() != null) {
+           return person.getDefaultPhysicalAddress();
+        }
+        
+        if(person.getPendingOrValidPhysicalAddresses().size() == 1) {
+            return person.getPendingOrValidPhysicalAddresses().get(0);
+        }
+        
+        return null;
+    }
+
     @Override
     public String getAddress() {
-        if (!isActive()) {
-            return getPersonForInactivePersonCustomer().getAddress();
+        if (getPhysicalAddress() == null) {
+            return null;
         }
 
-        return getPerson().getAddress();
+        return getPhysicalAddress().getAddress();
     }
 
     @Override
     public String getDistrictSubdivision() {
-        final Person person = isActive() ? getPerson() : getPersonForInactivePersonCustomer();
-
-        if (person.getDefaultPhysicalAddress() == null) {
+        if (getPhysicalAddress() == null) {
             return null;
         }
         
-        if(!Strings.isNullOrEmpty(person.getDefaultPhysicalAddress().getArea())) {
-            return person.getDefaultPhysicalAddress().getArea();
+        if(!Strings.isNullOrEmpty(getPhysicalAddress().getArea())) {
+            return getPhysicalAddress().getArea();
         }
         
-        if(!Strings.isNullOrEmpty(person.getDefaultPhysicalAddress().getDistrictSubdivisionOfResidence())) {
-            return person.getDefaultPhysicalAddress().getDistrictSubdivisionOfResidence();
+        if(!Strings.isNullOrEmpty(getPhysicalAddress().getDistrictSubdivisionOfResidence())) {
+            return getPhysicalAddress().getDistrictSubdivisionOfResidence();
         }
         
-        if(!Strings.isNullOrEmpty(person.getDefaultPhysicalAddress().getDistrictOfResidence())) {
-            return person.getDefaultPhysicalAddress().getDistrictOfResidence();
+        if(!Strings.isNullOrEmpty(getPhysicalAddress().getDistrictOfResidence())) {
+            return getPhysicalAddress().getDistrictOfResidence();
         }
 
         return null;
@@ -153,24 +173,20 @@ public class PersonCustomer extends PersonCustomer_Base {
 
     @Override
     public String getDistrict() {
-        final Person person = isActive() ? getPerson() : getPersonForInactivePersonCustomer();
-
-        if (person.getDefaultPhysicalAddress() == null) {
+        if (getPhysicalAddress() == null) {
             return null;
         }
 
-        return person.getDefaultPhysicalAddress().getDistrictOfResidence();
+        return getPhysicalAddress().getDistrictOfResidence();
     }
 
     @Override
     public String getZipCode() {
-        final Person person = isActive() ? getPerson() : getPersonForInactivePersonCustomer();
-
-        if (person.getDefaultPhysicalAddress() == null) {
+        if (getPhysicalAddress() == null) {
             return null;
         }
 
-        return person.getDefaultPhysicalAddress().getAreaCode();
+        return getPhysicalAddress().getAreaCode();
     }
 
     @Override
@@ -181,11 +197,11 @@ public class PersonCustomer extends PersonCustomer_Base {
     }
 
     public static String countryCode(final Person person) {
-        if (person.getDefaultPhysicalAddress() == null || person.getDefaultPhysicalAddress().getCountryOfResidence() == null) {
+        if (getPhysicalAddress(person) == null || getPhysicalAddress(person).getCountryOfResidence() == null) {
             return null;
         }
 
-        return person.getDefaultPhysicalAddress().getCountryOfResidence().getCode();
+        return getPhysicalAddress(person).getCountryOfResidence().getCode();
     }
     
     public static String countryCode(final PersonBean personBean) {
