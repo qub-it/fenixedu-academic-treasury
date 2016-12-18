@@ -74,7 +74,7 @@ public class AcademicActBlockingSuspensionReportEntryBean extends AbstractReport
                 this.email =
                         academicActBlockingSuspension.getPerson().getInstitutionalOrDefaultEmailAddressValue();
                 this.address = personCustomer.getAddress();
-                this.countryCode = personCustomer.getCountryCode();
+                this.countryCode = personCustomer.getFiscalCountry();
 
                 if (academicActBlockingSuspension.getPerson().getStudent() != null) {
                     this.studentNumber = academicActBlockingSuspension.getPerson().getStudent().getNumber();

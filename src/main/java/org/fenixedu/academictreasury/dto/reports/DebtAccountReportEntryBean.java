@@ -94,7 +94,7 @@ public class DebtAccountReportEntryBean implements SpreadsheetRow {
             }
 
             this.address = debtAccount.getCustomer().getAddress();
-            this.countryCode = debtAccount.getCustomer().getCountryCode();
+            this.countryCode = debtAccount.getCustomer().getFiscalCountry();
 
             if (debtAccount.getCustomer().isPersonCustomer()
                     && ((PersonCustomer) debtAccount.getCustomer()).getPerson() != null
@@ -108,7 +108,7 @@ public class DebtAccountReportEntryBean implements SpreadsheetRow {
 
             this.vatNumberValid =
                     (!Strings.isNullOrEmpty(this.countryCode) && !Constants.isDefaultCountry(this.countryCode))
-                            || FiscalCodeValidation.isValidcontrib(this.vatNumber);
+                            || FiscalCodeValidation.isValidFiscalNumber(this.countryCode, this.vatNumber);
 
             this.totalInDebt = debtAccount.getFinantialInstitution().getCurrency().getValueWithScale(debtAccount.getTotalInDebt()).toString();
 

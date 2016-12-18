@@ -57,6 +57,7 @@ import org.fenixedu.treasury.domain.paymentcodes.pool.PaymentCodePool;
 import org.fenixedu.treasury.ui.accounting.managecustomer.CustomerController;
 import org.fenixedu.treasury.ui.accounting.managecustomer.DebtAccountController;
 import org.joda.time.DateTime;
+import org.fenixedu.treasury.util.FiscalCodeValidation;
 import org.joda.time.LocalDate;
 
 import com.google.common.collect.Lists;
@@ -570,6 +571,10 @@ public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
 
             ((IAcademicTreasuryTarget) academicTreasuryEvent.getTreasuryEventTarget()).handleSettlement(academicTreasuryEvent);
         }
+
+    @Override
+    public boolean isValidFiscalNumber(final String fiscalCountryCode, final String fiscalNumber) {
+        return FiscalCodeValidation.isValidFiscalNumber(fiscalCountryCode, fiscalNumber);
     }
 
 }
