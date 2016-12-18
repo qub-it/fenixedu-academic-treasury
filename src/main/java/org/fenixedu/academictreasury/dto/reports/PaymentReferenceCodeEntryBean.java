@@ -113,7 +113,7 @@ public class PaymentReferenceCodeEntryBean extends AbstractReportEntryBean {
                 }
 
                 this.address = referenceDebtAccount.getCustomer().getAddress();
-                this.countryCode = referenceDebtAccount.getCustomer().getCountryCode();
+                this.countryCode = referenceDebtAccount.getCustomer().getFiscalCountry();
 
                 if (referenceDebtAccount.getCustomer().isPersonCustomer()
                         && ((PersonCustomer) referenceDebtAccount.getCustomer()).getPerson() != null

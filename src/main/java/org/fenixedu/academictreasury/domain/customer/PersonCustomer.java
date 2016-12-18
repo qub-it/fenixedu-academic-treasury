@@ -71,10 +71,6 @@ public class PersonCustomer extends PersonCustomer_Base {
     }
 
     private static String fiscalNumber(final Person person) {
-        if (Strings.isNullOrEmpty(person.getSocialSecurityNumber())) {
-            return Customer.DEFAULT_FISCAL_NUMBER;
-        }
-
         return person.getSocialSecurityNumber();
     }
 
@@ -86,33 +82,33 @@ public class PersonCustomer extends PersonCustomer_Base {
 
         return getPerson().getName();
     }
-    
+
     @Override
     public String getFirstNames() {
         final Person person = isActive() ? getPerson() : getPersonForInactivePersonCustomer();
         return person.getProfile().getGivenNames();
     }
-    
+
     @Override
     public String getLastNames() {
         final Person person = isActive() ? getPerson() : getPersonForInactivePersonCustomer();
         return person.getProfile().getFamilyNames();
     }
-    
+
     @Override
     public String getEmail() {
         final Person person = isActive() ? getPerson() : getPersonForInactivePersonCustomer();
         return person.getDefaultEmailAddressValue();
     }
-    
+
     @Override
     public String getPhoneNumber() {
         final Person person = isActive() ? getPerson() : getPersonForInactivePersonCustomer();
 
-        if(!Strings.isNullOrEmpty(person.getDefaultPhoneNumber())) {
+        if (!Strings.isNullOrEmpty(person.getDefaultPhoneNumber())) {
             return person.getDefaultPhoneNumber();
         }
-        
+
         return person.getDefaultMobilePhoneNumber();
     }
 
@@ -128,16 +124,16 @@ public class PersonCustomer extends PersonCustomer_Base {
     private PhysicalAddress getPhysicalAddress() {
         return getPhysicalAddress(isActive() ? getPerson() : getPersonForInactivePersonCustomer());
     }
-    
+
     private static PhysicalAddress getPhysicalAddress(final Person person) {
-        if(person.getDefaultPhysicalAddress() != null) {
-           return person.getDefaultPhysicalAddress();
+        if (person.getDefaultPhysicalAddress() != null) {
+            return person.getDefaultPhysicalAddress();
         }
-        
-        if(person.getPendingOrValidPhysicalAddresses().size() == 1) {
+
+        if (person.getPendingOrValidPhysicalAddresses().size() == 1) {
             return person.getPendingOrValidPhysicalAddresses().get(0);
         }
-        
+
         return null;
     }
 
@@ -155,16 +151,16 @@ public class PersonCustomer extends PersonCustomer_Base {
         if (getPhysicalAddress() == null) {
             return null;
         }
-        
-        if(!Strings.isNullOrEmpty(getPhysicalAddress().getArea())) {
+
+        if (!Strings.isNullOrEmpty(getPhysicalAddress().getArea())) {
             return getPhysicalAddress().getArea();
         }
-        
-        if(!Strings.isNullOrEmpty(getPhysicalAddress().getDistrictSubdivisionOfResidence())) {
+
+        if (!Strings.isNullOrEmpty(getPhysicalAddress().getDistrictSubdivisionOfResidence())) {
             return getPhysicalAddress().getDistrictSubdivisionOfResidence();
         }
-        
-        if(!Strings.isNullOrEmpty(getPhysicalAddress().getDistrictOfResidence())) {
+
+        if (!Strings.isNullOrEmpty(getPhysicalAddress().getDistrictOfResidence())) {
             return getPhysicalAddress().getDistrictOfResidence();
         }
 
@@ -190,6 +186,19 @@ public class PersonCustomer extends PersonCustomer_Base {
     }
 
     @Override
+    public String getAddressCountryCode() {
+        if (getPhysicalAddress() == null) {
+            return null;
+        }
+        
+        if(getPhysicalAddress().getCountryOfResidence() == null) {
+            return null;
+        }
+
+        return getPhysicalAddress().getCountryOfResidence().getCode();
+    }
+
+    @Override
     public String getCountryCode() {
         final Person person = isActive() ? getPerson() : getPersonForInactivePersonCustomer();
 
@@ -197,25 +206,21 @@ public class PersonCustomer extends PersonCustomer_Base {
     }
 
     public static String countryCode(final Person person) {
-        if (getPhysicalAddress(person) == null || getPhysicalAddress(person).getCountryOfResidence() == null) {
+        return person.getFiscalCountry() != null ? person.getFiscalCountry().getCode() : null;
+    }
+
+    public static String countryCode(final PersonBean personBean) {
+        if (personBean == null) {
             return null;
         }
 
-        return getPhysicalAddress(person).getCountryOfResidence().getCode();
-    }
-    
-    public static String countryCode(final PersonBean personBean) {
-        if(personBean == null) {
+        if (personBean.getFiscalCountry() == null) {
             return null;
         }
-        
-        if(personBean.getCountryOfResidence() == null) {
-            return null;
-        }
-        
-        return personBean.getCountryOfResidence().getCode();
+
+        return personBean.getFiscalCountry().getCode();
     }
-    
+
     public static boolean isValidFiscalNumber(final Person person) {
         return FiscalCodeValidation.isValidFiscalNumber(countryCode(person), fiscalNumber(person));
     }
@@ -242,10 +247,11 @@ public class PersonCustomer extends PersonCustomer_Base {
         return this.getIdentificationNumber();
     }
 
-    // TODO: Ask IST-DSI
     @Override
     public String getFiscalCountry() {
-        return getCountryCode();
+        final Person person = isActive() ? getPerson() : getPersonForInactivePersonCustomer();
+
+        return countryCode(person);
     }
 
     @Override
@@ -294,7 +300,7 @@ public class PersonCustomer extends PersonCustomer_Base {
         if (debitEntry.isAcademicalActBlockingSuspension()) {
             return false;
         }
-        
+
         return true;
     }
 

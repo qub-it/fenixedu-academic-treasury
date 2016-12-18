@@ -33,6 +33,7 @@ import org.fenixedu.treasury.domain.FinantialInstitution;
 import org.fenixedu.treasury.domain.debt.DebtAccount;
 import org.fenixedu.treasury.ui.accounting.managecustomer.CustomerController;
 import org.fenixedu.treasury.ui.accounting.managecustomer.DebtAccountController;
+import org.fenixedu.treasury.util.FiscalCodeValidation;
 import org.joda.time.LocalDate;
 
 import com.google.common.collect.Lists;
@@ -231,6 +232,11 @@ public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
     @Override
     public void createAcademicDebts(final Registration registration) {
         AcademicDebtGenerationRule.runAllActiveForRegistration(registration, true);
+    }
+
+    @Override
+    public boolean isValidFiscalNumber(final String fiscalCountryCode, final String fiscalNumber) {
+        return FiscalCodeValidation.isValidFiscalNumber(fiscalCountryCode, fiscalNumber);
     }
 
 }

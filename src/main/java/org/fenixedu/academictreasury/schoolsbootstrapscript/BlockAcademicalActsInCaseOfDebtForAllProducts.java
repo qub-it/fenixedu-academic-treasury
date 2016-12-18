@@ -10,8 +10,7 @@ public class BlockAcademicalActsInCaseOfDebtForAllProducts extends CustomTask {
     @Override
     public void runTask() throws Exception {
         
-        Product.findAll().forEach(p -> AcademicTreasurySettings.getInstance().addAcademicalActBlockingProduct(p));
-        AcademicTreasurySettings.getInstance().removeAcademicalActBlockingProduct(TreasurySettings.getInstance().getAdvancePaymentProduct());
+        Product.findAll().forEach(p -> AcademicTreasurySettings.getInstance().removeAcademicalActBlockingProduct(p));
     }
     
 }
