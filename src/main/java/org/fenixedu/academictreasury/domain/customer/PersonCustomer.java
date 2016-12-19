@@ -2,6 +2,8 @@ package org.fenixedu.academictreasury.domain.customer;
 
 import java.math.BigDecimal;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.fenixedu.academic.domain.Person;
@@ -11,13 +13,16 @@ import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainExc
 import org.fenixedu.academictreasury.domain.settings.AcademicTreasurySettings;
 import org.fenixedu.treasury.domain.Customer;
 import org.fenixedu.treasury.domain.CustomerType;
+import org.fenixedu.treasury.domain.FinantialInstitution;
 import org.fenixedu.treasury.domain.debt.DebtAccount;
 import org.fenixedu.treasury.domain.document.DebitEntry;
+import org.fenixedu.treasury.domain.event.TreasuryEvent;
 import org.fenixedu.treasury.util.Constants;
 import org.fenixedu.treasury.util.FiscalCodeValidation;
 import org.joda.time.LocalDate;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.Sets;
 
 import pt.ist.fenixframework.Atomic;
 
@@ -39,6 +44,11 @@ public class PersonCustomer extends PersonCustomer_Base {
         super.setFiscalNumber(fiscalNumber);
 
         checkRules();
+
+        // create debt accounts for all active finantial instituions
+        for (final FinantialInstitution finantialInstitution : FinantialInstitution.findAll().collect(Collectors.toSet())) {
+            DebtAccount.create(finantialInstitution, this);
+        }
     }
 
     @Override
@@ -356,6 +366,26 @@ public class PersonCustomer extends PersonCustomer_Base {
         }
 
         checkRules();
+    }
+
+    @Override
+    public Set<? extends TreasuryEvent> getTreasuryEventsSet() {
+        final Person person = isActive() ? getPerson() : getPersonForInactivePersonCustomer();
+        return Sets.newHashSet(person.getAcademicTreasuryEventSet());
+    }
+
+    @Override
+    public boolean isUiOtherRelatedCustomerActive() {
+        return !isActive() && getPersonForInactivePersonCustomer().getPersonCustomer() != null;
+    }
+
+    @Override
+    public String uiRedirectToActiveCustomer(final String url) {
+        if (isActive() || !isUiOtherRelatedCustomerActive()) {
+            return url + "/" + getExternalId();
+        }
+
+        return url + "/" + getPersonForInactivePersonCustomer().getPersonCustomer().getExternalId();
     }
 
     // @formatter: off
