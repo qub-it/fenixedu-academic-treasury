@@ -64,7 +64,13 @@ public class PersonCustomer extends PersonCustomer_Base {
             throw new AcademicTreasuryDomainException("error.PersonCustomer.may.only.be.related.to.person.with.one.relation");
         }
 
-        if (find(getPerson(), getFiscalCountry(), getFiscalNumber()).count() > 1) {
+        if (DEFAULT_FISCAL_NUMBER.equals(getFiscalNumber()) && !Constants.isDefaultCountry(getFiscalCountry())) {
+            throw new AcademicTreasuryDomainException(
+                    "error.PersonCustomer.default.fiscal.number.applied.only.to.default.country");
+        }
+
+        if (!DEFAULT_FISCAL_NUMBER.equals(getFiscalNumber())
+                && find(getPerson(), getFiscalCountry(), getFiscalNumber()).count() > 1) {
             throw new AcademicTreasuryDomainException("error.PersonCustomer.person.customer.duplicated");
         }
     }
@@ -121,7 +127,7 @@ public class PersonCustomer extends PersonCustomer_Base {
         final Person person = isActive() ? getPerson() : getPersonForInactivePersonCustomer();
         return identificationNumber(person);
     }
-    
+
     public static String identificationNumber(final Person person) {
         return person.getDocumentIdNumber();
     }
@@ -368,15 +374,15 @@ public class PersonCustomer extends PersonCustomer_Base {
 
     protected static Stream<? extends PersonCustomer> find(final Person person, final String fiscalCountryCode,
             final String fiscalNumber) {
-        return find(person)
-                .filter(pc -> pc.getFiscalCountry().equals(fiscalCountryCode) && pc.getFiscalNumber().equals(fiscalNumber));
+        return find(person).filter(pc -> pc.getFiscalCountry() != null && pc.getFiscalCountry().equals(fiscalCountryCode)
+                && !Strings.isNullOrEmpty(pc.getFiscalNumber()) && pc.getFiscalNumber().equals(fiscalNumber));
     }
 
     public static Optional<? extends PersonCustomer> findUnique(final Person person, final String fiscalCountryCode,
             final String fiscalNumber) {
         return find(person, fiscalCountryCode, fiscalNumber).findFirst();
     }
-    
+
 //    public static Stream<? extends PersonCustomer> findInactivePersonCustomers(final Person person) {
 //        return PersonCustomer.findAll().filter(pc -> pc.getPersonForInactivePersonCustomer() == person);
 //    }
@@ -385,27 +391,28 @@ public class PersonCustomer extends PersonCustomer_Base {
     public static PersonCustomer create(final Person person, final String fiscalCountry, final String fiscalNumber) {
         return new PersonCustomer(person, fiscalCountry, fiscalNumber);
     }
-    
+
     public static boolean switchCustomer(final Person person, final String fiscalCountryCode, final String fiscalNumber) {
         PersonCustomer personCustomer = person.getPersonCustomer();
         Optional<? extends PersonCustomer> newCustomer = PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber);
-        
-        if(newCustomer.isPresent() && newCustomer.get().isActive()) {
+
+        if (newCustomer.isPresent() && newCustomer.get().isActive()) {
             return false;
         }
-        
+
         personCustomer.setPerson(null);
         personCustomer.setPersonForInactivePersonCustomer(person);
-        if(!newCustomer.isPresent()) {
+        if (!newCustomer.isPresent()) {
             PersonCustomer.create(person, fiscalCountryCode, fiscalNumber);
+            newCustomer = PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber);
         } else {
             newCustomer.get().setPerson(person);
             newCustomer.get().setPersonForInactivePersonCustomer(null);
         }
-        
+
         personCustomer.checkRules();
         newCustomer.get().checkRules();
-        
+
         return true;
     }
 
