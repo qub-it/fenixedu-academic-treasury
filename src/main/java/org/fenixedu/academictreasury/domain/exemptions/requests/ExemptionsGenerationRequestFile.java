@@ -12,6 +12,7 @@ import java.util.stream.Stream;
 
 import org.fenixedu.academic.domain.Degree;
 import org.fenixedu.academic.domain.ExecutionYear;
+import org.fenixedu.academic.domain.Person;
 import org.fenixedu.academic.domain.student.Registration;
 import org.fenixedu.academictreasury.domain.customer.PersonCustomer;
 import org.fenixedu.academictreasury.domain.emoluments.AcademicTax;
@@ -114,11 +115,11 @@ public class ExemptionsGenerationRequestFile extends ExemptionsGenerationRequest
                 }
             } catch (final DomainException e) {
                 throw new AcademicTreasuryDomainException("error.ExemptionsGenerationRequestFile.unable.to.create.exemption",
-                        String.valueOf(row.getRowNum()), String.valueOf(row.getRegistration().getNumber()), row.getRegistration().getStudent().getName(),
-                        e.getLocalizedMessage());
+                        String.valueOf(row.getRowNum()), String.valueOf(row.getRegistration().getNumber()),
+                        row.getRegistration().getStudent().getName(), e.getLocalizedMessage());
             }
         }
-        
+
         setWhenProcessed(new DateTime());
     }
 
@@ -236,18 +237,28 @@ public class ExemptionsGenerationRequestFile extends ExemptionsGenerationRequest
                             String.valueOf(rowNum), studentNameValue, registration.getStudent().getName().trim());
                 }
 
-                if (!PersonCustomer.findUnique(registration.getStudent().getPerson()).isPresent()) {
+                final Person person = registration.getPerson();
+                final String fiscalCountryCode = PersonCustomer.countryCode(person);
+                final String fiscalNumber = PersonCustomer.fiscalNumber(person);
+                if (Strings.isNullOrEmpty(fiscalCountryCode) || Strings.isNullOrEmpty(fiscalNumber)) {
+                    throw new AcademicTreasuryDomainException("error.PersonCustomer.fiscalInformation.required");
+                }
+
+                if (!PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).isPresent()) {
                     throw new AcademicTreasuryDomainException("error.ExemptionsGenerationRequestFile.student.has.no.debt.account",
                             String.valueOf(rowNum), studentNumberValue);
                 }
 
-                final PersonCustomer personCustomer = PersonCustomer.findUnique(registration.getStudent().getPerson()).get();
+                final PersonCustomer personCustomer = PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).get();
+                if (!personCustomer.isActive()) {
+                    throw new AcademicTreasuryDomainException("error.PersonCustomer.not.active", fiscalCountryCode, fiscalNumber);
+                }
 
                 TreasuryEvent treasuryEvent = null;
 
                 // First find treasury event by description
-                final Set<TreasuryEvent> treasuryEventsSet = TreasuryEvent
-                        .findByDescription(personCustomer, treasuryEventValue, true).collect(Collectors.<TreasuryEvent> toSet());
+                final Set<AcademicTreasuryEvent> treasuryEventsSet = AcademicTreasuryEvent
+                        .findByDescription(person, treasuryEventValue, true).collect(Collectors.<AcademicTreasuryEvent> toSet());
                 if (treasuryEventsSet.size() > 0) {
 
                     if (treasuryEventsSet.size() > 1) {

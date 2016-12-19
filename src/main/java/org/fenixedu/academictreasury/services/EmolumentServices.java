@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.fenixedu.academic.domain.Degree;
+import org.fenixedu.academic.domain.Person;
 import org.fenixedu.academic.domain.degreeStructure.CycleType;
 import org.fenixedu.academic.domain.serviceRequests.AcademicServiceRequest;
 import org.fenixedu.academic.domain.serviceRequests.AcademicServiceRequestSituation;
@@ -36,6 +37,7 @@ import org.fenixedu.treasury.util.Constants;
 import org.joda.time.DateTime;
 import org.joda.time.LocalDate;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.Subscribe;
 
@@ -129,11 +131,21 @@ public class EmolumentServices {
 
         // Read person customer
 
-        if (!PersonCustomer.findUnique(iTreasuryServiceRequest.getPerson()).isPresent()) {
-            PersonCustomer.create(iTreasuryServiceRequest.getPerson());
+        final Person person = iTreasuryServiceRequest.getPerson();
+        final String fiscalCountryCode = PersonCustomer.countryCode(person);
+        final String fiscalNumber = PersonCustomer.fiscalNumber(person);
+        if (Strings.isNullOrEmpty(fiscalCountryCode) || Strings.isNullOrEmpty(fiscalNumber)) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.fiscalInformation.required");
         }
 
-        final PersonCustomer personCustomer = PersonCustomer.findUnique(iTreasuryServiceRequest.getPerson()).get();
+        if (!PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).isPresent()) {
+            PersonCustomer.create(person, fiscalCountryCode, fiscalNumber);
+        }
+
+        final PersonCustomer personCustomer = PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).get();
+        if (!personCustomer.isActive()) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.not.active", fiscalCountryCode, fiscalNumber);
+        }
 
         // Find tariff
 
@@ -150,11 +162,9 @@ public class EmolumentServices {
             DebtAccount.create(finantialInstitution, personCustomer);
         }
 
-        final DebtAccount personDebtAccount = DebtAccount.findUnique(finantialInstitution, personCustomer).orElse(null);
-
         // Find or create event if does not exists
         if (findAcademicTreasuryEvent(iTreasuryServiceRequest) == null) {
-            AcademicTreasuryEvent.createForAcademicServiceRequest(personDebtAccount, iTreasuryServiceRequest);
+            AcademicTreasuryEvent.createForAcademicServiceRequest(iTreasuryServiceRequest);
         }
 
         final AcademicTreasuryEvent academicTreasuryEvent = findAcademicTreasuryEvent(iTreasuryServiceRequest);
@@ -191,12 +201,22 @@ public class EmolumentServices {
 
         // Read person customer
 
-        if (!PersonCustomer.findUnique(iTreasuryServiceRequest.getPerson()).isPresent()) {
-            PersonCustomer.create(iTreasuryServiceRequest.getPerson());
+        final Person person = iTreasuryServiceRequest.getPerson();
+        final String fiscalCountryCode = PersonCustomer.countryCode(person);
+        final String fiscalNumber = PersonCustomer.fiscalNumber(person);
+        if (Strings.isNullOrEmpty(fiscalCountryCode) || Strings.isNullOrEmpty(fiscalNumber)) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.fiscalInformation.required");
         }
 
-        final PersonCustomer personCustomer = PersonCustomer.findUnique(iTreasuryServiceRequest.getPerson()).get();
+        if (!PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).isPresent()) {
+            PersonCustomer.create(person, fiscalCountryCode, fiscalNumber);
+        }
 
+        final PersonCustomer personCustomer = PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).get();
+        if(!personCustomer.isActive()) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.not.active");
+        }
+        
         // Find tariff
 
         final AcademicTariff academicTariff = findTariffForAcademicServiceRequest(iTreasuryServiceRequest, when);
@@ -212,11 +232,10 @@ public class EmolumentServices {
             DebtAccount.create(finantialInstitution, personCustomer);
         }
 
-        final DebtAccount personDebtAccount = DebtAccount.findUnique(finantialInstitution, personCustomer).orElse(null);
 
         // Find or create event if does not exists
         if (findAcademicTreasuryEvent(iTreasuryServiceRequest) == null) {
-            AcademicTreasuryEvent.createForAcademicServiceRequest(personDebtAccount, iTreasuryServiceRequest);
+            AcademicTreasuryEvent.createForAcademicServiceRequest(iTreasuryServiceRequest);
         }
 
         final AcademicTreasuryEvent academicTresuryEvent = findAcademicTreasuryEvent(iTreasuryServiceRequest);
@@ -225,7 +244,8 @@ public class EmolumentServices {
             return false;
         }
 
-        final DebitEntry debitEntry = academicTariff.createDebitEntryForAcademicServiceRequest(academicTresuryEvent);
+        final DebtAccount personDebtAccount = DebtAccount.findUnique(finantialInstitution, personCustomer).orElse(null);
+        final DebitEntry debitEntry = academicTariff.createDebitEntryForAcademicServiceRequest(personDebtAccount, academicTresuryEvent);
 
         if (debitEntry == null) {
             return false;
@@ -235,16 +255,18 @@ public class EmolumentServices {
             throw new AcademicTreasuryDomainException("error.EmolumentServices.academicServiceRequest.amount.equals.to.zero");
         }
 
-        final DebitNote debitNote = DebitNote.create(personDebtAccount, DocumentNumberSeries
-                .findUniqueDefault(FinantialDocumentType.findForDebitNote(), personDebtAccount.getFinantialInstitution())
-                .get(), new DateTime());
+        final DebitNote debitNote = DebitNote.create(personDebtAccount,
+                DocumentNumberSeries
+                        .findUniqueDefault(FinantialDocumentType.findForDebitNote(), personDebtAccount.getFinantialInstitution())
+                        .get(),
+                new DateTime());
 
         debitNote.addDebitNoteEntries(Collections.singletonList(debitEntry));
 
         if (AcademicTreasurySettings.getInstance().isCloseServiceRequestEmolumentsWithDebitNote()) {
             debitNote.closeDocument();
         }
-        
+
         if (serviceRequestMapEntry.getGeneratePaymentCode()) {
             PaymentCodePool pool = serviceRequestMapEntry.getPaymentCodePool();
             if (pool == null) {
@@ -307,10 +329,8 @@ public class EmolumentServices {
 
             return true;
         } else if (debitEntry.getCreditEntriesSet().isEmpty()) {
-            debitNote
-                    .anullDebitNoteWithCreditNote(org.fenixedu.academictreasury.util.Constants
-                            .bundle("label.EmolumentServices.removeDebitEntryForAcademicService.reason"), false);
-
+            debitNote.anullDebitNoteWithCreditNote(org.fenixedu.academictreasury.util.Constants
+                    .bundle("label.EmolumentServices.removeDebitEntryForAcademicService.reason"), false);
 
             return true;
         }

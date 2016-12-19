@@ -1,6 +1,7 @@
 package org.fenixedu.academictreasury.domain.treasury;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.fenixedu.academic.domain.Enrolment;
@@ -52,10 +53,10 @@ public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
 //        Signal.register(Person.PERSON_CREATE_SIGNAL, new PersonServices());
         Signal.register(Registration.REGISTRATION_CREATE_SIGNAL, new RegistrationServices());
     }
-    
+
     @Override
     public void registerAcademicServiceRequestCancelOrRejectHandler() {
-        Signal.register(ACADEMIC_SERVICE_REQUEST_REJECT_OR_CANCEL_EVENT, new AcademicServiceRequestCancelOrRejectHandler());        
+        Signal.register(ACADEMIC_SERVICE_REQUEST_REJECT_OR_CANCEL_EVENT, new AcademicServiceRequestCancelOrRejectHandler());
     }
 
     @Override
@@ -85,9 +86,9 @@ public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
     }
 
     public void registerNormalEnrolmentHandler() {
-        Signal.register(NORMAL_ENROLMENT, new NormalEnrolmentHandler());        
+        Signal.register(NORMAL_ENROLMENT, new NormalEnrolmentHandler());
     }
-    
+
     @Override
     public void standaloneUnenrolment(final Enrolment standaloneEnrolment) {
         TuitionServices.removeDebitEntryForStandaloneEnrolment(standaloneEnrolment);
@@ -178,48 +179,41 @@ public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
 
     @Override
     public List<IAcademicTreasuryEvent> getAllAcademicTreasuryEventsList(final Person person, final ExecutionYear executionYear) {
-        if (!PersonCustomer.findUnique(person).isPresent()) {
-            return Lists.newArrayList();
-        }
-
-        return AcademicTreasuryEvent.find(PersonCustomer.findUnique(person).get(), executionYear).collect(
-                Collectors.<IAcademicTreasuryEvent> toList());
+        return AcademicTreasuryEvent.find(person, executionYear).collect(Collectors.<IAcademicTreasuryEvent> toList());
     }
 
     @Override
     public List<IAcademicTreasuryEvent> getAllAcademicTreasuryEventsList(final Person person) {
-        if (!PersonCustomer.findUnique(person).isPresent()) {
-            return Lists.newArrayList();
-        }
-
-        return AcademicTreasuryEvent.find(PersonCustomer.findUnique(person).get()).collect(
-                Collectors.<IAcademicTreasuryEvent> toList());
+        return AcademicTreasuryEvent.find(person).collect(Collectors.<IAcademicTreasuryEvent> toList());
     }
 
     @Override
     public String getPersonAccountTreasuryManagementURL(final Person person) {
-        if (!PersonCustomer.findUnique(person).isPresent()) {
-            return null;
-        }
-
-        return CustomerController.READ_URL + PersonCustomer.findUnique(person).get().getExternalId();
+        final String countryCode = PersonCustomer.countryCode(person);
+        final String fiscalNumber = PersonCustomer.fiscalNumber(person);
+        return CustomerController.READ_URL + PersonCustomer.findUnique(person, countryCode, fiscalNumber).get().getExternalId();
     }
 
     @Override
     public boolean isPersonAccountTreasuryManagementAvailable(Person person) {
-        return PersonCustomer.findUnique(person).isPresent();
+        final String countryCode = PersonCustomer.countryCode(person);
+        final String fiscalNumber = PersonCustomer.fiscalNumber(person);
+        return PersonCustomer.findUnique(person, countryCode, fiscalNumber).isPresent();
     }
 
     @Override
     public String getRegistrationAccountTreasuryManagementURL(Registration registration) {
-        if(registration.getDegree().getAdministrativeOffice().getFinantialEntity() == null) {
+        if (registration.getDegree().getAdministrativeOffice().getFinantialEntity() == null) {
             return getPersonAccountTreasuryManagementURL(registration.getPerson());
         }
-        
+
         final FinantialInstitution inst =
                 registration.getDegree().getAdministrativeOffice().getFinantialEntity().getFinantialInstitution();
         final Person person = registration.getPerson();
-        final PersonCustomer customer = PersonCustomer.findUnique(person).get();
+        final String countryCode = PersonCustomer.countryCode(person);
+        final String fiscalNumber = PersonCustomer.fiscalNumber(person);
+
+        final PersonCustomer customer = PersonCustomer.findUnique(person, countryCode, fiscalNumber).get();
 
         final DebtAccount account = customer.getDebtAccountFor(inst);
         if (account != null) {
@@ -237,6 +231,11 @@ public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
     @Override
     public boolean isValidFiscalNumber(final String fiscalCountryCode, final String fiscalNumber) {
         return FiscalCodeValidation.isValidFiscalNumber(fiscalCountryCode, fiscalNumber);
+    }
+
+    @Override
+    public boolean updateCustomer(final Person person, final String fiscalCountryCode, final String fiscalNumber) {
+        return PersonCustomer.switchCustomer(person, fiscalCountryCode, fiscalNumber);
     }
 
 }

@@ -323,15 +323,15 @@ public class ERPTuitionInfo extends ERPTuitionInfo_Base {
         final Product product = type.getProduct();
 
         BigDecimal totalAmount = BigDecimal.ZERO;
-        for (final AcademicTreasuryEvent event : AcademicTreasuryEvent.find(customer)
+        for (final AcademicTreasuryEvent event : AcademicTreasuryEvent.find(customer.getPerson())
                 .collect(Collectors.<AcademicTreasuryEvent> toSet())) {
             if (type.isForRegistration() && event.isForRegistrationTuition()
                     && type.getDegreeType() == event.getRegistration().getDegreeType()) {
-                totalAmount = totalAmount.add(event.getAmountToPay());
+                totalAmount = totalAmount.add(event.getAmountToPay(customer, null));
             } else if (type.isForStandalone() && event.isForStandaloneTuition()) {
-                totalAmount = totalAmount.add(event.getAmountToPay());
+                totalAmount = totalAmount.add(event.getAmountToPay(customer, null));
             } else if (type.isForExtracurricular() && event.isForExtracurricularTuition()) {
-                totalAmount = totalAmount.add(event.getAmountToPay());
+                totalAmount = totalAmount.add(event.getAmountToPay(customer, null));
             }
         }
 

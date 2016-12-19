@@ -2,23 +2,23 @@ package org.fenixedu.academictreasury.domain.event;
 
 import org.fenixedu.academic.domain.Degree;
 import org.fenixedu.academic.domain.ExecutionYear;
+import org.fenixedu.academic.domain.Person;
 import org.fenixedu.treasury.domain.Product;
-import org.fenixedu.treasury.domain.debt.DebtAccount;
 import org.joda.time.LocalDate;
 
 public class LegacyAcademicTreasuryEvent extends LegacyAcademicTreasuryEvent_Base {
 
-    protected LegacyAcademicTreasuryEvent(DebtAccount debtAccount, Product product, Degree degree, ExecutionYear executionYear) {
+    protected LegacyAcademicTreasuryEvent(final Person person, Product product, Degree degree, ExecutionYear executionYear) {
         super();
-        this.setDebtAccount(debtAccount);
+        this.setPerson(person);
         this.setProduct(product);
         this.setExecutionYear(executionYear);
         this.setDegree(degree);
     }
 
-    public static LegacyAcademicTreasuryEvent create(final DebtAccount debtAccount, final Product product, final Degree degree,
+    public static LegacyAcademicTreasuryEvent create(final Person person, final Product product, final Degree degree,
             final ExecutionYear executionYear) {
-        return new LegacyAcademicTreasuryEvent(debtAccount, product, degree, executionYear);
+        return new LegacyAcademicTreasuryEvent(person, product, degree, executionYear);
     }
 
     @Override

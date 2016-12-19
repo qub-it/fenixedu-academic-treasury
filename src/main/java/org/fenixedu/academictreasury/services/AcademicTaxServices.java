@@ -24,6 +24,8 @@ import org.fenixedu.treasury.domain.document.DebitEntry;
 import org.fenixedu.treasury.domain.document.DebitNote;
 import org.joda.time.LocalDate;
 
+import com.google.common.base.Strings;
+
 import pt.ist.fenixframework.Atomic;
 
 public class AcademicTaxServices {
@@ -59,27 +61,29 @@ public class AcademicTaxServices {
 
         if (findAcademicTreasuryEvent(registration, executionYear, academicTax) == null) {
 
-            if (!PersonCustomer.findUnique(registration.getPerson()).isPresent()) {
-                PersonCustomer.create(registration.getPerson());
+            final Person person = registration.getPerson();
+            final String fiscalCountryCode = PersonCustomer.countryCode(person);
+            final String fiscalNumber = PersonCustomer.fiscalNumber(person);
+            if (Strings.isNullOrEmpty(fiscalCountryCode) || Strings.isNullOrEmpty(fiscalNumber)) {
+                throw new AcademicTreasuryDomainException("error.PersonCustomer.fiscalInformation.required");
+            }
+
+            // Read person customer
+            if (!PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).isPresent()) {
+                PersonCustomer.create(person, fiscalCountryCode, fiscalNumber);
+            }
+
+            final PersonCustomer personCustomer = PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).get();
+            if (!personCustomer.isActive()) {
+                throw new AcademicTreasuryDomainException("error.PersonCustomer.not.active", fiscalCountryCode, fiscalNumber);
             }
 
             final AcademicTariff academicTariff = findAcademicTariff(academicTax, registration, debtDate);
-
             if (academicTariff == null) {
                 return null;
             }
 
-            if (!DebtAccount.findUnique(academicTariff.getFinantialEntity().getFinantialInstitution(),
-                    PersonCustomer.findUnique(registration.getPerson()).get()).isPresent()) {
-
-                DebtAccount.create(academicTariff.getFinantialEntity().getFinantialInstitution(),
-                        PersonCustomer.findUnique(registration.getPerson()).get());
-            }
-
-            final DebtAccount debtAccount = DebtAccount.findUnique(academicTariff.getFinantialEntity().getFinantialInstitution(),
-                    PersonCustomer.findUnique(registration.getPerson()).get()).get();
-
-            AcademicTreasuryEvent.createForAcademicTax(debtAccount, academicTax, registration, executionYear);
+            AcademicTreasuryEvent.createForAcademicTax(academicTax, registration, executionYear);
         }
 
         final AcademicTreasuryEvent academicTreasuryEvent = findAcademicTreasuryEvent(registration, executionYear, academicTax);
@@ -97,11 +101,11 @@ public class AcademicTaxServices {
 
     public static boolean isAcademicTaxCharged(final Registration registration, final ExecutionYear executionYear,
             final AcademicTax academicTax) {
-        
-        if(findAcademicTreasuryEvent(registration, executionYear, academicTax) == null) {
+
+        if (findAcademicTreasuryEvent(registration, executionYear, academicTax) == null) {
             return false;
         }
-        
+
         final AcademicTreasuryEvent academicTreasuryEvent = findAcademicTreasuryEvent(registration, executionYear, academicTax);
         return academicTreasuryEvent.isCharged();
     }
@@ -123,10 +127,23 @@ public class AcademicTaxServices {
             return false;
         }
 
+        final Person person = registration.getPerson();
+        final String fiscalCountryCode = PersonCustomer.countryCode(person);
+        final String fiscalNumber = PersonCustomer.fiscalNumber(person);
         if (findAcademicTreasuryEvent(registration, executionYear, academicTax) == null) {
 
-            if (!PersonCustomer.findUnique(registration.getPerson()).isPresent()) {
-                PersonCustomer.create(registration.getPerson());
+            if (Strings.isNullOrEmpty(fiscalCountryCode) || Strings.isNullOrEmpty(fiscalNumber)) {
+                throw new AcademicTreasuryDomainException("error.PersonCustomer.fiscalInformation.required");
+            }
+
+            // Read person customer
+            if (!PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).isPresent()) {
+                PersonCustomer.create(person, fiscalCountryCode, fiscalNumber);
+            }
+
+            final PersonCustomer personCustomer = PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).get();
+            if (!personCustomer.isActive()) {
+                throw new AcademicTreasuryDomainException("error.PersonCustomer.not.active", fiscalCountryCode, fiscalNumber);
             }
 
             final AcademicTariff academicTariff = findAcademicTariff(academicTax, registration, when);
@@ -135,17 +152,13 @@ public class AcademicTaxServices {
                 return false;
             }
 
-            if (!DebtAccount.findUnique(academicTariff.getFinantialEntity().getFinantialInstitution(),
-                    PersonCustomer.findUnique(registration.getPerson()).get()).isPresent()) {
+            if (!DebtAccount.findUnique(academicTariff.getFinantialEntity().getFinantialInstitution(), personCustomer)
+                    .isPresent()) {
 
-                DebtAccount.create(academicTariff.getFinantialEntity().getFinantialInstitution(),
-                        PersonCustomer.findUnique(registration.getPerson()).get());
+                DebtAccount.create(academicTariff.getFinantialEntity().getFinantialInstitution(), personCustomer);
             }
 
-            final DebtAccount debtAccount = DebtAccount.findUnique(academicTariff.getFinantialEntity().getFinantialInstitution(),
-                    PersonCustomer.findUnique(registration.getPerson()).get()).get();
-
-            AcademicTreasuryEvent.createForAcademicTax(debtAccount, academicTax, registration, executionYear);
+            AcademicTreasuryEvent.createForAcademicTax(academicTax, registration, executionYear);
         }
 
         final AcademicTreasuryEvent academicTreasuryEvent = findAcademicTreasuryEvent(registration, executionYear, academicTax);
@@ -161,7 +174,11 @@ public class AcademicTaxServices {
             return false;
         }
 
-        academicTariff.createDebitEntryForAcademicTax(academicTreasuryEvent, when);
+        final PersonCustomer personCustomer = PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).get();
+        final DebtAccount debtAccount =
+                DebtAccount.findUnique(academicTariff.getFinantialEntity().getFinantialInstitution(), personCustomer).get();
+
+        academicTariff.createDebitEntryForAcademicTax(debtAccount, academicTreasuryEvent, when);
 
         return true;
     }
@@ -197,14 +214,16 @@ public class AcademicTaxServices {
         return AcademicTariff.findMatch(AcademicTreasurySettings.getInstance().getImprovementAcademicTax().getProduct(),
                 registration.getDegree(), debtDate.toDateTimeAtStartOfDay());
     }
-    
-    public static boolean isImprovementAcademicTaxCharged(final Registration registration, final ExecutionYear executionYear, final EnrolmentEvaluation enrolmentEvaluation) {
-        if(findAcademicTreasuryEventForImprovementTax(registration, executionYear) == null) {
+
+    public static boolean isImprovementAcademicTaxCharged(final Registration registration, final ExecutionYear executionYear,
+            final EnrolmentEvaluation enrolmentEvaluation) {
+        if (findAcademicTreasuryEventForImprovementTax(registration, executionYear) == null) {
             return false;
         }
-        
-        final AcademicTreasuryEvent academicTreasuryEvent = findAcademicTreasuryEventForImprovementTax(registration, executionYear);
-        
+
+        final AcademicTreasuryEvent academicTreasuryEvent =
+                findAcademicTreasuryEventForImprovementTax(registration, executionYear);
+
         return academicTreasuryEvent.isChargedWithDebitEntry(enrolmentEvaluation);
     }
 
@@ -226,12 +245,21 @@ public class AcademicTaxServices {
 
         if (findAcademicTreasuryEventForImprovementTax(registration, executionYear) == null) {
             final Person person = registration.getPerson();
-
-            if (!PersonCustomer.findUnique(person).isPresent()) {
-                PersonCustomer.create(person);
+            final String fiscalCountryCode = PersonCustomer.countryCode(person);
+            final String fiscalNumber = PersonCustomer.fiscalNumber(person);
+            if (Strings.isNullOrEmpty(fiscalCountryCode) || Strings.isNullOrEmpty(fiscalNumber)) {
+                throw new AcademicTreasuryDomainException("error.PersonCustomer.fiscalInformation.required");
             }
 
-            final PersonCustomer personCustomer = PersonCustomer.findUnique(person).get();
+            // Read person customer
+            if (!PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).isPresent()) {
+                PersonCustomer.create(person, fiscalCountryCode, fiscalNumber);
+            }
+
+            final PersonCustomer personCustomer = PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).get();
+            if (!personCustomer.isActive()) {
+                throw new AcademicTreasuryDomainException("error.PersonCustomer.not.active", fiscalCountryCode, fiscalNumber);
+            }
 
             final AcademicTariff academicTariff = findAcademicTariff(enrolmentEvaluation, debtDate);
 
@@ -239,15 +267,7 @@ public class AcademicTaxServices {
                 return null;
             }
 
-            if (!DebtAccount.findUnique(academicTariff.getFinantialEntity().getFinantialInstitution(), personCustomer)
-                    .isPresent()) {
-                DebtAccount.create(academicTariff.getFinantialEntity().getFinantialInstitution(), personCustomer);
-            }
-
-            final DebtAccount debtAccount =
-                    DebtAccount.findUnique(academicTariff.getFinantialEntity().getFinantialInstitution(), personCustomer).get();
-
-            AcademicTreasuryEvent.createForImprovementTuition(debtAccount, registration, executionYear);
+            AcademicTreasuryEvent.createForImprovementTuition(registration, executionYear);
         }
 
         final AcademicTreasuryEvent academicTreasuryEvent =
@@ -295,14 +315,25 @@ public class AcademicTaxServices {
             return false;
         }
 
-        if (findAcademicTreasuryEventForImprovementTax(registration, executionYear) == null) {
-            final Person person = registration.getPerson();
+        final Person person = registration.getPerson();
+        final String fiscalCountryCode = PersonCustomer.countryCode(person);
+        final String fiscalNumber = PersonCustomer.fiscalNumber(person);
 
-            if (!PersonCustomer.findUnique(person).isPresent()) {
-                PersonCustomer.create(person);
+        if (findAcademicTreasuryEventForImprovementTax(registration, executionYear) == null) {
+            if (Strings.isNullOrEmpty(fiscalCountryCode) || Strings.isNullOrEmpty(fiscalNumber)) {
+                throw new AcademicTreasuryDomainException("error.PersonCustomer.fiscalInformation.required");
             }
 
-            final PersonCustomer personCustomer = PersonCustomer.findUnique(person).get();
+            // Read person customer
+            if (!PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).isPresent()) {
+                PersonCustomer.create(person, fiscalCountryCode, fiscalNumber);
+            }
+
+            final PersonCustomer personCustomer = PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).get();
+            if (!personCustomer.isActive()) {
+                throw new AcademicTreasuryDomainException("error.PersonCustomer.not.active", fiscalCountryCode, fiscalNumber);
+            }
+
 
             final AcademicTariff academicTariff = AcademicTariff.findMatch(improvementAcademicTax.getProduct(),
                     registration.getDegree(), when.toDateTimeAtStartOfDay());
@@ -311,15 +342,10 @@ public class AcademicTaxServices {
                 return false;
             }
 
-            if (!DebtAccount.findUnique(academicTariff.getFinantialEntity().getFinantialInstitution(), personCustomer)
-                    .isPresent()) {
-                DebtAccount.create(academicTariff.getFinantialEntity().getFinantialInstitution(), personCustomer);
-            }
-
             final DebtAccount debtAccount =
                     DebtAccount.findUnique(academicTariff.getFinantialEntity().getFinantialInstitution(), personCustomer).get();
 
-            AcademicTreasuryEvent.createForImprovementTuition(debtAccount, registration, executionYear);
+            AcademicTreasuryEvent.createForImprovementTuition(registration, executionYear);
         }
 
         final AcademicTreasuryEvent academicTreasuryEvent =
@@ -336,7 +362,11 @@ public class AcademicTaxServices {
             return false;
         }
 
-        final DebitEntry debitEntry = academicTariff.createDebitEntryForImprovement(academicTreasuryEvent, enrolmentEvaluation);
+        final PersonCustomer personCustomer = PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).get();
+        final DebtAccount debtAccount =
+                DebtAccount.findUnique(academicTariff.getFinantialEntity().getFinantialInstitution(), personCustomer).get();
+
+        final DebitEntry debitEntry = academicTariff.createDebitEntryForImprovement(debtAccount, academicTreasuryEvent, enrolmentEvaluation);
 
         return debitEntry != null;
     }

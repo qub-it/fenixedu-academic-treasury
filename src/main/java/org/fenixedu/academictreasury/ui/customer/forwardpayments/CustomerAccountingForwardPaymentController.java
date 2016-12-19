@@ -3,9 +3,10 @@ package org.fenixedu.academictreasury.ui.customer.forwardpayments;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
+import org.fenixedu.academic.domain.Person;
 import org.fenixedu.academictreasury.domain.customer.PersonCustomer;
+import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainException;
 import org.fenixedu.academictreasury.ui.customer.CustomerAccountingController;
-import org.fenixedu.bennu.core.i18n.BundleUtil;
 import org.fenixedu.bennu.core.security.Authenticate;
 import org.fenixedu.bennu.spring.portal.BennuSpringController;
 import org.fenixedu.treasury.domain.debt.DebtAccount;
@@ -19,6 +20,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import com.google.common.base.Strings;
 
 @BennuSpringController(CustomerAccountingController.class)
 @RequestMapping(CustomerAccountingForwardPaymentController.CONTROLLER_URL)
@@ -37,10 +40,16 @@ public class CustomerAccountingForwardPaymentController
 
     @Override
     protected void checkPermissions(DebtAccount debtAccount, Model model) {
-        if (PersonCustomer.findUnique(Authenticate.getUser().getPerson()).get() != debtAccount.getCustomer()) {
-            addErrorMessage(BundleUtil.getString(Constants.BUNDLE, "error.authorization.not.allow.to.modify.settlements"), model);
-            throw new SecurityException(
-                    BundleUtil.getString(Constants.BUNDLE, "error.authorization.not.allow.to.modify.settlements"));
+        final Person person = Authenticate.getUser().getPerson();
+        final String fiscalCountryCode = PersonCustomer.countryCode(person);
+        final String fiscalNumber = PersonCustomer.fiscalNumber(person);
+        if (Strings.isNullOrEmpty(fiscalCountryCode) || Strings.isNullOrEmpty(fiscalNumber)) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.fiscalInformation.required");
+        }
+
+        if (PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).get() != debtAccount.getCustomer()) {
+            addErrorMessage(Constants.bundle("error.authorization.not.allow.to.modify.settlements"), model);
+            throw new SecurityException(Constants.bundle("error.authorization.not.allow.to.modify.settlements"));
         }
     }
 

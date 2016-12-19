@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 
 import org.fenixedu.academic.domain.DegreeCurricularPlan;
 import org.fenixedu.academic.domain.ExecutionYear;
+import org.fenixedu.academic.domain.Person;
 import org.fenixedu.academic.domain.student.Registration;
 import org.fenixedu.academictreasury.domain.customer.PersonCustomer;
 import org.fenixedu.academictreasury.domain.debtGeneration.AcademicDebtGenerationRule;
@@ -28,6 +29,7 @@ import org.joda.time.LocalDate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Sets;
 
 import pt.ist.fenixframework.Atomic;
@@ -81,7 +83,7 @@ public class CreatePaymentReferencesStrategy implements IAcademicDebtGenerationR
     public boolean isToAlignAcademicTaxesDueDate() {
         return true;
     }
-    
+
     @Override
     @Atomic(mode = TxMode.READ)
     public void process(final AcademicDebtGenerationRule rule) {
@@ -119,10 +121,11 @@ public class CreatePaymentReferencesStrategy implements IAcademicDebtGenerationR
             throw new AcademicTreasuryDomainException("error.AcademicDebtGenerationRule.not.active.to.process");
         }
 
-        if(rule.getDebtGenerationRuleRestriction() != null && !rule.getDebtGenerationRuleRestriction().strategyImplementation().isToApply(rule, registration)) {
+        if (rule.getDebtGenerationRuleRestriction() != null
+                && !rule.getDebtGenerationRuleRestriction().strategyImplementation().isToApply(rule, registration)) {
             return;
         }
-        
+
         if (registration.getStudentCurricularPlan(rule.getExecutionYear()) == null) {
             return;
         }
@@ -138,7 +141,8 @@ public class CreatePaymentReferencesStrategy implements IAcademicDebtGenerationR
     @Atomic(mode = TxMode.WRITE)
     private void processDebtsForRegistration(final AcademicDebtGenerationRule rule, final Registration registration) {
 
-        if(rule.getDebtGenerationRuleRestriction() != null && !rule.getDebtGenerationRuleRestriction().strategyImplementation().isToApply(rule, registration)) {
+        if (rule.getDebtGenerationRuleRestriction() != null
+                && !rule.getDebtGenerationRuleRestriction().strategyImplementation().isToApply(rule, registration)) {
             return;
         }
 
@@ -177,16 +181,16 @@ public class CreatePaymentReferencesStrategy implements IAcademicDebtGenerationR
         final PaymentReferenceCode paymentCode = rule.getPaymentCodePool().getReferenceCodeGenerator().generateNewCodeFor(
                 currency.getValueWithScale(amount), new LocalDate(), maxDebitEntryDueDate(debitEntries), false);
         paymentCode.createPaymentTargetTo(debitEntries, amount);
-        
-        if(rule.getAcademicTaxDueDateAlignmentType() != null) {
+
+        if (rule.getAcademicTaxDueDateAlignmentType() != null) {
             rule.getAcademicTaxDueDateAlignmentType().applyDueDate(rule, debitEntries);
         }
-        
+
     }
 
     public static Set<DebitEntry> grabDebitEntries(final AcademicDebtGenerationRule rule, final Registration registration) {
         final Set<DebitEntry> debitEntries = Sets.newHashSet();
-        
+
         for (final AcademicDebtGenerationRuleEntry entry : rule.getAcademicDebtGenerationRuleEntriesSet()) {
             final Product product = entry.getProduct();
 
@@ -205,7 +209,7 @@ public class CreatePaymentReferencesStrategy implements IAcademicDebtGenerationR
                 debitEntries.add(grabbedDebitEntry);
             }
         }
-        
+
         return debitEntries;
     }
 
@@ -261,19 +265,27 @@ public class CreatePaymentReferencesStrategy implements IAcademicDebtGenerationR
             return null;
         }
 
-        if (!PersonCustomer.findUnique(registration.getPerson()).isPresent()) {
+        final Person person = registration.getPerson();
+        final String fiscalCountryCode = PersonCustomer.countryCode(person);
+        final String fiscalNumber = PersonCustomer.fiscalNumber(person);
+        if (Strings.isNullOrEmpty(fiscalCountryCode) || Strings.isNullOrEmpty(fiscalNumber)) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.fiscalInformation.required");
+        }
+
+        if (!PersonCustomer.findUnique(registration.getPerson(), fiscalCountryCode, fiscalNumber).isPresent()) {
             return null;
         }
 
-        if (!DebtAccount
-                .findUnique(finantialEntity.getFinantialInstitution(), PersonCustomer.findUnique(registration.getPerson()).get())
-                .isPresent()) {
+        final PersonCustomer personCustomer = PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).get();
+        if (!personCustomer.isActive()) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.not.active", fiscalCountryCode, fiscalNumber);
+        }
+
+        if (!DebtAccount.findUnique(finantialEntity.getFinantialInstitution(), personCustomer).isPresent()) {
             return null;
         }
 
-        final DebtAccount debtAccount = DebtAccount
-                .findUnique(finantialEntity.getFinantialInstitution(), PersonCustomer.findUnique(registration.getPerson()).get())
-                .get();
+        final DebtAccount debtAccount = DebtAccount.findUnique(finantialEntity.getFinantialInstitution(), personCustomer).get();
 
         for (final DebitEntry debitEntry : DebitEntry.findActive(debtAccount, entry.getProduct())
                 .collect(Collectors.<DebitEntry> toSet())) {
