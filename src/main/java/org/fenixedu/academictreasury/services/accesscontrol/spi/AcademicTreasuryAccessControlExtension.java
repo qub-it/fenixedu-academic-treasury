@@ -33,7 +33,7 @@ public class AcademicTreasuryAccessControlExtension implements ITreasuryAccessCo
         return AcademicAccessRule.isMember(user, AcademicOperationType.MANAGE_STUDENT_PAYMENTS, Collections.emptySet(),
                 Collections.singleton(finantialEntity.getAdministrativeOffice()));
     }
-
+    
     @Override
     public boolean isBackOfficeMember(final User user) {
         return FinantialInstitution.findAll().map(l -> isBackOfficeMember(user, l)).reduce((a, b) -> a || b).orElse(false);
