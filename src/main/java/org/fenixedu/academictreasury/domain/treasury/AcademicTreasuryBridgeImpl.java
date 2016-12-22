@@ -1,6 +1,8 @@
 package org.fenixedu.academictreasury.domain.treasury;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.fenixedu.academic.domain.Enrolment;
@@ -11,8 +13,11 @@ import org.fenixedu.academic.domain.serviceRequests.AcademicServiceRequest;
 import org.fenixedu.academic.domain.student.Registration;
 import org.fenixedu.academic.domain.treasury.IAcademicServiceRequestAndAcademicTaxTreasuryEvent;
 import org.fenixedu.academic.domain.treasury.IAcademicTreasuryEvent;
+import org.fenixedu.academic.domain.treasury.IAcademicTreasuryTarget;
 import org.fenixedu.academic.domain.treasury.IImprovementTreasuryEvent;
 import org.fenixedu.academic.domain.treasury.ITreasuryBridgeAPI;
+import org.fenixedu.academic.domain.treasury.ITreasuryInstitution;
+import org.fenixedu.academic.domain.treasury.ITreasuryProduct;
 import org.fenixedu.academic.domain.treasury.ITuitionTreasuryEvent;
 import org.fenixedu.academictreasury.domain.academicalAct.AcademicActBlockingSuspension;
 import org.fenixedu.academictreasury.domain.customer.PersonCustomer;
@@ -30,7 +35,10 @@ import org.fenixedu.academictreasury.services.signals.NormalEnrolmentHandler;
 import org.fenixedu.academictreasury.services.signals.StandaloneEnrolmentHandler;
 import org.fenixedu.bennu.signals.Signal;
 import org.fenixedu.treasury.domain.FinantialInstitution;
+import org.fenixedu.treasury.domain.Product;
 import org.fenixedu.treasury.domain.debt.DebtAccount;
+import org.fenixedu.treasury.domain.document.DebitEntry;
+import org.fenixedu.treasury.services.reports.dataproviders.DebtAccountDataProvider;
 import org.fenixedu.treasury.ui.accounting.managecustomer.CustomerController;
 import org.fenixedu.treasury.ui.accounting.managecustomer.DebtAccountController;
 import org.joda.time.LocalDate;
@@ -38,6 +46,95 @@ import org.joda.time.LocalDate;
 import com.google.common.collect.Lists;
 
 public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
+
+    private static class AcademicProduct implements ITreasuryProduct {
+
+        private Product product;
+
+        private AcademicProduct(final Product product) {
+            this.product = product;
+        }
+
+        @Override
+        public String getCode() {
+            return product.getCode();
+        }
+
+        @Override
+        public String getName() {
+            return product.getName().getContent();
+        }
+
+        @Override
+        public int hashCode() {
+            return product.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return (obj instanceof AcademicProduct) && ((AcademicProduct) obj).product == product;
+        }
+    }
+
+    private static class TreasuryInstitution implements ITreasuryInstitution {
+
+        private FinantialInstitution finantialInstitution;
+
+        public TreasuryInstitution(final FinantialInstitution finantialInstitution) {
+            this.finantialInstitution = finantialInstitution;
+        }
+
+        @Override
+        public String getFiscalNumber() {
+            return finantialInstitution.getFiscalNumber();
+        }
+
+        @Override
+        public String getName() {
+            return finantialInstitution.getName();
+        }
+
+        @Override
+        public int hashCode() {
+            return finantialInstitution.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return (obj instanceof TreasuryInstitution)
+                    && ((TreasuryInstitution) obj).finantialInstitution == finantialInstitution;
+        }
+    }
+
+    // @formatter:off
+    /* ---------------------------------
+     * TREASURY INSTITUTION AND PRODUCTS
+     * ---------------------------------
+     */
+    // @formatter:on
+
+    @Override
+    public Set<ITreasuryInstitution> getTreasuryInstitutions() {
+        return FinantialInstitution.findAll().map(f -> new TreasuryInstitution(f)).collect(Collectors.toSet());
+    }
+
+    @Override
+    public ITreasuryInstitution getTreasuryInstitutionByFiscalNumber(final String fiscalNumber) {
+        return FinantialInstitution.findUniqueByFiscalCode(fiscalNumber).map(f -> new TreasuryInstitution(f)).orElse(null);
+    }
+
+    @Override
+    public Set<ITreasuryProduct> getProducts(final ITreasuryInstitution treasuryInstitution) {
+        return Product.findAllActive()
+                .filter(p -> p.getFinantialInstitutionsSet()
+                        .contains(((TreasuryInstitution) treasuryInstitution).finantialInstitution))
+                .map(p -> new AcademicProduct(p)).collect(Collectors.toSet());
+    }
+
+    @Override
+    public ITreasuryProduct getProductByCode(final String code) {
+        return Product.findUniqueByCode(code).map(p -> new AcademicProduct(p)).orElse(null);
+    }
 
     /* ------------------------ 
      * ACADEMIC SERVICE REQUEST
@@ -51,10 +148,10 @@ public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
 //        Signal.register(Person.PERSON_CREATE_SIGNAL, new PersonServices());
         Signal.register(Registration.REGISTRATION_CREATE_SIGNAL, new RegistrationServices());
     }
-    
+
     @Override
     public void registerAcademicServiceRequestCancelOrRejectHandler() {
-        Signal.register(ACADEMIC_SERVICE_REQUEST_REJECT_OR_CANCEL_EVENT, new AcademicServiceRequestCancelOrRejectHandler());        
+        Signal.register(ACADEMIC_SERVICE_REQUEST_REJECT_OR_CANCEL_EVENT, new AcademicServiceRequestCancelOrRejectHandler());
     }
 
     @Override
@@ -84,9 +181,9 @@ public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
     }
 
     public void registerNormalEnrolmentHandler() {
-        Signal.register(NORMAL_ENROLMENT, new NormalEnrolmentHandler());        
+        Signal.register(NORMAL_ENROLMENT, new NormalEnrolmentHandler());
     }
-    
+
     @Override
     public void standaloneUnenrolment(final Enrolment standaloneEnrolment) {
         TuitionServices.removeDebitEntryForStandaloneEnrolment(standaloneEnrolment);
@@ -155,6 +252,50 @@ public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
         return AcademicTreasuryEvent.findUniqueForImprovementTuition(registration, executionYear).get();
     }
 
+    // @formatter:off
+    /* ------------------------
+     * ACADEMIC TREASURY TARGET
+     * ------------------------
+     */
+    // @formatter:on
+
+    @Override
+    public IAcademicTreasuryEvent getAcademicTreasuryEventForTarget(final IAcademicTreasuryTarget target) {
+        final PersonCustomer personCustomer = target.getPerson().getPersonCustomer();
+        
+        if(personCustomer == null) {
+            return null;
+        }
+        
+        return AcademicTreasuryEvent.find(personCustomer).filter(t -> t.getTreasuryEventTarget() == target).findFirst().orElse(null);
+    }
+
+    public IAcademicTreasuryEvent createDebtForTarget(final IAcademicTreasuryTarget target, final ITreasuryProduct product,
+            final ITreasuryInstitution treasuryInstitution, final BigDecimal amount, final LocalDate dueDate,
+            final boolean applyInterestGlobalTax) {
+        
+        PersonCustomer personCustomer = target.getPerson().getPersonCustomer();
+        
+        if(personCustomer == null) {
+            personCustomer = PersonCustomer.create(target.getPerson());
+        }
+        
+        FinantialInstitution finantialInstitution = ((TreasuryInstitution) treasuryInstitution).finantialInstitution;
+        DebtAccount debtAccount = DebtAccount.findUnique(finantialInstitution, personCustomer).orElse(null);
+        
+        if(debtAccount == null) {
+            debtAccount = DebtAccount.create(finantialInstitution, personCustomer);
+        }
+        
+        AcademicTreasuryEvent treasuryEvent = (AcademicTreasuryEvent) getAcademicTreasuryEventForTarget(target);
+        
+        if(treasuryEvent == null) {
+            treasuryEvent = AcademicTreasuryEvent.create
+        }
+        
+        DebitEntry.create(null, debtAccount, treasuryEvent, ((Product) product).getVatType(), amount, dueDate, propertiesMap, product, description, BigDecimal.ONE, interestRate, entryDateTime);
+    }
+
     /* --------------
      * ACADEMICAL ACT
      * --------------
@@ -181,8 +322,8 @@ public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
             return Lists.newArrayList();
         }
 
-        return AcademicTreasuryEvent.find(PersonCustomer.findUnique(person).get(), executionYear).collect(
-                Collectors.<IAcademicTreasuryEvent> toList());
+        return AcademicTreasuryEvent.find(PersonCustomer.findUnique(person).get(), executionYear)
+                .collect(Collectors.<IAcademicTreasuryEvent> toList());
     }
 
     @Override
@@ -191,8 +332,8 @@ public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
             return Lists.newArrayList();
         }
 
-        return AcademicTreasuryEvent.find(PersonCustomer.findUnique(person).get()).collect(
-                Collectors.<IAcademicTreasuryEvent> toList());
+        return AcademicTreasuryEvent.find(PersonCustomer.findUnique(person).get())
+                .collect(Collectors.<IAcademicTreasuryEvent> toList());
     }
 
     @Override
@@ -211,10 +352,10 @@ public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
 
     @Override
     public String getRegistrationAccountTreasuryManagementURL(Registration registration) {
-        if(registration.getDegree().getAdministrativeOffice().getFinantialEntity() == null) {
+        if (registration.getDegree().getAdministrativeOffice().getFinantialEntity() == null) {
             return getPersonAccountTreasuryManagementURL(registration.getPerson());
         }
-        
+
         final FinantialInstitution inst =
                 registration.getDegree().getAdministrativeOffice().getFinantialEntity().getFinantialInstitution();
         final Person person = registration.getPerson();

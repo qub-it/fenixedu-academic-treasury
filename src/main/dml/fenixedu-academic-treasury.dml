@@ -486,7 +486,18 @@ class event.LegacyAcademicTreasuryEvent extends event.AcademicTreasuryEvent{
             multiplicity *;
         }
     }
-
+    
+    relation AcademicTreasuryEventTarget {
+    	
+    	.pt.ist.fenixframework.core.AbstractDomainObject playsRole treasuryEventTarget {
+    		multiplicity 0..1;
+    	}
+    	
+        event.AcademicTreasuryEvent playsRole {
+            multiplicity 0..1;
+        }
+    }
+    
 /* --------------------------
  * AcademicDebtGenerationRule
  * --------------------------

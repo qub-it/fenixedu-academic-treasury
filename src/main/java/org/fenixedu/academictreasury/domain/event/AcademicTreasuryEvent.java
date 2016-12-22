@@ -22,12 +22,12 @@ import org.fenixedu.academic.domain.treasury.AcademicTreasuryEventPayment;
 import org.fenixedu.academic.domain.treasury.IAcademicServiceRequestAndAcademicTaxTreasuryEvent;
 import org.fenixedu.academic.domain.treasury.IAcademicTreasuryEvent;
 import org.fenixedu.academic.domain.treasury.IAcademicTreasuryEventPayment;
+import org.fenixedu.academic.domain.treasury.IAcademicTreasuryTarget;
 import org.fenixedu.academic.domain.treasury.IImprovementTreasuryEvent;
 import org.fenixedu.academic.domain.treasury.ITuitionTreasuryEvent;
 import org.fenixedu.academictreasury.domain.customer.PersonCustomer;
 import org.fenixedu.academictreasury.domain.emoluments.AcademicTax;
 import org.fenixedu.academictreasury.domain.emoluments.ServiceRequestMapEntry;
-import org.fenixedu.academictreasury.domain.event.AcademicTreasuryEvent.AcademicTreasuryEventKeys;
 import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainException;
 import org.fenixedu.academictreasury.domain.serviceRequests.ITreasuryServiceRequest;
 import org.fenixedu.academictreasury.domain.settings.AcademicTreasurySettings;
@@ -52,12 +52,13 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import pt.ist.fenixframework.Atomic;
+import pt.ist.fenixframework.FenixFramework;
+import pt.ist.fenixframework.core.AbstractDomainObject;
 
 public class AcademicTreasuryEvent extends AcademicTreasuryEvent_Base implements IAcademicTreasuryEvent, ITuitionTreasuryEvent,
         IImprovementTreasuryEvent, IAcademicServiceRequestAndAcademicTaxTreasuryEvent {
 
     public AcademicTreasuryEvent() {
-
     }
 
     protected AcademicTreasuryEvent(final DebtAccount debtAccount, final ITreasuryServiceRequest iTreasuryServiceRequest) {
@@ -74,6 +75,11 @@ public class AcademicTreasuryEvent extends AcademicTreasuryEvent_Base implements
     protected AcademicTreasuryEvent(final DebtAccount debtAccount, final AcademicTax academicTax, final Registration registration,
             final ExecutionYear executionYear) {
         init(debtAccount, academicTax, registration, executionYear);
+    }
+
+    protected AcademicTreasuryEvent(final DebtAccount debtAccount, final Product product, final LocalizedString eventName,
+            final IAcademicTreasuryTarget target) {
+        init(debtAccount, product, eventName, target);
     }
 
     @Override
@@ -173,6 +179,17 @@ public class AcademicTreasuryEvent extends AcademicTreasuryEvent_Base implements
         return result;
     }
 
+    protected void init(final DebtAccount debtAccount, final Product product, final LocalizedString eventName,
+            final IAcademicTreasuryTarget target) {
+        super.init(debtAccount, product, eventName);
+
+        if (target == null) {
+            throw new AcademicTreasuryDomainException("error.AcademicTreasuryEvent.target.required");
+        }
+
+        setAcademicTreasuryTarget((AbstractDomainObject) target);
+    }
+
     @Override
     protected void checkRules() {
         super.checkRules();
@@ -183,7 +200,7 @@ public class AcademicTreasuryEvent extends AcademicTreasuryEvent_Base implements
         }
 
         if (!(isForAcademicServiceRequest() ^ isForRegistrationTuition() ^ isForStandaloneTuition()
-                ^ isForExtracurricularTuition() ^ isForImprovementTax() ^ isForAcademicTax())) {
+                ^ isForExtracurricularTuition() ^ isForImprovementTax() ^ isForAcademicTax() ^ isForAcademicTreasuryTarget())) {
             throw new AcademicTreasuryDomainException("error.AcademicTreasuryEvent.only.for.one.type");
         }
 
@@ -231,6 +248,22 @@ public class AcademicTreasuryEvent extends AcademicTreasuryEvent_Base implements
         if (isForAcademicTax() && findForAcademicTax(getRegistration(), getExecutionYear(), getAcademicTax()).count() > 1) {
             throw new AcademicTreasuryDomainException("error.AcademicTreasuryEvent.for.academic.tax.duplicate");
         }
+    }
+
+    private boolean isForAcademicTreasuryTarget() {
+        if (Strings.isNullOrEmpty(getAcademicTreasuryTargetId())) {
+            return false;
+        }
+
+        return academicTreasuryTarget() != null;
+    }
+
+    private IAcademicTreasuryTarget<?> academicTreasuryTarget() {
+        if (Strings.isNullOrEmpty(getAcademicTreasuryTargetId())) {
+            return null;
+        }
+
+        return (IAcademicTreasuryTarget) FenixFramework.getDomainObject(getAcademicTreasuryTargetId());
     }
 
     public boolean isForAcademicServiceRequest() {
@@ -436,23 +469,23 @@ public class AcademicTreasuryEvent extends AcademicTreasuryEvent_Base implements
 
     private LocalizedString descriptionForAcademicServiceRequest() {
         final ServiceRequestMapEntry serviceRequestMapEntry = ServiceRequestMapEntry.findMatch(getITreasuryServiceRequest());
-        
+
         LocalizedString result = new LocalizedString();
 
         for (final Locale locale : CoreConfiguration.supportedLocales()) {
-            String text = getProduct().getName().getContent(locale) + ": "
-                    + getITreasuryServiceRequest().getServiceRequestNumberYear();
+            String text =
+                    getProduct().getName().getContent(locale) + ": " + getITreasuryServiceRequest().getServiceRequestNumberYear();
 
-            if(!Strings.isNullOrEmpty(serviceRequestMapEntry.getDebitEntryDescriptionExtensionFormat())) {
+            if (!Strings.isNullOrEmpty(serviceRequestMapEntry.getDebitEntryDescriptionExtensionFormat())) {
                 final StrSubstitutor str = new StrSubstitutor(getITreasuryServiceRequest().getPropertyValuesMap());
-                
+
                 final String extString = str.replace(serviceRequestMapEntry.getDebitEntryDescriptionExtensionFormat());
                 text += " " + extString;
             }
-            
+
             result = result.with(locale, text);
         }
-        
+
         return result;
     }
 
@@ -483,7 +516,7 @@ public class AcademicTreasuryEvent extends AcademicTreasuryEvent_Base implements
         if (getExecutionYear() != null) {
             return getExecutionYear().getQualifiedName();
         }
-        
+
         return null;
     }
 
@@ -499,7 +532,7 @@ public class AcademicTreasuryEvent extends AcademicTreasuryEvent_Base implements
         } else if (isForAcademicServiceRequest() && getRegistration() != null) {
             degree = getRegistration().getDegree();
         }
-        
+
         return degree;
     }
 
@@ -654,6 +687,12 @@ public class AcademicTreasuryEvent extends AcademicTreasuryEvent_Base implements
     public static AcademicTreasuryEvent createForAcademicTax(final DebtAccount debtAccount, final AcademicTax academicTax,
             final Registration registration, final ExecutionYear executionYear) {
         return new AcademicTreasuryEvent(debtAccount, academicTax, registration, executionYear);
+    }
+
+    public static AcademicTreasuryEvent createForAcademicTreasuryEventTarget(final DebtAccount debtAccount, final Product product,
+            final LocalizedString eventName, final IAcademicTreasuryTarget target) {
+
+        return new AcademicTreasuryEvent(debtAccount, product, eventName, target);
     }
 
     /* -----
