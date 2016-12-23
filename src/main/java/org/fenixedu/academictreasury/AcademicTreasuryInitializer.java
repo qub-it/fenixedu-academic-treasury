@@ -9,6 +9,7 @@ import org.fenixedu.academictreasury.domain.listeners.DebitEntryDeletionListener
 import org.fenixedu.academictreasury.domain.listeners.ProductDeletionListener;
 import org.fenixedu.academictreasury.domain.treasury.AcademicTreasuryBridgeImpl;
 import org.fenixedu.academictreasury.services.accesscontrol.spi.AcademicTreasuryAccessControlExtension;
+import org.fenixedu.treasury.domain.bennu.signals.BennuSignalsServices;
 import org.fenixedu.treasury.services.accesscontrol.TreasuryAccessControlAPI;
 
 @WebListener
@@ -36,5 +37,7 @@ public class AcademicTreasuryInitializer implements ServletContextListener {
         ProductDeletionListener.attach();
         
         AcademicTreasuryBootstrap.process();
+        
+        BennuSignalsServices.registerSettlementEventHandler(impl);
     }
 }

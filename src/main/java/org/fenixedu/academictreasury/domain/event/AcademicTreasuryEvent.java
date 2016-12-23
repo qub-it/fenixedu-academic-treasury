@@ -180,12 +180,12 @@ public class AcademicTreasuryEvent extends AcademicTreasuryEvent_Base implements
     }
 
     protected void init(final DebtAccount debtAccount, final Product product, final IAcademicTreasuryTarget target) {
-        if (target == null || target.getAcademicTreasuryTargetDomainObject() == null) {
+        if (target == null) {
             throw new AcademicTreasuryDomainException("error.AcademicTreasuryEvent.target.required");
         }
 
         super.init(debtAccount, product, target.getAcademicTreasuryTargetDescription());
-        setTreasuryEventTarget((AbstractDomainObject) target.getAcademicTreasuryTargetDomainObject());
+        setTreasuryEventTarget((AbstractDomainObject) target);
     }
 
     @Override
@@ -248,7 +248,7 @@ public class AcademicTreasuryEvent extends AcademicTreasuryEvent_Base implements
         }
     }
 
-    private boolean isForTreasuryEventTarget() {
+    public boolean isForTreasuryEventTarget() {
         return getTreasuryEventTarget() != null;
     }
 
@@ -381,8 +381,10 @@ public class AcademicTreasuryEvent extends AcademicTreasuryEvent_Base implements
             }
 
             return getExecutionYear().getBeginLocalDate();
+        } else if(isForTreasuryEventTarget()) {
+            return ((IAcademicTreasuryTarget) getTreasuryEventTarget()).getAcademicTreasuryTargetEventDate();
         }
-
+        
         throw new RuntimeException("dont know how to handle this!");
     }
 

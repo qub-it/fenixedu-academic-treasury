@@ -38,9 +38,8 @@ import org.fenixedu.academictreasury.services.signals.ExtracurricularEnrolmentHa
 import org.fenixedu.academictreasury.services.signals.ImprovementEnrolmentHandler;
 import org.fenixedu.academictreasury.services.signals.NormalEnrolmentHandler;
 import org.fenixedu.academictreasury.services.signals.StandaloneEnrolmentHandler;
-import org.fenixedu.bennu.core.util.CoreConfiguration;
+import org.fenixedu.bennu.signals.DomainObjectEvent;
 import org.fenixedu.bennu.signals.Signal;
-import org.fenixedu.commons.i18n.I18N;
 import org.fenixedu.treasury.domain.FinantialEntity;
 import org.fenixedu.treasury.domain.FinantialInstitution;
 import org.fenixedu.treasury.domain.Product;
@@ -50,6 +49,9 @@ import org.fenixedu.treasury.domain.document.DebitEntry;
 import org.fenixedu.treasury.domain.document.DebitNote;
 import org.fenixedu.treasury.domain.document.DocumentNumberSeries;
 import org.fenixedu.treasury.domain.document.FinantialDocumentType;
+import org.fenixedu.treasury.domain.document.InvoiceEntry;
+import org.fenixedu.treasury.domain.document.SettlementEntry;
+import org.fenixedu.treasury.domain.document.SettlementNote;
 import org.fenixedu.treasury.domain.paymentcodes.PaymentReferenceCode;
 import org.fenixedu.treasury.domain.paymentcodes.pool.PaymentCodePool;
 import org.fenixedu.treasury.ui.accounting.managecustomer.CustomerController;
@@ -59,6 +61,7 @@ import org.joda.time.LocalDate;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.common.eventbus.Subscribe;
 
 import pt.ist.fenixframework.FenixFramework;
 
@@ -337,12 +340,8 @@ public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
             return null;
         }
 
-        if (target.getAcademicTreasuryTargetDomainObject() == null) {
-            return null;
-        }
-
-        return AcademicTreasuryEvent.find(personCustomer).filter(t -> t.getTreasuryEventTarget() == target.getAcademicTreasuryTargetDomainObject())
-                .findFirst().orElse(null);
+        return AcademicTreasuryEvent.find(personCustomer).filter(t -> t.getTreasuryEventTarget() == target).findFirst()
+                .orElse(null);
     }
 
     @Override
@@ -523,6 +522,54 @@ public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
     @Override
     public void createAcademicDebts(final Registration registration) {
         AcademicDebtGenerationRule.runAllActiveForRegistration(registration, true);
+    }
+
+    @Subscribe
+    public void handle(final DomainObjectEvent<SettlementNote> settlementNoteEvent) {
+        final SettlementNote settlementNote = settlementNoteEvent.getInstance();
+
+        // @formatter:off
+        /* 
+         * Check if settlementNote was deleted to avoid process of deleted objects in erp integration.
+         * Unfortunately FenixFramework.isDomainObjectValid is throwing the same ClassCastException
+         * over settlementNote so is wrapped in try-catch
+         */
+        // @formatter:on
+        boolean toReturn = true;
+        try {
+            toReturn = !FenixFramework.isDomainObjectValid(settlementNote);
+        } catch (Throwable t) {
+            toReturn = true;
+        }
+
+        if (toReturn) {
+            return;
+        }
+
+        for (final SettlementEntry s : settlementNote.getSettlemetEntries().collect(Collectors.toSet())) {
+            final InvoiceEntry invoiceEntry = s.getInvoiceEntry();
+
+            if (!(invoiceEntry instanceof DebitEntry)) {
+                continue;
+            }
+
+            final DebitEntry d = (DebitEntry) invoiceEntry;
+
+            if (d.getTreasuryEvent() == null) {
+                continue;
+            }
+
+            if (!(d.getTreasuryEvent() instanceof AcademicTreasuryEvent)) {
+                continue;
+            }
+
+            AcademicTreasuryEvent academicTreasuryEvent = (AcademicTreasuryEvent) d.getTreasuryEvent();
+            if (!academicTreasuryEvent.isForTreasuryEventTarget()) {
+                continue;
+            }
+
+            ((IAcademicTreasuryTarget) academicTreasuryEvent.getTreasuryEventTarget()).handleSettlement(academicTreasuryEvent);
+        }
     }
 
 }
