@@ -2,6 +2,7 @@ package org.fenixedu.academictreasury.domain.treasury;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -9,20 +10,24 @@ import org.fenixedu.academic.domain.Enrolment;
 import org.fenixedu.academic.domain.EnrolmentEvaluation;
 import org.fenixedu.academic.domain.ExecutionYear;
 import org.fenixedu.academic.domain.Person;
+import org.fenixedu.academic.domain.administrativeOffice.AdministrativeOffice;
 import org.fenixedu.academic.domain.serviceRequests.AcademicServiceRequest;
 import org.fenixedu.academic.domain.student.Registration;
 import org.fenixedu.academic.domain.treasury.IAcademicServiceRequestAndAcademicTaxTreasuryEvent;
 import org.fenixedu.academic.domain.treasury.IAcademicTreasuryEvent;
 import org.fenixedu.academic.domain.treasury.IAcademicTreasuryTarget;
 import org.fenixedu.academic.domain.treasury.IImprovementTreasuryEvent;
+import org.fenixedu.academic.domain.treasury.IPaymentCodePool;
 import org.fenixedu.academic.domain.treasury.ITreasuryBridgeAPI;
-import org.fenixedu.academic.domain.treasury.ITreasuryInstitution;
+import org.fenixedu.academic.domain.treasury.ITreasuryEntity;
 import org.fenixedu.academic.domain.treasury.ITreasuryProduct;
 import org.fenixedu.academic.domain.treasury.ITuitionTreasuryEvent;
 import org.fenixedu.academictreasury.domain.academicalAct.AcademicActBlockingSuspension;
 import org.fenixedu.academictreasury.domain.customer.PersonCustomer;
 import org.fenixedu.academictreasury.domain.debtGeneration.AcademicDebtGenerationRule;
 import org.fenixedu.academictreasury.domain.event.AcademicTreasuryEvent;
+import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainException;
+import org.fenixedu.academictreasury.domain.tariff.AcademicTariff;
 import org.fenixedu.academictreasury.services.AcademicTaxServices;
 import org.fenixedu.academictreasury.services.EmolumentServices;
 import org.fenixedu.academictreasury.services.PersonServices;
@@ -33,17 +38,29 @@ import org.fenixedu.academictreasury.services.signals.ExtracurricularEnrolmentHa
 import org.fenixedu.academictreasury.services.signals.ImprovementEnrolmentHandler;
 import org.fenixedu.academictreasury.services.signals.NormalEnrolmentHandler;
 import org.fenixedu.academictreasury.services.signals.StandaloneEnrolmentHandler;
+import org.fenixedu.bennu.core.util.CoreConfiguration;
 import org.fenixedu.bennu.signals.Signal;
+import org.fenixedu.commons.i18n.I18N;
+import org.fenixedu.treasury.domain.FinantialEntity;
 import org.fenixedu.treasury.domain.FinantialInstitution;
 import org.fenixedu.treasury.domain.Product;
+import org.fenixedu.treasury.domain.Vat;
 import org.fenixedu.treasury.domain.debt.DebtAccount;
 import org.fenixedu.treasury.domain.document.DebitEntry;
-import org.fenixedu.treasury.services.reports.dataproviders.DebtAccountDataProvider;
+import org.fenixedu.treasury.domain.document.DebitNote;
+import org.fenixedu.treasury.domain.document.DocumentNumberSeries;
+import org.fenixedu.treasury.domain.document.FinantialDocumentType;
+import org.fenixedu.treasury.domain.paymentcodes.PaymentReferenceCode;
+import org.fenixedu.treasury.domain.paymentcodes.pool.PaymentCodePool;
 import org.fenixedu.treasury.ui.accounting.managecustomer.CustomerController;
 import org.fenixedu.treasury.ui.accounting.managecustomer.DebtAccountController;
+import org.joda.time.DateTime;
 import org.joda.time.LocalDate;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
+import pt.ist.fenixframework.FenixFramework;
 
 public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
 
@@ -72,37 +89,70 @@ public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
 
         @Override
         public boolean equals(Object obj) {
-            return (obj instanceof AcademicProduct) && ((AcademicProduct) obj).product == product;
+            return (obj instanceof AcademicProduct) && ((AcademicProduct) obj).product == this.product;
         }
     }
 
-    private static class TreasuryInstitution implements ITreasuryInstitution {
+    private static class TreasuryEntity implements ITreasuryEntity {
 
-        private FinantialInstitution finantialInstitution;
+        private FinantialEntity finantialEntity;
 
-        public TreasuryInstitution(final FinantialInstitution finantialInstitution) {
-            this.finantialInstitution = finantialInstitution;
+        public TreasuryEntity(final FinantialEntity finantialEntity) {
+            this.finantialEntity = finantialEntity;
         }
 
         @Override
-        public String getFiscalNumber() {
-            return finantialInstitution.getFiscalNumber();
+        public String getCode() {
+            return finantialEntity.getExternalId();
         }
 
         @Override
         public String getName() {
-            return finantialInstitution.getName();
+            return finantialEntity.getName().getContent();
         }
 
         @Override
         public int hashCode() {
-            return finantialInstitution.hashCode();
+            return finantialEntity.hashCode();
         }
 
         @Override
         public boolean equals(Object obj) {
-            return (obj instanceof TreasuryInstitution)
-                    && ((TreasuryInstitution) obj).finantialInstitution == finantialInstitution;
+            return (obj instanceof TreasuryEntity) && ((TreasuryEntity) obj).finantialEntity == this.finantialEntity;
+        }
+    }
+
+    private static class PaymentCodePoolImpl implements IPaymentCodePool {
+
+        private PaymentCodePool paymentCodePool;
+
+        public PaymentCodePoolImpl(final PaymentCodePool paymentCodePool) {
+            this.paymentCodePool = paymentCodePool;
+        }
+
+        @Override
+        public String getCode() {
+            return paymentCodePool.getExternalId();
+        }
+
+        @Override
+        public String getName() {
+            return paymentCodePool.getName();
+        }
+
+        public boolean isActive() {
+            return paymentCodePool.getActive() != null && paymentCodePool.getActive();
+        }
+
+        @Override
+        public int hashCode() {
+            return paymentCodePool.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return obj != null && obj instanceof PaymentCodePoolImpl
+                    && ((PaymentCodePoolImpl) obj).paymentCodePool == this.paymentCodePool;
         }
     }
 
@@ -114,26 +164,46 @@ public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
     // @formatter:on
 
     @Override
-    public Set<ITreasuryInstitution> getTreasuryInstitutions() {
-        return FinantialInstitution.findAll().map(f -> new TreasuryInstitution(f)).collect(Collectors.toSet());
+    public Set<ITreasuryEntity> getTreasuryEntities() {
+        return FinantialEntity.findAll().map(f -> new TreasuryEntity(f)).collect(Collectors.toSet());
     }
 
     @Override
-    public ITreasuryInstitution getTreasuryInstitutionByFiscalNumber(final String fiscalNumber) {
-        return FinantialInstitution.findUniqueByFiscalCode(fiscalNumber).map(f -> new TreasuryInstitution(f)).orElse(null);
+    public ITreasuryEntity getTreasuryEntityByCode(final String code) {
+        if (FenixFramework.getDomainObject(code) == null) {
+            throw new AcademicTreasuryDomainException("error.ITreasuryBridgeAPI.finantial.entity.not.found");
+        }
+
+        return new TreasuryEntity(FenixFramework.getDomainObject(code));
     }
 
     @Override
-    public Set<ITreasuryProduct> getProducts(final ITreasuryInstitution treasuryInstitution) {
+    public Set<ITreasuryProduct> getProducts(final ITreasuryEntity treasuryEntity) {
         return Product.findAllActive()
                 .filter(p -> p.getFinantialInstitutionsSet()
-                        .contains(((TreasuryInstitution) treasuryInstitution).finantialInstitution))
+                        .contains(((TreasuryEntity) treasuryEntity).finantialEntity.getFinantialInstitution()))
                 .map(p -> new AcademicProduct(p)).collect(Collectors.toSet());
     }
 
     @Override
     public ITreasuryProduct getProductByCode(final String code) {
         return Product.findUniqueByCode(code).map(p -> new AcademicProduct(p)).orElse(null);
+    }
+
+    public List<IPaymentCodePool> getPaymentCodePools(final ITreasuryEntity treasuryEntity) {
+        final FinantialInstitution finantialInstitution =
+                ((TreasuryEntity) treasuryEntity).finantialEntity.getFinantialInstitution();
+
+        return finantialInstitution.getPaymentCodePoolsSet().stream().map(p -> new PaymentCodePoolImpl(p))
+                .collect(Collectors.toList());
+    }
+
+    public IPaymentCodePool getPaymentCodePoolByCode(final String code) {
+        if (FenixFramework.getDomainObject(code) == null) {
+            throw new AcademicTreasuryDomainException("error.ITreasuryBridgeAPI.paymentCodePool.not.found");
+        }
+
+        return new PaymentCodePoolImpl((PaymentCodePool) FenixFramework.getDomainObject(code));
     }
 
     /* ------------------------ 
@@ -261,39 +331,120 @@ public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
 
     @Override
     public IAcademicTreasuryEvent getAcademicTreasuryEventForTarget(final IAcademicTreasuryTarget target) {
-        final PersonCustomer personCustomer = target.getPerson().getPersonCustomer();
-        
-        if(personCustomer == null) {
+        final PersonCustomer personCustomer = target.getAcademicTreasuryTargetPerson().getPersonCustomer();
+
+        if (personCustomer == null) {
             return null;
         }
-        
-        return AcademicTreasuryEvent.find(personCustomer).filter(t -> t.getTreasuryEventTarget() == target).findFirst().orElse(null);
+
+        if (target.getAcademicTreasuryTargetDomainObject() == null) {
+            return null;
+        }
+
+        return AcademicTreasuryEvent.find(personCustomer).filter(t -> t.getTreasuryEventTarget() == target.getAcademicTreasuryTargetDomainObject())
+                .findFirst().orElse(null);
     }
 
-    public IAcademicTreasuryEvent createDebtForTarget(final IAcademicTreasuryTarget target, final ITreasuryProduct product,
-            final ITreasuryInstitution treasuryInstitution, final BigDecimal amount, final LocalDate dueDate,
-            final boolean applyInterestGlobalTax) {
-        
-        PersonCustomer personCustomer = target.getPerson().getPersonCustomer();
-        
-        if(personCustomer == null) {
-            personCustomer = PersonCustomer.create(target.getPerson());
+    @Override
+    public IAcademicTreasuryEvent createDebt(final ITreasuryEntity treasuryEntity, final ITreasuryProduct treasuryProduct,
+            final IAcademicTreasuryTarget target, final LocalDate when, final boolean createPaymentCode,
+            final IPaymentCodePool paymentCodePool) {
+
+        final FinantialInstitution finantialInstitution =
+                ((TreasuryEntity) treasuryEntity).finantialEntity.getFinantialInstitution();
+        final DocumentNumberSeries documentNumberSeries =
+                DocumentNumberSeries.findUniqueDefault(FinantialDocumentType.findForDebitNote(), finantialInstitution).get();
+        final DateTime now = new DateTime();
+        final Product product = ((AcademicProduct) treasuryProduct).product;
+        final Vat vat =
+                Vat.findActiveUnique(((Product) product).getVatType(), finantialInstitution, when.toDateTimeAtStartOfDay()).get();
+        final AdministrativeOffice administrativeOffice =
+                ((TreasuryEntity) treasuryEntity).finantialEntity.getAdministrativeOffice();
+        final PaymentCodePool pool = ((PaymentCodePoolImpl) paymentCodePool).paymentCodePool;
+
+        PersonCustomer personCustomer = target.getAcademicTreasuryTargetPerson().getPersonCustomer();
+        if (personCustomer == null) {
+            personCustomer = PersonCustomer.create(target.getAcademicTreasuryTargetPerson());
         }
-        
-        FinantialInstitution finantialInstitution = ((TreasuryInstitution) treasuryInstitution).finantialInstitution;
+
         DebtAccount debtAccount = DebtAccount.findUnique(finantialInstitution, personCustomer).orElse(null);
-        
-        if(debtAccount == null) {
+        if (debtAccount == null) {
             debtAccount = DebtAccount.create(finantialInstitution, personCustomer);
         }
-        
+
         AcademicTreasuryEvent treasuryEvent = (AcademicTreasuryEvent) getAcademicTreasuryEventForTarget(target);
-        
-        if(treasuryEvent == null) {
-            treasuryEvent = AcademicTreasuryEvent.create
+
+        if (treasuryEvent == null) {
+            treasuryEvent = AcademicTreasuryEvent.createForAcademicTreasuryEventTarget(debtAccount, product, target);
         }
-        
-        DebitEntry.create(null, debtAccount, treasuryEvent, ((Product) product).getVatType(), amount, dueDate, propertiesMap, product, description, BigDecimal.ONE, interestRate, entryDateTime);
+
+        final AcademicTariff academicTariff =
+                AcademicTariff.findMatch(product, administrativeOffice, when.toDateTimeAtStartOfDay());
+        final LocalDate dueDate = academicTariff.dueDate(when);
+
+        final DebitNote debitNote = DebitNote.create(debtAccount, documentNumberSeries, now);
+        final DebitEntry debitEntry = DebitEntry.create(Optional.of(debitNote), debtAccount, treasuryEvent, vat,
+                academicTariff.getBaseAmount(), dueDate, target.getAcademicTreasuryTargetPropertiesMap(), product,
+                target.getAcademicTreasuryTargetDescription().getContent(), BigDecimal.ONE, academicTariff.getInterestRate(),
+                when.toDateTimeAtStartOfDay());
+
+        if (createPaymentCode) {
+            createPaymentReferenceCode(pool, debitEntry, when, dueDate);
+        }
+
+        return treasuryEvent;
+    }
+
+    @Override
+    public IAcademicTreasuryEvent createDebt(final ITreasuryEntity treasuryEntity, final ITreasuryProduct treasuryProduct,
+            final IAcademicTreasuryTarget target, final BigDecimal amount, final LocalDate when, final LocalDate dueDate,
+            final boolean createPaymentCode, final IPaymentCodePool paymentCodePool) {
+
+        final FinantialInstitution finantialInstitution =
+                ((TreasuryEntity) treasuryEntity).finantialEntity.getFinantialInstitution();
+        final DocumentNumberSeries documentNumberSeries =
+                DocumentNumberSeries.findUniqueDefault(FinantialDocumentType.findForDebitNote(), finantialInstitution).get();
+        final DateTime now = new DateTime();
+        final Product product = ((AcademicProduct) treasuryProduct).product;
+        final Vat vat =
+                Vat.findActiveUnique(((Product) product).getVatType(), finantialInstitution, when.toDateTimeAtStartOfDay()).get();
+        final PaymentCodePool pool = ((PaymentCodePoolImpl) paymentCodePool).paymentCodePool;
+
+        PersonCustomer personCustomer = target.getAcademicTreasuryTargetPerson().getPersonCustomer();
+        if (personCustomer == null) {
+            personCustomer = PersonCustomer.create(target.getAcademicTreasuryTargetPerson());
+        }
+
+        DebtAccount debtAccount = DebtAccount.findUnique(finantialInstitution, personCustomer).orElse(null);
+        if (debtAccount == null) {
+            debtAccount = DebtAccount.create(finantialInstitution, personCustomer);
+        }
+
+        AcademicTreasuryEvent treasuryEvent = (AcademicTreasuryEvent) getAcademicTreasuryEventForTarget(target);
+
+        if (treasuryEvent == null) {
+            treasuryEvent = AcademicTreasuryEvent.createForAcademicTreasuryEventTarget(debtAccount, product, target);
+        }
+
+        final DebitNote debitNote = DebitNote.create(debtAccount, documentNumberSeries, now);
+        final DebitEntry debitEntry = DebitEntry.create(Optional.of(debitNote), debtAccount, treasuryEvent, vat, amount, dueDate,
+                target.getAcademicTreasuryTargetPropertiesMap(), product,
+                target.getAcademicTreasuryTargetDescription().getContent(), BigDecimal.ONE, null, when.toDateTimeAtStartOfDay());
+
+        if (createPaymentCode) {
+            createPaymentReferenceCode(pool, debitEntry, when, dueDate);
+        }
+
+        return treasuryEvent;
+    }
+
+    private PaymentReferenceCode createPaymentReferenceCode(final PaymentCodePool paymentCodePool, final DebitEntry debitEntry,
+            final LocalDate when, final LocalDate dueDate) {
+        final PaymentReferenceCode paymentReferenceCode =
+                paymentCodePool.getReferenceCodeGenerator().generateNewCodeFor(debitEntry.getOpenAmount(), when, dueDate, true);
+        paymentReferenceCode.createPaymentTargetTo(Sets.newHashSet(debitEntry), debitEntry.getOpenAmount());
+
+        return paymentReferenceCode;
     }
 
     /* --------------

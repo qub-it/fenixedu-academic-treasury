@@ -24,6 +24,7 @@ import org.fenixedu.academic.domain.treasury.IAcademicTreasuryEvent;
 import org.fenixedu.academic.domain.treasury.IAcademicTreasuryEventPayment;
 import org.fenixedu.academic.domain.treasury.IAcademicTreasuryTarget;
 import org.fenixedu.academic.domain.treasury.IImprovementTreasuryEvent;
+import org.fenixedu.academic.domain.treasury.IPaymentReferenceCode;
 import org.fenixedu.academic.domain.treasury.ITuitionTreasuryEvent;
 import org.fenixedu.academictreasury.domain.customer.PersonCustomer;
 import org.fenixedu.academictreasury.domain.emoluments.AcademicTax;
@@ -44,6 +45,7 @@ import org.fenixedu.treasury.domain.debt.DebtAccount;
 import org.fenixedu.treasury.domain.document.DebitEntry;
 import org.fenixedu.treasury.domain.event.TreasuryEvent;
 import org.fenixedu.treasury.domain.exemption.TreasuryExemption;
+import org.fenixedu.treasury.domain.paymentcodes.PaymentReferenceCode;
 import org.fenixedu.treasury.ui.accounting.managecustomer.DebtAccountController;
 import org.joda.time.LocalDate;
 
@@ -52,7 +54,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import pt.ist.fenixframework.Atomic;
-import pt.ist.fenixframework.FenixFramework;
 import pt.ist.fenixframework.core.AbstractDomainObject;
 
 public class AcademicTreasuryEvent extends AcademicTreasuryEvent_Base implements IAcademicTreasuryEvent, ITuitionTreasuryEvent,
@@ -77,9 +78,8 @@ public class AcademicTreasuryEvent extends AcademicTreasuryEvent_Base implements
         init(debtAccount, academicTax, registration, executionYear);
     }
 
-    protected AcademicTreasuryEvent(final DebtAccount debtAccount, final Product product, final LocalizedString eventName,
-            final IAcademicTreasuryTarget target) {
-        init(debtAccount, product, eventName, target);
+    protected AcademicTreasuryEvent(final DebtAccount debtAccount, final Product product, final IAcademicTreasuryTarget target) {
+        init(debtAccount, product, target);
     }
 
     @Override
@@ -179,15 +179,13 @@ public class AcademicTreasuryEvent extends AcademicTreasuryEvent_Base implements
         return result;
     }
 
-    protected void init(final DebtAccount debtAccount, final Product product, final LocalizedString eventName,
-            final IAcademicTreasuryTarget target) {
-        super.init(debtAccount, product, eventName);
-
-        if (target == null) {
+    protected void init(final DebtAccount debtAccount, final Product product, final IAcademicTreasuryTarget target) {
+        if (target == null || target.getAcademicTreasuryTargetDomainObject() == null) {
             throw new AcademicTreasuryDomainException("error.AcademicTreasuryEvent.target.required");
         }
 
-        setAcademicTreasuryTarget((AbstractDomainObject) target);
+        super.init(debtAccount, product, target.getAcademicTreasuryTargetDescription());
+        setTreasuryEventTarget((AbstractDomainObject) target.getAcademicTreasuryTargetDomainObject());
     }
 
     @Override
@@ -200,7 +198,7 @@ public class AcademicTreasuryEvent extends AcademicTreasuryEvent_Base implements
         }
 
         if (!(isForAcademicServiceRequest() ^ isForRegistrationTuition() ^ isForStandaloneTuition()
-                ^ isForExtracurricularTuition() ^ isForImprovementTax() ^ isForAcademicTax() ^ isForAcademicTreasuryTarget())) {
+                ^ isForExtracurricularTuition() ^ isForImprovementTax() ^ isForAcademicTax() ^ isForTreasuryEventTarget())) {
             throw new AcademicTreasuryDomainException("error.AcademicTreasuryEvent.only.for.one.type");
         }
 
@@ -250,20 +248,8 @@ public class AcademicTreasuryEvent extends AcademicTreasuryEvent_Base implements
         }
     }
 
-    private boolean isForAcademicTreasuryTarget() {
-        if (Strings.isNullOrEmpty(getAcademicTreasuryTargetId())) {
-            return false;
-        }
-
-        return academicTreasuryTarget() != null;
-    }
-
-    private IAcademicTreasuryTarget<?> academicTreasuryTarget() {
-        if (Strings.isNullOrEmpty(getAcademicTreasuryTargetId())) {
-            return null;
-        }
-
-        return (IAcademicTreasuryTarget) FenixFramework.getDomainObject(getAcademicTreasuryTargetId());
+    private boolean isForTreasuryEventTarget() {
+        return getTreasuryEventTarget() != null;
     }
 
     public boolean isForAcademicServiceRequest() {
@@ -690,9 +676,9 @@ public class AcademicTreasuryEvent extends AcademicTreasuryEvent_Base implements
     }
 
     public static AcademicTreasuryEvent createForAcademicTreasuryEventTarget(final DebtAccount debtAccount, final Product product,
-            final LocalizedString eventName, final IAcademicTreasuryTarget target) {
+            final IAcademicTreasuryTarget target) {
 
-        return new AcademicTreasuryEvent(debtAccount, product, eventName, target);
+        return new AcademicTreasuryEvent(debtAccount, product, target);
     }
 
     /* -----
@@ -1193,6 +1179,58 @@ public class AcademicTreasuryEvent extends AcademicTreasuryEvent_Base implements
         return getDebtAccount().getFinantialInstitution().getCurrency().getValueFor(moneyValue);
     }
 
+    private static class PaymentReferenceCodeImpl implements IPaymentReferenceCode {
+
+        private PaymentReferenceCode paymentReferenceCode;
+
+        private PaymentReferenceCodeImpl(final PaymentReferenceCode referenceCode) {
+            this.paymentReferenceCode = referenceCode;
+
+        }
+
+        @Override
+        public LocalDate getEndDate() {
+            return paymentReferenceCode.getEndDate();
+        }
+
+        @Override
+        public String getEntityCode() {
+            return paymentReferenceCode.getPaymentCodePool().getEntityReferenceCode();
+        }
+
+        @Override
+        public String getFormattedCode() {
+            return paymentReferenceCode.getFormattedCode();
+        }
+
+        @Override
+        public String getReferenceCode() {
+            return paymentReferenceCode.getReferenceCode();
+        }
+
+        @Override
+        public boolean isAnnuled() {
+            return paymentReferenceCode.getState().isAnnuled();
+        }
+
+        @Override
+        public boolean isUsed() {
+            return paymentReferenceCode.getState().isUsed();
+        }
+
+        @Override
+        public boolean isProcessed() {
+            return paymentReferenceCode.getState().isProcessed();
+        }
+
+    }
+
+    @Override
+    public List<IPaymentReferenceCode> getPaymentReferenceCodesList() {
+        return DebitEntry.findActive(this).flatMap(d -> d.getPaymentCodesSet().stream()).map(t -> t.getPaymentReferenceCode())
+                .map(p -> new PaymentReferenceCodeImpl(p)).collect(Collectors.toList());
+    }
+
     /*
      * This is used only for methods above
      */
@@ -1253,4 +1291,5 @@ public class AcademicTreasuryEvent extends AcademicTreasuryEvent_Base implements
     public ITreasuryServiceRequest getITreasuryServiceRequest() {
         return (ITreasuryServiceRequest) super.getAcademicServiceRequest();
     }
+
 }
