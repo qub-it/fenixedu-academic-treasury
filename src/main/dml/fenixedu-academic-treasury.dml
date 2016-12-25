@@ -40,6 +40,8 @@ valueType java.math.BigDecimal as BigDecimalAT
  * --------------*/
 
 class customer.PersonCustomer extends .org.fenixedu.treasury.domain.Customer {
+	String countryCode;
+	String fiscalNumber;
 }
 
 	relation PersonCustomerPerson {
@@ -438,8 +440,18 @@ class event.AcademicTreasuryEvent extends .org.fenixedu.treasury.domain.event.Tr
 	BigDecimal amountForLanguageTranslationRate;
 	BigDecimal amountForUrgencyRate;
 }
+	
+	relation AcademicTreasuryEventPerson {
+		.org.fenixedu.academic.domain.Person playsRole person {
+			multiplicity 1..1;
+		}		
 
-class event.LegacyAcademicTreasuryEvent extends event.AcademicTreasuryEvent{
+		event.AcademicTreasuryEvent playsRole academicTreasuryEvent {
+			multiplicity *;
+		}
+	}
+	
+class event.LegacyAcademicTreasuryEvent extends event.AcademicTreasuryEvent {
     
 }
 

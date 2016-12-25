@@ -382,8 +382,8 @@ public class TuitionPaymentPlan extends TuitionPaymentPlan_Base {
         setPaymentPlanOrder(order);
     }
 
-    public boolean createDebitEntriesForRegistration(final AcademicTreasuryEvent academicTreasuryEvent, final LocalDate when) {
-        final DebtAccount debtAccount = academicTreasuryEvent.getDebtAccount();
+    public boolean createDebitEntriesForRegistration(final DebtAccount debtAccount,
+            final AcademicTreasuryEvent academicTreasuryEvent, final LocalDate when) {
 
         if (!getTuitionPaymentPlanGroup().isForRegistration()) {
             throw new RuntimeException("wrong call");
@@ -404,9 +404,8 @@ public class TuitionPaymentPlan extends TuitionPaymentPlan_Base {
         return createdDebitEntries;
     }
 
-    public boolean createDebitEntriesForStandalone(final AcademicTreasuryEvent academicTreasuryEvent,
-            final Enrolment standaloneEnrolment, final LocalDate when) {
-        final DebtAccount debtAccount = academicTreasuryEvent.getDebtAccount();
+    public boolean createDebitEntriesForStandalone(final DebtAccount debtAccount,
+            final AcademicTreasuryEvent academicTreasuryEvent, final Enrolment standaloneEnrolment, final LocalDate when) {
 
         if (!getTuitionPaymentPlanGroup().isForStandalone()) {
             throw new RuntimeException("wrong call");
@@ -443,9 +442,8 @@ public class TuitionPaymentPlan extends TuitionPaymentPlan_Base {
         return createdDebitEntries;
     }
 
-    public boolean createDebitEntriesForExtracurricular(final AcademicTreasuryEvent academicTreasuryEvent,
-            final Enrolment extracurricularEnrolment, final LocalDate when) {
-        final DebtAccount debtAccount = academicTreasuryEvent.getDebtAccount();
+    public boolean createDebitEntriesForExtracurricular(final DebtAccount debtAccount,
+            final AcademicTreasuryEvent academicTreasuryEvent, final Enrolment extracurricularEnrolment, final LocalDate when) {
 
         if (!getTuitionPaymentPlanGroup().isForExtracurricular()) {
             throw new RuntimeException("wrong call");
@@ -626,11 +624,11 @@ public class TuitionPaymentPlan extends TuitionPaymentPlan_Base {
     public static TuitionPaymentPlan inferTuitionPaymentPlanForRegistration(final Registration registration,
             final ExecutionYear executionYear) {
         final StudentCurricularPlan studentCurricularPlan = registration.getStudentCurricularPlan(executionYear);
-        
-        if(studentCurricularPlan == null) {
+
+        if (studentCurricularPlan == null) {
             return null;
         }
-        
+
         final DegreeCurricularPlan degreeCurricularPlan = studentCurricularPlan.getDegreeCurricularPlan();
 
         final RegistrationRegimeType regimeType = registration.getRegimeType(executionYear);

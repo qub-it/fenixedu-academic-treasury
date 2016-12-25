@@ -3,7 +3,10 @@ package org.fenixedu.academictreasury;
 import org.fenixedu.academic.domain.Person;
 import org.fenixedu.academic.domain.organizationalStructure.Party;
 import org.fenixedu.academictreasury.domain.customer.PersonCustomer;
+import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainException;
 import org.fenixedu.bennu.core.domain.Bennu;
+
+import com.google.common.base.Strings;
 
 import pt.ist.fenixframework.Atomic;
 import pt.ist.fenixframework.Atomic.TxMode;
@@ -68,7 +71,13 @@ public class AcademicTreasuryBootstrap {
 
         @Atomic(mode = TxMode.WRITE)
         private void createMissingPersonCustomer(final Person person) {
-            PersonCustomer.create(person);
+//            final String fiscalCountryCode = PersonCustomer.countryCode(person);
+//            final String fiscalNumber = PersonCustomer.fiscalNumber(person);
+//            if (Strings.isNullOrEmpty(fiscalCountryCode) || Strings.isNullOrEmpty(fiscalNumber)) {
+//                throw new AcademicTreasuryDomainException("error.PersonCustomer.fiscalInformation.required");
+//            }
+//            
+//            PersonCustomer.create(person, fiscalCountryCode, fiscalNumber);
         }
 
     }

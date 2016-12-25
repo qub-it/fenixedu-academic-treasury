@@ -32,6 +32,7 @@ import org.fenixedu.treasury.domain.document.DebitEntry;
 import org.fenixedu.treasury.domain.document.DebitNote;
 import org.joda.time.LocalDate;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -76,13 +77,22 @@ public class TuitionServices {
         }
 
         final Person person = registration.getPerson();
-        // Read person customer
-
-        if (!PersonCustomer.findUnique(person).isPresent()) {
-            PersonCustomer.create(person);
+        final String fiscalCountryCode = PersonCustomer.countryCode(person);
+        final String fiscalNumber = PersonCustomer.fiscalNumber(person);
+        if (Strings.isNullOrEmpty(fiscalCountryCode) || Strings.isNullOrEmpty(fiscalNumber)) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.fiscalInformation.required");
         }
 
-        final PersonCustomer personCustomer = PersonCustomer.findUnique(person).get();
+        // Read person customer
+
+        if (!PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).isPresent()) {
+            PersonCustomer.create(person, fiscalCountryCode, fiscalNumber);
+        }
+
+        final PersonCustomer personCustomer = PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).get();
+        if (!personCustomer.isActive()) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.not.active", fiscalCountryCode, fiscalNumber);
+        }
 
         if (tuitionPaymentPlan == null) {
             tuitionPaymentPlan = TuitionPaymentPlan.inferTuitionPaymentPlanForRegistration(registration, executionYear);
@@ -102,18 +112,17 @@ public class TuitionServices {
             DebtAccount.create(tuitionPaymentPlan.getFinantialEntity().getFinantialInstitution(), personCustomer);
         }
 
+        if (!AcademicTreasuryEvent.findUniqueForRegistrationTuition(registration, executionYear).isPresent()) {
+            AcademicTreasuryEvent.createForRegistrationTuition(tuitionPaymentPlan.getProduct(), registration, executionYear);
+        }
+
         final DebtAccount debtAccount =
                 DebtAccount.findUnique(tuitionPaymentPlan.getFinantialEntity().getFinantialInstitution(), personCustomer).get();
-
-        if (!AcademicTreasuryEvent.findUniqueForRegistrationTuition(registration, executionYear).isPresent()) {
-            AcademicTreasuryEvent.createForRegistrationTuition(debtAccount, tuitionPaymentPlan.getProduct(), registration,
-                    executionYear);
-        }
 
         final AcademicTreasuryEvent academicTreasuryEvent =
                 AcademicTreasuryEvent.findUniqueForRegistrationTuition(registration, executionYear).get();
 
-        return tuitionPaymentPlan.createDebitEntriesForRegistration(academicTreasuryEvent, when);
+        return tuitionPaymentPlan.createDebitEntriesForRegistration(debtAccount, academicTreasuryEvent, when);
     }
 
     public static TuitionPaymentPlan usedPaymentPlan(final Registration registration, final ExecutionYear executionYear,
@@ -141,11 +150,20 @@ public class TuitionServices {
             final ExecutionYear executionYear, final LocalDate debtDate, TuitionPaymentPlan tuitionPaymentPlan) {
 
         final Person person = registration.getPerson();
-        // Read person customer
-        PersonCustomer personCustomer = PersonCustomer.findUnique(person).orElse(null);
+        final String fiscalCountryCode = PersonCustomer.countryCode(person);
+        final String fiscalNumber = PersonCustomer.fiscalNumber(person);
+        if (Strings.isNullOrEmpty(fiscalCountryCode) || Strings.isNullOrEmpty(fiscalNumber)) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.fiscalInformation.required");
+        }
 
-        if (personCustomer == null) {
-            personCustomer = PersonCustomer.create(person);
+        // Read person customer
+        if (!PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).isPresent()) {
+            PersonCustomer.create(person, fiscalCountryCode, fiscalNumber);
+        }
+
+        final PersonCustomer personCustomer = PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).get();
+        if (!personCustomer.isActive()) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.not.active", fiscalCountryCode, fiscalNumber);
         }
 
         if (tuitionPaymentPlan == null) {
@@ -161,12 +179,8 @@ public class TuitionServices {
             DebtAccount.create(tuitionPaymentPlan.getFinantialEntity().getFinantialInstitution(), personCustomer);
         }
 
-        final DebtAccount debtAccount =
-                DebtAccount.findUnique(tuitionPaymentPlan.getFinantialEntity().getFinantialInstitution(), personCustomer).get();
-
         if (!AcademicTreasuryEvent.findUniqueForRegistrationTuition(registration, executionYear).isPresent()) {
-            AcademicTreasuryEvent.createForRegistrationTuition(debtAccount, tuitionPaymentPlan.getProduct(), registration,
-                    executionYear);
+            AcademicTreasuryEvent.createForRegistrationTuition(tuitionPaymentPlan.getProduct(), registration, executionYear);
         }
 
         final AcademicTreasuryEvent academicTreasuryEvent =
@@ -247,13 +261,21 @@ public class TuitionServices {
             final Registration registration = standaloneEnrolment.getRegistration();
 
             final Person person = registration.getPerson();
-            // Read person customer
-
-            if (!PersonCustomer.findUnique(person).isPresent()) {
-                PersonCustomer.create(person);
+            final String fiscalCountryCode = PersonCustomer.countryCode(person);
+            final String fiscalNumber = PersonCustomer.fiscalNumber(person);
+            if (Strings.isNullOrEmpty(fiscalCountryCode) || Strings.isNullOrEmpty(fiscalNumber)) {
+                throw new AcademicTreasuryDomainException("error.PersonCustomer.fiscalInformation.required");
             }
 
-            final PersonCustomer personCustomer = PersonCustomer.findUnique(person).get();
+            // Read person customer
+            if (!PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).isPresent()) {
+                PersonCustomer.create(person, fiscalCountryCode, fiscalNumber);
+            }
+
+            final PersonCustomer personCustomer = PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).get();
+            if (!personCustomer.isActive()) {
+                throw new AcademicTreasuryDomainException("error.PersonCustomer.not.active", fiscalCountryCode, fiscalNumber);
+            }
 
             final ExecutionYear executionYear = standaloneEnrolment.getExecutionYear();
 
@@ -284,9 +306,24 @@ public class TuitionServices {
         }
 
         final Registration registration = standaloneEnrolment.getRegistration();
-        final Person person = registration.getPerson();
         final ExecutionYear executionYear = standaloneEnrolment.getExecutionYear();
-        final PersonCustomer personCustomer = PersonCustomer.findUnique(person).get();
+
+        final Person person = registration.getPerson();
+        final String fiscalCountryCode = PersonCustomer.countryCode(person);
+        final String fiscalNumber = PersonCustomer.fiscalNumber(person);
+        if (Strings.isNullOrEmpty(fiscalCountryCode) || Strings.isNullOrEmpty(fiscalNumber)) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.fiscalInformation.required");
+        }
+
+        // Read person customer
+        if (!PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).isPresent()) {
+            PersonCustomer.create(person, fiscalCountryCode, fiscalNumber);
+        }
+
+        final PersonCustomer personCustomer = PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).get();
+        if (!personCustomer.isActive()) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.not.active", fiscalCountryCode, fiscalNumber);
+        }
 
         if (!isToPayRegistrationTuition(registration, executionYear) && !forceCreation) {
             return false;
@@ -301,20 +338,18 @@ public class TuitionServices {
                 DebtAccount.findUnique(tuitionPaymentPlan.getFinantialEntity().getFinantialInstitution(), personCustomer).get();
 
         if (!AcademicTreasuryEvent.findUniqueForStandaloneTuition(registration, executionYear).isPresent()) {
-            AcademicTreasuryEvent.createForStandaloneTuition(debtAccount, tuitionPaymentPlan.getProduct(), registration,
-                    executionYear);
+            AcademicTreasuryEvent.createForStandaloneTuition(tuitionPaymentPlan.getProduct(), registration, executionYear);
         }
 
         final AcademicTreasuryEvent academicTreasuryEvent =
                 AcademicTreasuryEvent.findUniqueForStandaloneTuition(registration, executionYear).get();
 
-        if (academicTreasuryEvent.getDebtAccount().getFinantialInstitution() != tuitionPaymentPlan.getFinantialEntity()
-                .getFinantialInstitution()) {
+        if (debtAccount.getFinantialInstitution() != tuitionPaymentPlan.getFinantialEntity().getFinantialInstitution()) {
             throw new AcademicTreasuryDomainException(
                     "error.TuitionServices.standalone.tuition.for.different.finantial.institutions.not.supported");
         }
 
-        return tuitionPaymentPlan.createDebitEntriesForStandalone(academicTreasuryEvent, standaloneEnrolment, when);
+        return tuitionPaymentPlan.createDebitEntriesForStandalone(debtAccount, academicTreasuryEvent, standaloneEnrolment, when);
     }
 
     public static TuitionPaymentPlan usedPaymentPlanForStandalone(final Registration registration,
@@ -344,11 +379,20 @@ public class TuitionServices {
             final Set<Enrolment> enrolments) {
 
         final Person person = registration.getPerson();
-        // Read person customer
-        PersonCustomer personCustomer = PersonCustomer.findUnique(person).orElse(null);
+        final String fiscalCountryCode = PersonCustomer.countryCode(person);
+        final String fiscalNumber = PersonCustomer.fiscalNumber(person);
+        if (Strings.isNullOrEmpty(fiscalCountryCode) || Strings.isNullOrEmpty(fiscalNumber)) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.fiscalInformation.required");
+        }
 
-        if (personCustomer == null) {
-            personCustomer = PersonCustomer.create(person);
+        // Read person customer
+        if (!PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).isPresent()) {
+            PersonCustomer.create(person, fiscalCountryCode, fiscalNumber);
+        }
+
+        final PersonCustomer personCustomer = PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).get();
+        if (!personCustomer.isActive()) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.not.active", fiscalCountryCode, fiscalNumber);
         }
 
         final List<TuitionDebitEntryBean> entries = Lists.newArrayList();
@@ -371,8 +415,7 @@ public class TuitionServices {
                     .findUnique(tuitionPaymentPlan.getFinantialEntity().getFinantialInstitution(), personCustomer).get();
 
             if (!AcademicTreasuryEvent.findUniqueForStandaloneTuition(registration, executionYear).isPresent()) {
-                AcademicTreasuryEvent.createForStandaloneTuition(debtAccount, tuitionPaymentPlan.getProduct(), registration,
-                        executionYear);
+                AcademicTreasuryEvent.createForStandaloneTuition(tuitionPaymentPlan.getProduct(), registration, executionYear);
             }
 
             final AcademicTreasuryEvent academicTreasuryEvent =
@@ -418,8 +461,6 @@ public class TuitionServices {
         DebitNote debitNote = (DebitNote) debitEntry.getFinantialDocument();
         if (!debitEntry.isProcessedInDebitNote()) {
             debitEntry.annulDebitEntry(Constants.bundle("label.TuitionServices.removeDebitEntryForStandaloneEnrolment.reason"));
-//            debitEntry.setCurricularCourse(null);
-//            debitEntry.setExecutionSemester(null);
 
         } else {
             debitNote.anullDebitNoteWithCreditNote(
@@ -451,7 +492,7 @@ public class TuitionServices {
 
         return academicTreasuryEvent.isChargedWithDebitEntry(enrolment);
     }
-    
+
     @Atomic
     public static boolean createInferedTuitionForExtracurricular(final Enrolment extracurricularEnrolment, final LocalDate when,
             final boolean forceCreation) {
@@ -484,10 +525,20 @@ public class TuitionServices {
             final Registration registration = extracurricularEnrolment.getRegistration();
 
             final Person person = registration.getPerson();
-            // Read person customer
+            final String fiscalCountryCode = PersonCustomer.countryCode(person);
+            final String fiscalNumber = PersonCustomer.fiscalNumber(person);
+            if (Strings.isNullOrEmpty(fiscalCountryCode) || Strings.isNullOrEmpty(fiscalNumber)) {
+                throw new AcademicTreasuryDomainException("error.PersonCustomer.fiscalInformation.required");
+            }
 
-            if (!PersonCustomer.findUnique(person).isPresent()) {
-                PersonCustomer.create(person);
+            // Read person customer
+            if (!PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).isPresent()) {
+                PersonCustomer.create(person, fiscalCountryCode, fiscalNumber);
+            }
+
+            final PersonCustomer personCustomer = PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).get();
+            if (!personCustomer.isActive()) {
+                throw new AcademicTreasuryDomainException("error.PersonCustomer.not.active", fiscalCountryCode, fiscalNumber);
             }
 
             final ExecutionYear executionYear = extracurricularEnrolment.getExecutionYear();
@@ -519,9 +570,24 @@ public class TuitionServices {
         }
 
         final Registration registration = extracurricularEnrolment.getRegistration();
-        final Person person = registration.getPerson();
         final ExecutionYear executionYear = extracurricularEnrolment.getExecutionYear();
-        final PersonCustomer personCustomer = PersonCustomer.findUnique(person).get();
+
+        final Person person = registration.getPerson();
+        final String fiscalCountryCode = PersonCustomer.countryCode(person);
+        final String fiscalNumber = PersonCustomer.fiscalNumber(person);
+        if (Strings.isNullOrEmpty(fiscalCountryCode) || Strings.isNullOrEmpty(fiscalNumber)) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.fiscalInformation.required");
+        }
+
+        // Read person customer
+        if (!PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).isPresent()) {
+            PersonCustomer.create(person, fiscalCountryCode, fiscalNumber);
+        }
+
+        final PersonCustomer personCustomer = PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).get();
+        if (!personCustomer.isActive()) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.not.active", fiscalCountryCode, fiscalNumber);
+        }
 
         if (!isToPayRegistrationTuition(registration, executionYear) && !forceCreation) {
             return false;
@@ -536,20 +602,19 @@ public class TuitionServices {
                 DebtAccount.findUnique(tuitionPaymentPlan.getFinantialEntity().getFinantialInstitution(), personCustomer).get();
 
         if (!AcademicTreasuryEvent.findUniqueForExtracurricularTuition(registration, executionYear).isPresent()) {
-            AcademicTreasuryEvent.createForExtracurricularTuition(debtAccount, tuitionPaymentPlan.getProduct(), registration,
-                    executionYear);
+            AcademicTreasuryEvent.createForExtracurricularTuition(tuitionPaymentPlan.getProduct(), registration, executionYear);
         }
 
         final AcademicTreasuryEvent academicTreasuryEvent =
                 AcademicTreasuryEvent.findUniqueForExtracurricularTuition(registration, executionYear).get();
 
-        if (academicTreasuryEvent.getDebtAccount().getFinantialInstitution() != tuitionPaymentPlan.getFinantialEntity()
-                .getFinantialInstitution()) {
+        if (debtAccount.getFinantialInstitution() != tuitionPaymentPlan.getFinantialEntity().getFinantialInstitution()) {
             throw new AcademicTreasuryDomainException(
                     "error.TuitionServices.standalone.tuition.for.different.finantial.institutions.not.supported");
         }
 
-        return tuitionPaymentPlan.createDebitEntriesForExtracurricular(academicTreasuryEvent, extracurricularEnrolment, when);
+        return tuitionPaymentPlan.createDebitEntriesForExtracurricular(debtAccount, academicTreasuryEvent,
+                extracurricularEnrolment, when);
     }
 
     public static TuitionPaymentPlan usedPaymentPlanForExtracurricular(final Registration registration,
@@ -580,11 +645,20 @@ public class TuitionServices {
             TuitionPaymentPlan tuitionPaymentPlan, final Set<Enrolment> enrolments) {
 
         final Person person = registration.getPerson();
-        // Read person customer
-        PersonCustomer personCustomer = PersonCustomer.findUnique(person).orElse(null);
+        final String fiscalCountryCode = PersonCustomer.countryCode(person);
+        final String fiscalNumber = PersonCustomer.fiscalNumber(person);
+        if (Strings.isNullOrEmpty(fiscalCountryCode) || Strings.isNullOrEmpty(fiscalNumber)) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.fiscalInformation.required");
+        }
 
-        if (personCustomer == null) {
-            personCustomer = PersonCustomer.create(person);
+        // Read person customer
+        if (!PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).isPresent()) {
+            PersonCustomer.create(person, fiscalCountryCode, fiscalNumber);
+        }
+
+        final PersonCustomer personCustomer = PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).get();
+        if (!personCustomer.isActive()) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.not.active", fiscalCountryCode, fiscalNumber);
         }
 
         final List<TuitionDebitEntryBean> entries = Lists.newArrayList();
@@ -603,11 +677,8 @@ public class TuitionServices {
                 DebtAccount.create(tuitionPaymentPlan.getFinantialEntity().getFinantialInstitution(), personCustomer);
             }
 
-            final DebtAccount debtAccount = DebtAccount
-                    .findUnique(tuitionPaymentPlan.getFinantialEntity().getFinantialInstitution(), personCustomer).get();
-
             if (!AcademicTreasuryEvent.findUniqueForExtracurricularTuition(registration, executionYear).isPresent()) {
-                AcademicTreasuryEvent.createForExtracurricularTuition(debtAccount, tuitionPaymentPlan.getProduct(), registration,
+                AcademicTreasuryEvent.createForExtracurricularTuition(tuitionPaymentPlan.getProduct(), registration,
                         executionYear);
             }
 
@@ -656,9 +727,6 @@ public class TuitionServices {
         if (!debitEntry.isProcessedInDebitNote()) {
             debitEntry.annulDebitEntry(
                     Constants.bundle("label.TuitionServices.removeDebitEntryForExtracurricularEnrolment.reason"));
-
-//            debitEntry.setCurricularCourse(null);
-//            debitEntry.setExecutionSemester(null);
 
         } else {
             debitNote.anullDebitNoteWithCreditNote(
@@ -749,7 +817,7 @@ public class TuitionServices {
         final StudentCurricularPlan studentCurricularPlan = registration.getStudentCurricularPlan(executionYear);
 
         if (studentCurricularPlan == null) {
-            return Collections.emptySet();
+            return Sets.newHashSet();
         }
 
         final Set<Enrolment> result = Sets.newHashSet(registration.getEnrolments(executionYear));
@@ -768,11 +836,11 @@ public class TuitionServices {
 
     public static Set<Enrolment> standaloneEnrolments(final Registration registration, final ExecutionYear executionYear) {
         final StudentCurricularPlan studentCurricularPlan = registration.getStudentCurricularPlan(executionYear);
-        
-        if(studentCurricularPlan == null) {
+
+        if (studentCurricularPlan == null) {
             return Sets.newHashSet();
         }
-        
+
         return studentCurricularPlan.getStandaloneCurriculumLines().stream()
                 .filter(l -> l.getExecutionYear() == executionYear && l.isEnrolment()).map(l -> (Enrolment) l)
                 .collect(Collectors.<Enrolment> toSet());
@@ -780,11 +848,11 @@ public class TuitionServices {
 
     public static Set<Enrolment> extracurricularEnrolments(final Registration registration, final ExecutionYear executionYear) {
         final StudentCurricularPlan studentCurricularPlan = registration.getStudentCurricularPlan(executionYear);
-        
-        if(studentCurricularPlan == null) {
+
+        if (studentCurricularPlan == null) {
             return Sets.newHashSet();
         }
-        
+
         return studentCurricularPlan.getExtraCurricularCurriculumLines().stream()
                 .filter(l -> l.getExecutionYear() == executionYear && l.isEnrolment()).map(l -> (Enrolment) l)
                 .collect(Collectors.<Enrolment> toSet());
@@ -797,10 +865,10 @@ public class TuitionServices {
 
         final StudentCurricularPlan studentCurricularPlan = registration.getStudentCurricularPlan(executionYear);
 
-        if(studentCurricularPlan == null) {
+        if (studentCurricularPlan == null) {
             return result;
         }
-        
+
         for (final ExecutionSemester executionSemester : executionYear.getExecutionPeriodsSet()) {
             result.addAll(studentCurricularPlan.getEnroledImprovements(executionSemester));
         }

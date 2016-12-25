@@ -17,9 +17,9 @@ import org.fenixedu.treasury.util.Constants;
 import org.fenixedu.treasury.util.FiscalCodeValidation;
 import org.joda.time.LocalDate;
 
-import pt.ist.fenixframework.Atomic;
-
 import com.google.common.base.Strings;
+
+import pt.ist.fenixframework.Atomic;
 
 public class PersonCustomer extends PersonCustomer_Base {
 
@@ -30,11 +30,14 @@ public class PersonCustomer extends PersonCustomer_Base {
         super();
     }
 
-    protected PersonCustomer(final Person person) {
+    protected PersonCustomer(final Person person, final String fiscalCountry, final String fiscalNumber) {
         this();
 
         setPerson(person);
         setCustomerType(getDefaultCustomerType(this));
+        super.setCountryCode(fiscalCountry);
+        super.setFiscalNumber(fiscalNumber);
+
         checkRules();
     }
 
@@ -49,11 +52,19 @@ public class PersonCustomer extends PersonCustomer_Base {
             throw new AcademicTreasuryDomainException("error.PersonCustomer.person.required");
         }
 
+        if (Strings.isNullOrEmpty(getCountryCode())) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.countryCode");
+        }
+
+        if (Strings.isNullOrEmpty(getFiscalNumber())) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.fiscalNumber");
+        }
+
         if (getPerson() != null && getPersonForInactivePersonCustomer() != null) {
             throw new AcademicTreasuryDomainException("error.PersonCustomer.may.only.be.related.to.person.with.one.relation");
         }
 
-        if (isActive() && (find(getPerson()).count() > 1)) {
+        if (find(getPerson(), getFiscalCountry(), getFiscalNumber()).count() > 1) {
             throw new AcademicTreasuryDomainException("error.PersonCustomer.person.customer.duplicated");
         }
     }
@@ -63,14 +74,7 @@ public class PersonCustomer extends PersonCustomer_Base {
         return this.getExternalId();
     }
 
-    @Override
-    public String getFiscalNumber() {
-        final Person person = isActive() ? getPerson() : getPersonForInactivePersonCustomer();
-
-        return fiscalNumber(person);
-    }
-
-    private static String fiscalNumber(final Person person) {
+    public static String fiscalNumber(final Person person) {
         return person.getSocialSecurityNumber();
     }
 
@@ -114,18 +118,19 @@ public class PersonCustomer extends PersonCustomer_Base {
 
     @Override
     public String getIdentificationNumber() {
-        if (!isActive()) {
-            return getPersonForInactivePersonCustomer().getDocumentIdNumber();
-        }
-
-        return getPerson().getDocumentIdNumber();
+        final Person person = isActive() ? getPerson() : getPersonForInactivePersonCustomer();
+        return identificationNumber(person);
+    }
+    
+    public static String identificationNumber(final Person person) {
+        return person.getDocumentIdNumber();
     }
 
     private PhysicalAddress getPhysicalAddress() {
-        return getPhysicalAddress(isActive() ? getPerson() : getPersonForInactivePersonCustomer());
+        return physicalAddress(isActive() ? getPerson() : getPersonForInactivePersonCustomer());
     }
 
-    private static PhysicalAddress getPhysicalAddress(final Person person) {
+    public static PhysicalAddress physicalAddress(final Person person) {
         if (person.getDefaultPhysicalAddress() != null) {
             return person.getDefaultPhysicalAddress();
         }
@@ -190,8 +195,8 @@ public class PersonCustomer extends PersonCustomer_Base {
         if (getPhysicalAddress() == null) {
             return null;
         }
-        
-        if(getPhysicalAddress().getCountryOfResidence() == null) {
+
+        if (getPhysicalAddress().getCountryOfResidence() == null) {
             return null;
         }
 
@@ -357,25 +362,51 @@ public class PersonCustomer extends PersonCustomer_Base {
         return Customer.findAll().filter(c -> c instanceof PersonCustomer).map(PersonCustomer.class::cast);
     }
 
-    protected static Stream<? extends PersonCustomer> find(final Person person) {
-        return findAll().filter(pc -> pc.getPerson() == person);
+    public static Stream<? extends PersonCustomer> find(final Person person) {
+        return findAll().filter(pc -> pc.getPerson() == person || pc.getPersonForInactivePersonCustomer() == person);
     }
 
-    public static Optional<? extends PersonCustomer> findUnique(final Person person) {
-        return PersonCustomer.findAll().filter(pc -> pc.getPerson() == person).findFirst();
+    protected static Stream<? extends PersonCustomer> find(final Person person, final String fiscalCountryCode,
+            final String fiscalNumber) {
+        return find(person)
+                .filter(pc -> pc.getFiscalCountry().equals(fiscalCountryCode) && pc.getFiscalNumber().equals(fiscalNumber));
     }
 
-    public static Stream<? extends PersonCustomer> findInactivePersonCustomers(final Person person) {
-        return PersonCustomer.findAll().filter(pc -> pc.getPersonForInactivePersonCustomer() == person);
+    public static Optional<? extends PersonCustomer> findUnique(final Person person, final String fiscalCountryCode,
+            final String fiscalNumber) {
+        return find(person, fiscalCountryCode, fiscalNumber).findFirst();
     }
+    
+//    public static Stream<? extends PersonCustomer> findInactivePersonCustomers(final Person person) {
+//        return PersonCustomer.findAll().filter(pc -> pc.getPersonForInactivePersonCustomer() == person);
+//    }
 
     @Atomic
-    public static PersonCustomer create(Person person) {
-        return new PersonCustomer(person);
+    public static PersonCustomer create(final Person person, final String fiscalCountry, final String fiscalNumber) {
+        return new PersonCustomer(person, fiscalCountry, fiscalNumber);
     }
-
-    public static Optional<? extends PersonCustomer> findByFiscalNumber(String fiscalNumber) {
-        return PersonCustomer.findAll().filter(pc -> pc.getFiscalNumber().equals(fiscalNumber)).findFirst();
+    
+    public static boolean switchCustomer(final Person person, final String fiscalCountryCode, final String fiscalNumber) {
+        PersonCustomer personCustomer = person.getPersonCustomer();
+        Optional<? extends PersonCustomer> newCustomer = PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber);
+        
+        if(newCustomer.isPresent() && newCustomer.get().isActive()) {
+            return false;
+        }
+        
+        personCustomer.setPerson(null);
+        personCustomer.setPersonForInactivePersonCustomer(person);
+        if(!newCustomer.isPresent()) {
+            PersonCustomer.create(person, fiscalCountryCode, fiscalNumber);
+        } else {
+            newCustomer.get().setPerson(person);
+            newCustomer.get().setPersonForInactivePersonCustomer(null);
+        }
+        
+        personCustomer.checkRules();
+        newCustomer.get().checkRules();
+        
+        return true;
     }
 
     public static CustomerType getDefaultCustomerType(PersonCustomer person) {
