@@ -290,6 +290,17 @@ public class PersonCustomer extends PersonCustomer_Base {
         return getPerson() != null;
     }
 
+    @Override
+    public boolean isDeletable() {
+        return !isActive() && getDebtAccountsSet().stream().allMatch(da -> da.isDeletable());
+    }
+
+    @Override
+    public void delete() {
+        super.setPersonForInactivePersonCustomer(null);
+        super.delete();
+    }
+
     public boolean isBlockingAcademicalActs(final LocalDate when) {
 
         if (DebtAccount.find(this).map(da -> Constants.isGreaterThan(da.getTotalInDebt(), BigDecimal.ZERO))
@@ -404,8 +415,10 @@ public class PersonCustomer extends PersonCustomer_Base {
 
     protected static Stream<? extends PersonCustomer> find(final Person person, final String fiscalCountryCode,
             final String fiscalNumber) {
-        return find(person).filter(pc -> pc.getFiscalCountry() != null && pc.getFiscalCountry().equals(fiscalCountryCode)
-                && !Strings.isNullOrEmpty(pc.getFiscalNumber()) && pc.getFiscalNumber().equals(fiscalNumber));
+        return find(person).filter(
+                pc -> pc.getFiscalCountry() != null && lowerCase(pc.getFiscalCountry()).equals(lowerCase(fiscalCountryCode))
+                        && !Strings.isNullOrEmpty(pc.getFiscalNumber())
+                        && lowerCase(pc.getFiscalNumber()).equals(lowerCase(fiscalNumber)));
     }
 
     public static Optional<? extends PersonCustomer> findUnique(final Person person, final String fiscalCountryCode,
@@ -416,6 +429,18 @@ public class PersonCustomer extends PersonCustomer_Base {
 //    public static Stream<? extends PersonCustomer> findInactivePersonCustomers(final Person person) {
 //        return PersonCustomer.findAll().filter(pc -> pc.getPersonForInactivePersonCustomer() == person);
 //    }
+
+    public static PersonCustomer createWithCurrentFiscalInformation(final Person person) {
+        if (person.getFiscalCountry() == null) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.fiscalCountry.required");
+        }
+
+        if (!Strings.isNullOrEmpty(person.getSocialSecurityNumber())) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.fiscalNumber.required");
+        }
+
+        return create(person, person.getFiscalCountry().getCode(), person.getSocialSecurityNumber());
+    }
 
     @Atomic
     public static PersonCustomer create(final Person person, final String fiscalCountry, final String fiscalNumber) {
@@ -452,6 +477,14 @@ public class PersonCustomer extends PersonCustomer_Base {
         } else {
             return CustomerType.findByCode(CANDIDACY_CODE).findFirst().orElse(null);
         }
+    }
+
+    private static String lowerCase(final String value) {
+        if (value == null) {
+            return null;
+        }
+
+        return value.toLowerCase();
     }
 
 }
