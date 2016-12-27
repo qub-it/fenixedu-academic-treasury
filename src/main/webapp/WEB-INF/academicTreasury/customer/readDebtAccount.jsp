@@ -111,7 +111,7 @@ ${portal.angularToolkit()}
                     </c:if>
                     <tr>
                         <th scope="row" class="col-xs-3"><spring:message code="label.Customer.fiscalNumber" /></th>
-                        <td><c:out value='${debtAccount.customer.fiscalNumber}' /></td>
+                        <td><c:out value='${debtAccount.customer.fiscalCountry}:${debtAccount.customer.fiscalNumber}' /></td>
                     </tr>
 
                     <tr>
@@ -185,15 +185,14 @@ ${portal.angularToolkit()}
                                 <spring:message code="label.InvoiceEntry.finantialDocument" />
                             </datatables:columnHead>
                             <c:if test="${not empty pendingEntry.finantialDocument }">
-                                <c:if test="${pendingEntry.isDebitNoteEntry() }">
-                                    <c:out value="${pendingEntry.finantialDocument.uiDocumentNumber}" />
-                                </c:if>
-                                <c:if test="${pendingEntry.isCreditNoteEntry() }">
-                                    <c:out value="${pendingEntry.finantialDocument.uiDocumentNumber}" />
-                                </c:if>
+                                <c:set var="c" value="${pendingEntry.finantialDocument.debtAccount.customer}" />
+                                <p><strong><c:out value="${pendingEntry.finantialDocument.uiDocumentNumber}" /></strong></p>
+                                <p><em><c:out value="${c.fiscalCountry}:${c.fiscalNumber}" /></em></p>
                             </c:if>
                             <c:if test="${empty pendingEntry.finantialDocument }">
-							---
+                                <c:set var="c" value="${pendingEntry.debtAccount.customer}" />
+                                <p><strong>---</strong></p>
+                                <p><em><c:out value="${c.fiscalCountry}:${c.fiscalNumber}" /></em></p>
 							</c:if>
                         </datatables:column>
                         <datatables:column>
@@ -208,9 +207,18 @@ ${portal.angularToolkit()}
                             <c:if test="${not empty pendingEntry.finantialDocument }">
                                 <ul>
                                     <c:forEach var="docEntry" items="${pendingEntry.finantialDocument.finantialDocumentEntriesSet }">
-                                        <li><c:out value="${docEntry.description}" /></li>
+                                        <li>
+                                        	<c:out value="${docEntry.description}" />
+                                        </li>
                                     </c:forEach>
                                 </ul>
+                                <c:if test="${pendingEntry.finantialDocument.forPayorDebtAccount}">
+                                	<c:set var="c" value="${pendingEntry.finantialDocument.payorDebtAccount.customer}" />
+	                        		<p><em>
+	                        				<strong><spring:message code="label.Invoice.payorDebtAccount" />:</strong> 
+	                        				<span><c:out value="${c.fiscalNumber} - ${c.name}" /></span>
+	                        		</em></p>
+                                </c:if>
                             </c:if>
                         </datatables:column>
                         <datatables:column cssStyle="width:15%;align:right">
@@ -295,17 +303,28 @@ ${portal.angularToolkit()}
                                 <spring:message code="label.InvoiceEntry.finantialDocument" />
                             </datatables:columnHead>
                             <c:if test="${not empty entry.finantialDocument }">
-                                <c:out value="${entry.finantialDocument.uiDocumentNumber}" />
+                                <c:set var="c" value="${entry.finantialDocument.debtAccount.customer}" />
+                                <p><strong><c:out value="${entry.finantialDocument.uiDocumentNumber}" /></strong></p>
+                                <p><em><c:out value="${c.fiscalCountry}:${c.fiscalNumber}" /></em></p>
                             </c:if>
                             <c:if test="${empty entry.finantialDocument }">
-                                ---
+                                <c:set var="c" value="${entry.debtAccount.customer}" />
+                                <p>---</p>
+                                <p><em><c:out value="${c.fiscalCountry}:${c.fiscalNumber}" /></em></p>
                             </c:if>
                         </datatables:column>
                         <datatables:column>
                             <datatables:columnHead>
                                 <spring:message code="label.InvoiceEntry.description" />
                             </datatables:columnHead>
-                            <c:out value="${entry.description}" />
+                            <p><c:out value="${entry.description}" /></p>
+							<c:if test="${entry.finantialDocument.forPayorDebtAccount}">
+								<c:set var="c" value="${entry.finantialDocument.payorDebtAccount.customer}" />
+								<p><em>
+									<strong><spring:message code="label.Invoice.payorDebtAccount" />:</strong> 
+									<span><c:out value="${c.fiscalNumber} - ${c.name}" /></span>
+								</em></p>
+							</c:if>
                         </datatables:column>
                         <datatables:column cssStyle="width:110px">
                             <datatables:columnHead>
