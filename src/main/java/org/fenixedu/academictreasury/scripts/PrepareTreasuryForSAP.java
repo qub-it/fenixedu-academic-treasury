@@ -101,7 +101,7 @@ public class PrepareTreasuryForSAP extends CustomTask {
     private void checkAllPersonCustomersWithFiscalCountryAndNumber() {
         taskLog("checkAllPersonCustomersWithFiscalCountryAndNumber");
 
-        for (final Customer c : Customer.findAll().collect(Collectors.toSet())) {
+        for (final Customer c : Customer.findAll().collect(Collectors.<Customer> toSet())) {
             if (Strings.isNullOrEmpty(c.getFiscalCountry()) || Strings.isNullOrEmpty(c.getFiscalNumber())) {
                 throw new RuntimeException("without fiscal information: " + c.getName());
             }
@@ -202,31 +202,31 @@ public class PrepareTreasuryForSAP extends CustomTask {
 
             final Person person = (Person) party;
 
+            if(person.getPersonCustomer() == null && !person.getInactivePersonCustomersSet().isEmpty()) {
+                throw new RuntimeException("how to handle it");
+            }
+            
             if (person.getPersonCustomer() == null) {
                 continue;
             }
 
             final PersonCustomer personCustomer = person.getPersonCustomer();
-            if (!personCustomer.getDebtAccountsSet().isEmpty()) {
-                if (personCustomer.getDebtAccountsSet().size() > 1) {
+            if (personCustomer.getDebtAccountsSet().size() > 1) {
+                throw new RuntimeException("how to handle it");
+            }
+
+            final DebtAccount debtAccount =
+                    !personCustomer.getDebtAccountsSet().isEmpty() ? personCustomer.getDebtAccountsSet().iterator().next() : null;
+            for (final PersonCustomer ipc : person.getInactivePersonCustomersSet()) {
+                if (ipc.getDebtAccountsSet().size() > 1) {
                     throw new RuntimeException("how to handle it");
                 }
+                
+                if (!ipc.getDebtAccountsSet().isEmpty()) {
+                    final DebtAccount ipcDebtAccount = ipc.getDebtAccountsSet().iterator().next();
 
-                final DebtAccount debtAccount = personCustomer.getDebtAccountsSet().iterator().next();
-                for (final PersonCustomer ipc : person.getInactivePersonCustomersSet()) {
-                    if (ipc.getDebtAccountsSet().size() > 1) {
-                        throw new RuntimeException("how to handle it");
-                    }
-
-                    if (ipc.getDebtAccountsSet().isEmpty()) {
-                        continue;
-                    }
-
-                    if (!ipc.getDebtAccountsSet().isEmpty()) {
-
+                    if (debtAccount != null) {
                         taskLog("Merging %s\n", personCustomer.getName());
-
-                        final DebtAccount ipcDebtAccount = ipc.getDebtAccountsSet().iterator().next();
 
                         for (final Invoice invoice : Sets.newHashSet(ipcDebtAccount.getInvoiceSet())) {
                             invoice.setPayorDebtAccount(debtAccount);
@@ -257,12 +257,12 @@ public class PrepareTreasuryForSAP extends CustomTask {
                             treasuryEvent.setDebtAccount(debtAccount);
                         }
 
-                        ipcDebtAccount.delete();
                     }
 
-                    ipc.delete();
+                    ipcDebtAccount.delete();
                 }
 
+                ipc.delete();
             }
 
             if (Strings.isNullOrEmpty(PersonCustomer.countryCode(person))) {
@@ -340,6 +340,10 @@ public class PrepareTreasuryForSAP extends CustomTask {
         for (final AdhocCustomer customer : AdhocCustomer.findAll().collect(Collectors.toList())) {
             if (++count % 1000 == 0) {
                 taskLog("Processing " + count + "/" + totalCount + " adhoc customers.");
+            }
+            
+            if(Strings.isNullOrEmpty(customer.getFiscalCountry())) {
+                customer.setCountryCode(Constants.DEFAULT_COUNTRY);
             }
 
             customer.setAddressCountryCode(customer.getFiscalCountry());

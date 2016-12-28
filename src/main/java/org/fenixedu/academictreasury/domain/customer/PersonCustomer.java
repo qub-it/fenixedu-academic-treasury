@@ -219,13 +219,6 @@ public class PersonCustomer extends PersonCustomer_Base {
         return getPhysicalAddress().getCountryOfResidence().getCode();
     }
 
-    @Override
-    public String getCountryCode() {
-        final Person person = isActive() ? getPerson() : getPersonForInactivePersonCustomer();
-
-        return countryCode(person);
-    }
-
     public static String countryCode(final Person person) {
         return person.getFiscalCountry() != null ? person.getFiscalCountry().getCode() : null;
     }
@@ -270,9 +263,7 @@ public class PersonCustomer extends PersonCustomer_Base {
 
     @Override
     public String getFiscalCountry() {
-        final Person person = isActive() ? getPerson() : getPersonForInactivePersonCustomer();
-
-        return countryCode(person);
+        return getCountryCode();
     }
 
     @Override
