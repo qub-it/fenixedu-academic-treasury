@@ -446,8 +446,11 @@ public class PersonCustomer extends PersonCustomer_Base {
             return false;
         }
 
-        personCustomer.setPerson(null);
-        personCustomer.setPersonForInactivePersonCustomer(person);
+        if (personCustomer != null) {
+            personCustomer.setPerson(null);
+            personCustomer.setPersonForInactivePersonCustomer(person);
+        }
+        
         if (!newCustomer.isPresent()) {
             PersonCustomer.create(person, fiscalCountryCode, fiscalNumber);
             newCustomer = PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber);
@@ -456,7 +459,10 @@ public class PersonCustomer extends PersonCustomer_Base {
             newCustomer.get().setPersonForInactivePersonCustomer(null);
         }
 
-        personCustomer.checkRules();
+        if(personCustomer != null) {
+            personCustomer.checkRules();
+        }
+        
         newCustomer.get().checkRules();
 
         return true;

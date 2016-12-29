@@ -11,6 +11,8 @@ import org.fenixedu.treasury.util.streaming.spreadsheet.IErrorsLog;
 import org.joda.time.DateTime;
 import org.joda.time.LocalDate;
 
+import com.google.common.base.Strings;
+
 public class AcademicActBlockingSuspensionReportEntryBean extends AbstractReportEntryBean {
 
     public static String[] SPREADSHEET_HEADERS =
@@ -23,7 +25,7 @@ public class AcademicActBlockingSuspensionReportEntryBean extends AbstractReport
                     Constants.bundle("label.AcademicActBlockingSuspensionReportEntryBean.header.vatNumber"),
                     Constants.bundle("label.AcademicActBlockingSuspensionReportEntryBean.header.email"),
                     Constants.bundle("label.AcademicActBlockingSuspensionReportEntryBean.header.address"),
-                    Constants.bundle("label.AcademicActBlockingSuspensionReportEntryBean.header.countryCode"),
+                    Constants.bundle("label.AcademicActBlockingSuspensionReportEntryBean.header.addressCountryCode"),
                     Constants.bundle("label.AcademicActBlockingSuspensionReportEntryBean.header.studentNumber"),
                     Constants.bundle("label.AcademicActBlockingSuspensionReportEntryBean.header.beginDate"),
                     Constants.bundle("label.AcademicActBlockingSuspensionReportEntryBean.header.endDate"),
@@ -38,7 +40,7 @@ public class AcademicActBlockingSuspensionReportEntryBean extends AbstractReport
     private String vatNumber;
     private String email;
     private String address;
-    private String countryCode;
+    private String addressCountryCode;
     private Integer studentNumber;
     private LocalDate beginDate;
     private LocalDate endDate;
@@ -66,10 +68,13 @@ public class AcademicActBlockingSuspensionReportEntryBean extends AbstractReport
             }
 
             this.identificationNumber = PersonCustomer.identificationNumber(person);
-            this.vatNumber = PersonCustomer.fiscalNumber(person);
+            this.vatNumber = v(PersonCustomer.countryCode(person)) + ":" + v(PersonCustomer.fiscalNumber(person));
             this.email = academicActBlockingSuspension.getPerson().getInstitutionalOrDefaultEmailAddressValue();
-            this.address = PersonCustomer.physicalAddress(person) != null ? PersonCustomer.physicalAddress(person).getAddress() : "";
-            this.countryCode = PersonCustomer.countryCode(person);
+            this.address =
+                    PersonCustomer.physicalAddress(person) != null ? PersonCustomer.physicalAddress(person).getAddress() : "";
+            this.addressCountryCode = PersonCustomer.physicalAddress(person) != null
+                    && PersonCustomer.physicalAddress(person).getCountryOfResidence() != null ? PersonCustomer
+                            .physicalAddress(person).getCountryOfResidence().getCode() : "";
 
             if (academicActBlockingSuspension.getPerson().getStudent() != null) {
                 this.studentNumber = academicActBlockingSuspension.getPerson().getStudent().getNumber();
@@ -107,7 +112,7 @@ public class AcademicActBlockingSuspensionReportEntryBean extends AbstractReport
             row.createCell(i++).setCellValue(valueOrEmpty(vatNumber));
             row.createCell(i++).setCellValue(valueOrEmpty(email));
             row.createCell(i++).setCellValue(valueOrEmpty(address));
-            row.createCell(i++).setCellValue(valueOrEmpty(countryCode));
+            row.createCell(i++).setCellValue(valueOrEmpty(addressCountryCode));
             row.createCell(i++).setCellValue(valueOrEmpty(studentNumber));
             row.createCell(i++).setCellValue(valueOrEmpty(beginDate));
             row.createCell(i++).setCellValue(valueOrEmpty(endDate));
@@ -117,6 +122,14 @@ public class AcademicActBlockingSuspensionReportEntryBean extends AbstractReport
             e.printStackTrace();
             errorsLog.addError(academicActBlockingSuspension, e);
         }
+    }
+
+    public String v(final String value) {
+        if (Strings.isNullOrEmpty(value)) {
+            return "";
+        }
+
+        return value;
     }
 
 }

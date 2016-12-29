@@ -135,7 +135,7 @@ public class SettlementReportEntryBean implements SpreadsheetRow {
         }
 
         this.identificationNumber = customer.getIdentificationNumber();
-        this.vatNumber = customer.getFiscalNumber();
+        this.vatNumber = valueOrEmpty(customer.getFiscalCountry()) + ":" + valueOrEmpty(customer.getFiscalNumber());
 
         if (customer.isPersonCustomer() && ((PersonCustomer) customer).getPerson() != null) {
             this.email = ((PersonCustomer) customer).getPerson().getInstitutionalOrDefaultEmailAddressValue();

@@ -1,7 +1,5 @@
 package org.fenixedu.academictreasury.dto.reports;
 
-import java.math.BigDecimal;
-
 import org.apache.poi.ss.usermodel.Row;
 import org.fenixedu.academictreasury.domain.customer.PersonCustomer;
 import org.fenixedu.academictreasury.domain.reports.DebtReportRequest;
@@ -14,8 +12,6 @@ import org.fenixedu.treasury.util.streaming.spreadsheet.IErrorsLog;
 import org.fenixedu.treasury.util.streaming.spreadsheet.SpreadsheetRow;
 import org.joda.time.DateTime;
 import org.springframework.util.StringUtils;
-
-import com.google.common.base.Strings;
 
 public class DebtAccountReportEntryBean implements SpreadsheetRow {
 
@@ -32,7 +28,7 @@ public class DebtAccountReportEntryBean implements SpreadsheetRow {
             Constants.bundle("label.DebtAccountReportEntryBean.header.vatNumber"),
             Constants.bundle("label.DebtAccountReportEntryBean.header.email"),
             Constants.bundle("label.DebtAccountReportEntryBean.header.address"),
-            Constants.bundle("label.DebtAccountReportEntryBean.header.countryCode"),
+            Constants.bundle("label.DebtAccountReportEntryBean.header.addressCountryCode"),
             Constants.bundle("label.DebtAccountReportEntryBean.header.studentNumber"),
             Constants.bundle("label.DebtAccountReportEntryBean.header.vatNumberValid"),
             Constants.bundle("label.DebtAccountReportEntryBean.header.totalInDebt") };
@@ -52,14 +48,14 @@ public class DebtAccountReportEntryBean implements SpreadsheetRow {
     private String vatNumber;
     private String email;
     private String address;
-    private String countryCode;
+    private String addressCountryCode;
     private Integer studentNumber;
     private boolean vatNumberValid;
     private String totalInDebt;
 
     public DebtAccountReportEntryBean(final DebtAccount debtAccount, final DebtReportRequest request, final ErrorsLog errorsLog) {
         final String decimalSeparator = request.getDecimalSeparator();
-        
+
         this.debtAccount = debtAccount;
 
         try {
@@ -70,52 +66,55 @@ public class DebtAccountReportEntryBean implements SpreadsheetRow {
             this.customerId = debtAccount.getCustomer().getExternalId();
             this.name = debtAccount.getCustomer().getName();
 
-            if (debtAccount.getCustomer().isPersonCustomer()
-                    && ((PersonCustomer) debtAccount.getCustomer()).getPerson() != null
+            if (debtAccount.getCustomer().isPersonCustomer() && ((PersonCustomer) debtAccount.getCustomer()).getPerson() != null
                     && ((PersonCustomer) debtAccount.getCustomer()).getPerson().getIdDocumentType() != null) {
                 this.identificationType =
                         ((PersonCustomer) debtAccount.getCustomer()).getPerson().getIdDocumentType().getLocalizedNameI18N();
-            } else if(debtAccount.getCustomer().isPersonCustomer()
+            } else if (debtAccount.getCustomer().isPersonCustomer()
                     && ((PersonCustomer) debtAccount.getCustomer()).getPersonForInactivePersonCustomer() != null
-                    && ((PersonCustomer) debtAccount.getCustomer()).getPersonForInactivePersonCustomer().getIdDocumentType() != null) {
-                this.identificationType =
-                        ((PersonCustomer) debtAccount.getCustomer()).getPersonForInactivePersonCustomer().getIdDocumentType().getLocalizedNameI18N();
+                    && ((PersonCustomer) debtAccount.getCustomer()).getPersonForInactivePersonCustomer()
+                            .getIdDocumentType() != null) {
+                this.identificationType = ((PersonCustomer) debtAccount.getCustomer()).getPersonForInactivePersonCustomer()
+                        .getIdDocumentType().getLocalizedNameI18N();
             }
 
             this.identificationNumber = debtAccount.getCustomer().getIdentificationNumber();
-            this.vatNumber = debtAccount.getCustomer().getFiscalNumber();
+            this.vatNumber = valueOrEmpty(debtAccount.getCustomer().getFiscalCountry()) + ":"
+                    + valueOrEmpty(debtAccount.getCustomer().getFiscalNumber());
 
-            if (debtAccount.getCustomer().isPersonCustomer() && ((PersonCustomer) debtAccount.getCustomer()).getPerson() != null) {
+            if (debtAccount.getCustomer().isPersonCustomer()
+                    && ((PersonCustomer) debtAccount.getCustomer()).getPerson() != null) {
                 this.email =
                         ((PersonCustomer) debtAccount.getCustomer()).getPerson().getInstitutionalOrDefaultEmailAddressValue();
-            } else if(debtAccount.getCustomer().isPersonCustomer() && ((PersonCustomer) debtAccount.getCustomer()).getPersonForInactivePersonCustomer() != null) {
-                this.email =
-                        ((PersonCustomer) debtAccount.getCustomer()).getPersonForInactivePersonCustomer().getInstitutionalOrDefaultEmailAddressValue();
+            } else if (debtAccount.getCustomer().isPersonCustomer()
+                    && ((PersonCustomer) debtAccount.getCustomer()).getPersonForInactivePersonCustomer() != null) {
+                this.email = ((PersonCustomer) debtAccount.getCustomer()).getPersonForInactivePersonCustomer()
+                        .getInstitutionalOrDefaultEmailAddressValue();
             }
 
             this.address = debtAccount.getCustomer().getAddress();
-            this.countryCode = debtAccount.getCustomer().getFiscalCountry();
+            this.addressCountryCode = valueOrEmpty(debtAccount.getCustomer().getAddressCountryCode());
 
-            if (debtAccount.getCustomer().isPersonCustomer()
-                    && ((PersonCustomer) debtAccount.getCustomer()).getPerson() != null
+            if (debtAccount.getCustomer().isPersonCustomer() && ((PersonCustomer) debtAccount.getCustomer()).getPerson() != null
                     && ((PersonCustomer) debtAccount.getCustomer()).getPerson().getStudent() != null) {
                 this.studentNumber = ((PersonCustomer) debtAccount.getCustomer()).getPerson().getStudent().getNumber();
-            } else if(debtAccount.getCustomer().isPersonCustomer()
+            } else if (debtAccount.getCustomer().isPersonCustomer()
                     && ((PersonCustomer) debtAccount.getCustomer()).getPersonForInactivePersonCustomer() != null
                     && ((PersonCustomer) debtAccount.getCustomer()).getPersonForInactivePersonCustomer().getStudent() != null) {
-                this.studentNumber = ((PersonCustomer) debtAccount.getCustomer()).getPersonForInactivePersonCustomer().getStudent().getNumber();
+                this.studentNumber = ((PersonCustomer) debtAccount.getCustomer()).getPersonForInactivePersonCustomer()
+                        .getStudent().getNumber();
             }
 
-            this.vatNumberValid =
-                    (!Strings.isNullOrEmpty(this.countryCode) && !Constants.isDefaultCountry(this.countryCode))
-                            || FiscalCodeValidation.isValidFiscalNumber(this.countryCode, this.vatNumber);
+            this.vatNumberValid = FiscalCodeValidation.isValidFiscalNumber(debtAccount.getCustomer().getFiscalCountry(),
+                    debtAccount.getCustomer().getFiscalNumber());
 
-            this.totalInDebt = debtAccount.getFinantialInstitution().getCurrency().getValueWithScale(debtAccount.getTotalInDebt()).toString();
+            this.totalInDebt = debtAccount.getFinantialInstitution().getCurrency().getValueWithScale(debtAccount.getTotalInDebt())
+                    .toString();
 
-            if(DebtReportRequest.COMMA.equals(decimalSeparator)) {
+            if (DebtReportRequest.COMMA.equals(decimalSeparator)) {
                 this.totalInDebt = this.totalInDebt.replace(DebtReportRequest.DOT, DebtReportRequest.COMMA);
             }
-            
+
             this.completed = true;
         } catch (final Exception e) {
             e.printStackTrace();
@@ -126,7 +125,7 @@ public class DebtAccountReportEntryBean implements SpreadsheetRow {
     @Override
     public void writeCellValues(Row row, IErrorsLog ierrorsLog) {
         final ErrorsLog errorsLog = (ErrorsLog) ierrorsLog;
-        
+
         try {
             row.createCell(0).setCellValue(identification);
 
@@ -147,7 +146,7 @@ public class DebtAccountReportEntryBean implements SpreadsheetRow {
             row.createCell(i++).setCellValue(valueOrEmpty(vatNumber));
             row.createCell(i++).setCellValue(valueOrEmpty(email));
             row.createCell(i++).setCellValue(valueOrEmpty(address));
-            row.createCell(i++).setCellValue(valueOrEmpty(countryCode));
+            row.createCell(i++).setCellValue(valueOrEmpty(addressCountryCode));
             row.createCell(i++).setCellValue(valueOrEmpty(studentNumber));
             row.createCell(i++).setCellValue(valueOrEmpty(vatNumberValid));
             row.createCell(i++).setCellValue(totalInDebt.toString());
