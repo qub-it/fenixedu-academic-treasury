@@ -111,7 +111,7 @@ ${portal.angularToolkit()}
                     </c:if>
                     <tr>
                         <th scope="row" class="col-xs-3"><spring:message code="label.Customer.fiscalNumber" /></th>
-                        <td><c:out value='${debtAccount.customer.fiscalCountry}:${debtAccount.customer.fiscalNumber}' /></td>
+                        <td><c:out value='${debtAccount.customer.uiFiscalNumber}' /></td>
                     </tr>
 
                     <tr>
@@ -145,6 +145,10 @@ ${portal.angularToolkit()}
 	<span class="label label-info"><spring:message code="label.CustomerAccounting.view.sibs.references.message" /></span>
 </h4>
 
+<h4 style="margin-bottom: 30px; margin-top: 30px;">
+	<span class="label label-warning"><spring:message code="label.CustomerAccounting.ensure.vat.number.valid" /></span>
+</h4>
+
 <div id="content">
     <ul id="tabs" class="nav nav-tabs" data-tabs="tabs">
 
@@ -161,6 +165,7 @@ ${portal.angularToolkit()}
                 <c:when test="${not empty pendingDocumentsDataSet}">
                     <datatables:table id="pendingDocuments" row="pendingEntry" data="${pendingDocumentsDataSet}" cssClass="table table-bordered table-hover" cdn="false"
                         cellspacing="2">
+                        <%-- 
                         <datatables:column cssStyle="width:80px;align:right">
                             <datatables:columnHead>
                                 <spring:message code="label.InvoiceEntry.date" />
@@ -171,8 +176,9 @@ ${portal.angularToolkit()}
                             <c:if test="${not empty pendingEntry.finantialDocument }">
                                 <c:out value='${pendingEntry.finantialDocument.documentDate.toString("YYYY-MM-dd")}' />
                             </c:if>
-                            <%--                             <joda:format value="${pendingEntry.entryDateTime}" style="S-" /> --%>
+                            <%--                             <joda:format value="${pendingEntry.entryDateTime}" style="S-" /> --%-->
                         </datatables:column>
+                        --%>
                         <datatables:column cssStyle="width:80px;align:right">
                             <datatables:columnHead>
                                 <spring:message code="label.DebitNote.dueDate" />
@@ -180,19 +186,22 @@ ${portal.angularToolkit()}
 							<c:out value='${pendingEntry.dueDate.toString("YYYY-MM-dd")}' />
                             <%--                             <joda:format value="${pendingEntry.entryDateTime}" style="S-" /> --%>
                         </datatables:column>
+                        <datatables:column cssStyle="width:80px">
+                            <datatables:columnHead>
+                                <spring:message code="label.InvoiceEntry.fiscalNumber" />
+                            </datatables:columnHead>
+                            <c:set var="c" value="${pendingEntry.debtAccount.customer}" />
+                            <p><em><c:out value="${c.uiFiscalNumber}" /></em></p>
+                        </datatables:column>
                         <datatables:column cssStyle="width:100px;">
                             <datatables:columnHead>
                                 <spring:message code="label.InvoiceEntry.finantialDocument" />
                             </datatables:columnHead>
                             <c:if test="${not empty pendingEntry.finantialDocument }">
-                                <c:set var="c" value="${pendingEntry.finantialDocument.debtAccount.customer}" />
                                 <p><strong><c:out value="${pendingEntry.finantialDocument.uiDocumentNumber}" /></strong></p>
-                                <p><em><c:out value="${c.fiscalCountry}:${c.fiscalNumber}" /></em></p>
                             </c:if>
                             <c:if test="${empty pendingEntry.finantialDocument }">
-                                <c:set var="c" value="${pendingEntry.debtAccount.customer}" />
                                 <p><strong>---</strong></p>
-                                <p><em><c:out value="${c.fiscalCountry}:${c.fiscalNumber}" /></em></p>
 							</c:if>
                         </datatables:column>
                         <datatables:column>
@@ -216,12 +225,18 @@ ${portal.angularToolkit()}
                                 	<c:set var="c" value="${pendingEntry.finantialDocument.payorDebtAccount.customer}" />
 	                        		<p><em>
 	                        				<strong><spring:message code="label.Invoice.payorDebtAccount" />:</strong> 
-	                        				<span><c:out value="${c.fiscalNumber} - ${c.name}" /></span>
+	                        				<span><c:out value="${c.uiFiscalNumber} - ${c.name}" /></span>
 	                        		</em></p>
+                                </c:if>
+                                <c:if test="${pendingEntry.finantialDocument.certifiedPrintedDocumentAvailable}">
+                                	<a href='${pageContext.request.contextPath}<%= CustomerAccountingController.DOWNLOAD_CERTIFIED_DOCUMENT_PRINT_URL %>/${pendingEntry.finantialDocument.externalId}'>
+                                		<span class="glyphicon glyphicon-print"></span>
+                                		<spring:message code="label.accounting.manageCustomer.download.certified.document.${pendingEntry.finantialDocument.finantialDocumentType.type.name()}" />
+                                	</a>
                                 </c:if>
                             </c:if>
                         </datatables:column>
-                        <datatables:column cssStyle="width:15%;align:right">
+                        <datatables:column cssStyle="width:10%;align:right">
                             <datatables:columnHead>
                                 <spring:message code="label.InvoiceEntry.totalAmount" />
                             </datatables:columnHead>
@@ -237,7 +252,7 @@ ${portal.angularToolkit()}
                                 </div>
                             </c:if>
                         </datatables:column>
-                        <datatables:column cssStyle="width:15%;align:right">
+                        <datatables:column cssStyle="width:10%;align:right">
                             <datatables:columnHead>
                                 <spring:message code="label.InvoiceEntry.openAmount" />
                             </datatables:columnHead>
@@ -284,33 +299,38 @@ ${portal.angularToolkit()}
             <c:choose>
                 <c:when test="${not empty allDocumentsDataSet}">
                     <datatables:table id="allDocuments" row="entry" data="${allDocumentsDataSet}" cssClass="table table-bordered table-hover" cdn="false" cellspacing="2">
+                        <%--
                         <datatables:column cssStyle="width:80px">
                             <datatables:columnHead>
                                 <spring:message code="label.InvoiceEntry.date" />
                             </datatables:columnHead>
                             <c:out value='${entry.entryDateTime.toString("YYYY-MM-dd")}' />
-                            <%--                             <joda:format value="${entry.entryDateTime}" style="S-" /> --%>
+                            <%--                             <joda:format value="${entry.entryDateTime}" style="S-" /> --%-->
                         </datatables:column>
+                        --%>
                         <datatables:column cssStyle="width:80px;align:right">
                             <datatables:columnHead>
                                 <spring:message code="label.DebitNote.dueDate" />
                             </datatables:columnHead>
-                            <c:out value='${pendingEntry.dueDate.toString("YYYY-MM-dd")}' />
+                            <c:out value='${entry.dueDate.toString("YYYY-MM-dd")}' />
                             <%--                             <joda:format value="${pendingEntry.entryDateTime}" style="S-" /> --%>
+                        </datatables:column>
+                        <datatables:column cssStyle="width:80px">
+                            <datatables:columnHead>
+                                <spring:message code="label.InvoiceEntry.fiscalNumber" />
+                            </datatables:columnHead>
+                            <c:set var="c" value="${pendingEntry.debtAccount.customer}" />
+                            <p><em><c:out value="${c.uiFiscalNumber}" /></em></p>
                         </datatables:column>
                         <datatables:column cssStyle="width:100px;">
                             <datatables:columnHead>
                                 <spring:message code="label.InvoiceEntry.finantialDocument" />
                             </datatables:columnHead>
                             <c:if test="${not empty entry.finantialDocument }">
-                                <c:set var="c" value="${entry.finantialDocument.debtAccount.customer}" />
                                 <p><strong><c:out value="${entry.finantialDocument.uiDocumentNumber}" /></strong></p>
-                                <p><em><c:out value="${c.fiscalCountry}:${c.fiscalNumber}" /></em></p>
                             </c:if>
                             <c:if test="${empty entry.finantialDocument }">
-                                <c:set var="c" value="${entry.debtAccount.customer}" />
                                 <p>---</p>
-                                <p><em><c:out value="${c.fiscalCountry}:${c.fiscalNumber}" /></em></p>
                             </c:if>
                         </datatables:column>
                         <datatables:column>
@@ -322,8 +342,14 @@ ${portal.angularToolkit()}
 								<c:set var="c" value="${entry.finantialDocument.payorDebtAccount.customer}" />
 								<p><em>
 									<strong><spring:message code="label.Invoice.payorDebtAccount" />:</strong> 
-									<span><c:out value="${c.fiscalNumber} - ${c.name}" /></span>
+									<span><c:out value="${c.uiFiscalNumber} - ${c.name}" /></span>
 								</em></p>
+							</c:if>
+							<c:if test="${pendingEntry.finantialDocument.certifiedPrintedDocumentAvailable}">
+								<a href='${pageContext.request.contextPath}<%= CustomerAccountingController.DOWNLOAD_CERTIFIED_DOCUMENT_PRINT_URL %>/${entry.finantialDocument.externalId}'>
+                               		<span class="glyphicon glyphicon-print"></span>
+									<spring:message code="label.accounting.manageCustomer.download.certified.document.${entry.finantialDocument.finantialDocumentType.type.name()}" />
+								</a>
 							</c:if>
                         </datatables:column>
                         <datatables:column cssStyle="width:110px">
@@ -413,6 +439,12 @@ ${portal.angularToolkit()}
                                     </c:forEach>
                                 </c:if>
                             </ul>
+							<c:if test="${pendingEntry.finantialDocument.certifiedPrintedDocumentAvailable}">
+								<a href='${pageContext.request.contextPath}<%= CustomerAccountingController.DOWNLOAD_CERTIFIED_DOCUMENT_PRINT_URL %>/${payment.externalId}'>
+                               		<span class="glyphicon glyphicon-print"></span>
+									<spring:message code="label.accounting.manageCustomer.download.certified.document.${payment.finantialDocumentType.type.name()}" />
+								</a>
+							</c:if>
                         </datatables:column>
                         <datatables:column>
                             <datatables:columnHead>
@@ -551,7 +583,7 @@ ${portal.angularToolkit()}
 		{
 			var oTable = $('#pendingDocuments').dataTable();
 			if(oTable) {
-				oTable.fnSort([[1, 'asc']]);			
+				oTable.fnSort([[0, 'asc']]);			
 			}
 		}
 		

@@ -35,27 +35,17 @@ public class PersonServices {
     }
 
     public static boolean isAcademicalActsBlocked(final Person person, final LocalDate when) {
-        final String fiscalCountryCode = PersonCustomer.countryCode(person);
-        final String fiscalNumber = PersonCustomer.fiscalNumber(person);
-        if (Strings.isNullOrEmpty(fiscalCountryCode) || Strings.isNullOrEmpty(fiscalNumber)) {
-            throw new AcademicTreasuryDomainException("error.PersonCustomer.fiscalInformation.required");
-        }
-
-        if (!PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).isPresent()) {
-            return false;
-        }
-
         if (AcademicActBlockingSuspension.isBlockingSuspended(person, when)) {
             return false;
         }
-
+        
         for (final PersonCustomer personCustomer : PersonCustomer.find(person).collect(Collectors.<PersonCustomer> toSet())) {
             if (personCustomer.isBlockingAcademicalActs(when)) {
                 return true;
             }
         }
-
-        return PersonCustomer.findUnique(person, fiscalCountryCode, fiscalCountryCode).get().isBlockingAcademicalActs(when);
+        
+        return false;
     }
 
     @Subscribe

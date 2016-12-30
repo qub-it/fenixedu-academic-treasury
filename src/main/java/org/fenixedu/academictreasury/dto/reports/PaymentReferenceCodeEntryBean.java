@@ -100,8 +100,7 @@ public class PaymentReferenceCodeEntryBean extends AbstractReportEntryBean {
                 }
 
                 this.identificationNumber = referenceDebtAccount.getCustomer().getIdentificationNumber();
-                this.vatNumber = valueOrEmpty(referenceDebtAccount.getCustomer().getFiscalCountry()) + ":"
-                        + valueOrEmpty(referenceDebtAccount.getCustomer().getFiscalNumber());
+                this.vatNumber = referenceDebtAccount.getCustomer().getUiFiscalNumber();
 
                 if (referenceDebtAccount.getCustomer().isPersonCustomer()
                         && ((PersonCustomer) referenceDebtAccount.getCustomer()).getPerson() != null) {

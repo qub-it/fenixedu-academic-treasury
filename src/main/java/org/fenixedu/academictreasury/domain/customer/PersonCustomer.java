@@ -390,6 +390,12 @@ public class PersonCustomer extends PersonCustomer_Base {
         return url + "/" + getPersonForInactivePersonCustomer().getPersonCustomer().getExternalId();
     }
 
+    public static String uiPersonFiscalNumber(final Person person) {
+        final String fiscalCountry = !Strings.isNullOrEmpty(countryCode(person)) ? countryCode(person) : "";
+        final String fiscalNumber = !Strings.isNullOrEmpty(fiscalNumber(person)) ? fiscalNumber(person) : "";
+        return fiscalCountry + ":" + fiscalNumber;
+    }
+    
     // @formatter: off
     /************
      * SERVICES *

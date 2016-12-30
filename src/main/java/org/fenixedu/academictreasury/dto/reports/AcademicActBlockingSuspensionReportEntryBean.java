@@ -68,7 +68,7 @@ public class AcademicActBlockingSuspensionReportEntryBean extends AbstractReport
             }
 
             this.identificationNumber = PersonCustomer.identificationNumber(person);
-            this.vatNumber = v(PersonCustomer.countryCode(person)) + ":" + v(PersonCustomer.fiscalNumber(person));
+            this.vatNumber = PersonCustomer.uiPersonFiscalNumber(person);
             this.email = academicActBlockingSuspension.getPerson().getInstitutionalOrDefaultEmailAddressValue();
             this.address =
                     PersonCustomer.physicalAddress(person) != null ? PersonCustomer.physicalAddress(person).getAddress() : "";
@@ -122,14 +122,6 @@ public class AcademicActBlockingSuspensionReportEntryBean extends AbstractReport
             e.printStackTrace();
             errorsLog.addError(academicActBlockingSuspension, e);
         }
-    }
-
-    public String v(final String value) {
-        if (Strings.isNullOrEmpty(value)) {
-            return "";
-        }
-
-        return value;
     }
 
 }

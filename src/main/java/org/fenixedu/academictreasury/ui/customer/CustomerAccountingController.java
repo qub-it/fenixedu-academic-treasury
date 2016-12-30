@@ -1,5 +1,7 @@
 package org.fenixedu.academictreasury.ui.customer;
 
+import java.io.IOException;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -14,21 +16,26 @@ import org.fenixedu.academictreasury.ui.AcademicTreasuryController;
 import org.fenixedu.academictreasury.ui.customer.forwardpayments.CustomerAccountingForwardPaymentController;
 import org.fenixedu.bennu.core.security.Authenticate;
 import org.fenixedu.bennu.spring.portal.SpringFunctionality;
+import org.fenixedu.commons.StringNormalizer;
 import org.fenixedu.treasury.domain.Customer;
 import org.fenixedu.treasury.domain.debt.DebtAccount;
 import org.fenixedu.treasury.domain.document.DebitEntry;
+import org.fenixedu.treasury.domain.document.FinantialDocument;
 import org.fenixedu.treasury.domain.document.InvoiceEntry;
 import org.fenixedu.treasury.domain.document.SettlementNote;
+import org.fenixedu.treasury.domain.exceptions.TreasuryDomainException;
 import org.fenixedu.treasury.domain.exemption.TreasuryExemption;
 import org.fenixedu.treasury.domain.paymentcodes.FinantialDocumentPaymentCode;
 import org.fenixedu.treasury.domain.paymentcodes.MultipleEntriesPaymentCode;
 import org.fenixedu.treasury.domain.paymentcodes.PaymentCodeTarget;
+import org.fenixedu.treasury.services.integration.erp.ERPExporterManager;
 import org.joda.time.DateTime;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -309,6 +316,33 @@ public class CustomerAccountingController extends AcademicTreasuryBaseController
             addErrorMessage(ex.getLocalizedMessage(), model);
 
             return redirect(getReadAccountUrl() + debtAccount.getExternalId(), model, redirectAttributes);
+        }
+    }
+
+    private static final String _DOWNLOAD_CERTIFIED_DOCUMENT_PRINT_URI = "/downloadcertifieddocumentprint";
+    public static final String DOWNLOAD_CERTIFIED_DOCUMENT_PRINT_URL = CONTROLLER_URL + _DOWNLOAD_CERTIFIED_DOCUMENT_PRINT_URI;
+
+    @RequestMapping(value = _DOWNLOAD_CERTIFIED_DOCUMENT_PRINT_URI + "/{oid}", method = RequestMethod.GET)
+    public String downloadcertifieddocumentprint(@PathVariable("oid") final FinantialDocument finantialDocument, final Model model,
+            final RedirectAttributes redirectAttributes, final HttpServletResponse response) {
+
+        try {
+            final byte[] contents = ERPExporterManager.downloadCertifiedDocumentPrint(finantialDocument);
+
+            response.setContentType("application/pdf");
+            String filename = URLEncoder.encode(StringNormalizer
+                    .normalizePreservingCapitalizedLetters((finantialDocument.getDebtAccount().getFinantialInstitution().getFiscalNumber()
+                            + "_" + finantialDocument.getUiDocumentNumber() + ".pdf").replaceAll("/", "_").replaceAll("\\s", "_")
+                                    .replaceAll(" ", "_")),
+                    "Windows-1252");
+
+            response.setHeader("Content-disposition", "attachment; filename=" + filename);
+            response.getOutputStream().write(contents);
+
+            return null;
+        } catch (final TreasuryDomainException | IOException e) {
+            addErrorMessage(e.getLocalizedMessage(), model);
+            return readAccount(finantialDocument.getDebtAccount(), model);
         }
     }
 
