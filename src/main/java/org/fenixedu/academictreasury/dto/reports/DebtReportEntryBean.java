@@ -241,7 +241,7 @@ public class DebtReportEntryBean implements SpreadsheetRow {
         }
 
         this.identificationNumber = customer.getIdentificationNumber();
-        this.vatNumber = valueOrEmpty(customer.getFiscalNumber()) + ":" + valueOrEmpty(customer.getFiscalNumber());
+        this.vatNumber = valueOrEmpty(customer.getFiscalCountry()) + ":" + valueOrEmpty(customer.getFiscalNumber());
 
         if (customer.isPersonCustomer() && ((PersonCustomer) customer).getPerson() != null) {
             this.email = ((PersonCustomer) customer).getPerson().getInstitutionalOrDefaultEmailAddressValue();
