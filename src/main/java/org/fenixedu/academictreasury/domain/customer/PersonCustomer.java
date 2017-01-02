@@ -287,6 +287,23 @@ public class PersonCustomer extends PersonCustomer_Base {
     }
 
     @Override
+    public Customer getActiveCustomer() {
+        if (isActive()) {
+            return this;
+        }
+
+        final Person person = getPersonForInactivePersonCustomer();
+        final Optional<? extends PersonCustomer> activeCustomer =
+                PersonCustomer.findUnique(person, countryCode(person), fiscalNumber(person));
+
+        if (!activeCustomer.isPresent()) {
+            return null;
+        }
+
+        return activeCustomer.get();
+    }
+
+    @Override
     public void delete() {
         super.setPersonForInactivePersonCustomer(null);
         super.delete();
@@ -395,7 +412,7 @@ public class PersonCustomer extends PersonCustomer_Base {
         final String fiscalNumber = !Strings.isNullOrEmpty(fiscalNumber(person)) ? fiscalNumber(person) : "";
         return fiscalCountry + ":" + fiscalNumber;
     }
-    
+
     // @formatter: off
     /************
      * SERVICES *
@@ -456,7 +473,7 @@ public class PersonCustomer extends PersonCustomer_Base {
             personCustomer.setPerson(null);
             personCustomer.setPersonForInactivePersonCustomer(person);
         }
-        
+
         if (!newCustomer.isPresent()) {
             PersonCustomer.create(person, fiscalCountryCode, fiscalNumber);
             newCustomer = PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber);
@@ -465,10 +482,10 @@ public class PersonCustomer extends PersonCustomer_Base {
             newCustomer.get().setPersonForInactivePersonCustomer(null);
         }
 
-        if(personCustomer != null) {
+        if (personCustomer != null) {
             personCustomer.checkRules();
         }
-        
+
         newCustomer.get().checkRules();
 
         return true;

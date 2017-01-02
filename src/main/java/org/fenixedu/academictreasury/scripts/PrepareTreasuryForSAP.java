@@ -62,6 +62,8 @@ public class PrepareTreasuryForSAP extends CustomTask {
         // Configure ERP configuration for Finantial Institution
         configureERPInFinantialInstitution();
 
+        createTransferBalanceProduct();
+
         // Make available internal and legacy document series
         activateSeriesAndCreateNewForRegulation();
 
@@ -96,6 +98,23 @@ public class PrepareTreasuryForSAP extends CustomTask {
 
         taskLog("End");
 
+    }
+
+    private void createTransferBalanceProduct() {
+        taskLog("createTransferBalanceProduct");
+
+        final ProductGroup otherProductGroup = ProductGroup.findByCode("OTHER");
+        final VatType exemptionVatType = VatType.findByCode("ISE");
+        final VatExemptionReason exemptionReason = VatExemptionReason.findByCode("M07");
+
+        if (!Product.findUniqueByCode("TRANSFERENCIA_SALDO").isPresent()) {
+            final LocalizedString productName = new LocalizedString(Constants.DEFAULT_LANGUAGE, "Transferência de Saldo");
+            final LocalizedString quantityName = new LocalizedString(Constants.DEFAULT_LANGUAGE, "Unidade");
+
+            final Product product = Product.create(otherProductGroup, "TRANSFERENCIA_SALDO", productName, quantityName, true,
+                    false, 0, exemptionVatType, FinantialInstitution.findAll().collect(Collectors.toList()), exemptionReason);
+            TreasurySettings.getInstance().setTransferBalanceProduct(product);
+        }
     }
 
     private void checkAllPersonCustomersWithFiscalCountryAndNumber() {
@@ -202,10 +221,10 @@ public class PrepareTreasuryForSAP extends CustomTask {
 
             final Person person = (Person) party;
 
-            if(person.getPersonCustomer() == null && !person.getInactivePersonCustomersSet().isEmpty()) {
+            if (person.getPersonCustomer() == null && !person.getInactivePersonCustomersSet().isEmpty()) {
                 throw new RuntimeException("how to handle it");
             }
-            
+
             if (person.getPersonCustomer() == null) {
                 continue;
             }
@@ -221,7 +240,7 @@ public class PrepareTreasuryForSAP extends CustomTask {
                 if (ipc.getDebtAccountsSet().size() > 1) {
                     throw new RuntimeException("how to handle it");
                 }
-                
+
                 if (!ipc.getDebtAccountsSet().isEmpty()) {
                     final DebtAccount ipcDebtAccount = ipc.getDebtAccountsSet().iterator().next();
 
@@ -341,8 +360,8 @@ public class PrepareTreasuryForSAP extends CustomTask {
             if (++count % 1000 == 0) {
                 taskLog("Processing " + count + "/" + totalCount + " adhoc customers.");
             }
-            
-            if(Strings.isNullOrEmpty(customer.getFiscalCountry())) {
+
+            if (Strings.isNullOrEmpty(customer.getFiscalCountry())) {
                 customer.setCountryCode(Constants.DEFAULT_COUNTRY);
             }
 
