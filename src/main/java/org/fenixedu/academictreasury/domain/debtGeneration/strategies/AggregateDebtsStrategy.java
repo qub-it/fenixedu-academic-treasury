@@ -184,7 +184,7 @@ public class AggregateDebtsStrategy implements IAcademicDebtGenerationRuleStrate
             }
             
             if(debitNote.getPayorDebtAccount() == null && debitEntry.getPayorDebtAccount() != null) {
-                debitNote.edit(debitEntry.getPayorDebtAccount(), debitNote.getDocumentDate().toLocalDate(), debitNote.getDocumentDueDate(), debitNote.getOriginDocumentNumber());
+                debitNote.updatePayorDebtAccount(debitEntry.getPayorDebtAccount());
             }
         }
         

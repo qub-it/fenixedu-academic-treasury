@@ -1,6 +1,7 @@
 package org.fenixedu.academictreasury.domain.customer;
 
 import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -9,6 +10,7 @@ import java.util.stream.Stream;
 import org.fenixedu.academic.domain.Person;
 import org.fenixedu.academic.domain.contacts.PhysicalAddress;
 import org.fenixedu.academic.dto.person.PersonBean;
+import org.fenixedu.academictreasury.domain.event.AcademicTreasuryEvent;
 import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainException;
 import org.fenixedu.academictreasury.domain.settings.AcademicTreasurySettings;
 import org.fenixedu.treasury.domain.Customer;
@@ -38,8 +40,14 @@ public class PersonCustomer extends PersonCustomer_Base {
     protected PersonCustomer(final Person person, final String fiscalCountry, final String fiscalNumber) {
         this();
 
+        if (!DEFAULT_FISCAL_NUMBER.equals(getFiscalNumber())
+                && find(getPerson(), getFiscalCountry(), getFiscalNumber()).count() > 1) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.person.customer.duplicated");
+        }
+
         setPerson(person);
         setCustomerType(getDefaultCustomerType(this));
+
         super.setCountryCode(fiscalCountry);
         super.setFiscalNumber(fiscalNumber);
 
@@ -80,7 +88,7 @@ public class PersonCustomer extends PersonCustomer_Base {
         }
 
         if (!DEFAULT_FISCAL_NUMBER.equals(getFiscalNumber())
-                && find(getPerson(), getFiscalCountry(), getFiscalNumber()).count() > 1) {
+                && find(getPerson(), getFiscalCountry(), getFiscalNumber()).filter(pc -> !pc.isFromPersonMerge()).count() > 1) {
             throw new AcademicTreasuryDomainException("error.PersonCustomer.person.customer.duplicated");
         }
     }
@@ -281,6 +289,10 @@ public class PersonCustomer extends PersonCustomer_Base {
         return getPerson() != null;
     }
 
+    public boolean isFromPersonMerge() {
+        return getFromPersonMerge();
+    }
+
     @Override
     public boolean isDeletable() {
         return !isActive() && getDebtAccountsSet().stream().allMatch(da -> da.isDeletable());
@@ -365,7 +377,7 @@ public class PersonCustomer extends PersonCustomer_Base {
     }
 
     public void mergeWithPerson(final Person person) {
-
+        
         if (getPerson() == person) {
             throw new AcademicTreasuryDomainException("error.PersonCustomer.merging.not.happening");
         }
@@ -378,10 +390,19 @@ public class PersonCustomer extends PersonCustomer_Base {
             final PersonCustomer personCustomer = person.getPersonCustomer();
             personCustomer.setPersonForInactivePersonCustomer(getPerson());
             personCustomer.setPerson(null);
+            personCustomer.setFromPersonMerge(true);
+            personCustomer.checkRules();
         }
 
         for (final PersonCustomer personCustomer : person.getInactivePersonCustomersSet()) {
             personCustomer.setPersonForInactivePersonCustomer(getPerson());
+            personCustomer.setFromPersonMerge(true);
+            personCustomer.checkRules();
+        }
+        
+        final Person thisPerson = isActive() ? getPerson() : getPersonForInactivePersonCustomer();
+        for(final AcademicTreasuryEvent e : Sets.newHashSet(person.getAcademicTreasuryEventSet())) {
+            e.setPerson(thisPerson);
         }
 
         checkRules();
@@ -410,7 +431,7 @@ public class PersonCustomer extends PersonCustomer_Base {
     public static String uiPersonFiscalNumber(final Person person) {
         final String fiscalCountry = !Strings.isNullOrEmpty(countryCode(person)) ? countryCode(person) : "";
         final String fiscalNumber = !Strings.isNullOrEmpty(fiscalNumber(person)) ? fiscalNumber(person) : "";
-        return fiscalCountry + ":" + fiscalNumber;
+        return fiscalCountry + " " + fiscalNumber;
     }
 
     // @formatter: off
@@ -429,15 +450,29 @@ public class PersonCustomer extends PersonCustomer_Base {
 
     protected static Stream<? extends PersonCustomer> find(final Person person, final String fiscalCountryCode,
             final String fiscalNumber) {
-        return find(person).filter(
-                pc -> pc.getFiscalCountry() != null && lowerCase(pc.getFiscalCountry()).equals(lowerCase(fiscalCountryCode))
-                        && !Strings.isNullOrEmpty(pc.getFiscalNumber())
-                        && lowerCase(pc.getFiscalNumber()).equals(lowerCase(fiscalNumber)));
+        return find(person).filter(pc -> !Strings.isNullOrEmpty(pc.getFiscalCountry())
+                && lowerCase(pc.getFiscalCountry()).equals(lowerCase(fiscalCountryCode))
+                && !Strings.isNullOrEmpty(pc.getFiscalNumber())
+                && lowerCase(pc.getFiscalNumber()).equals(lowerCase(fiscalNumber)));
     }
+
+    private static final Comparator<PersonCustomer> SORT_BY_PERSON_MERGE = new Comparator<PersonCustomer>() {
+
+        @Override
+        public int compare(final PersonCustomer o1, final PersonCustomer o2) {
+            if (!o1.isFromPersonMerge() && o2.isFromPersonMerge()) {
+                return -1;
+            } else if (o1.isFromPersonMerge() && !o2.isFromPersonMerge()) {
+                return 1;
+            }
+
+            return o1.getExternalId().compareTo(o2.getExternalId());
+        }
+    };
 
     public static Optional<? extends PersonCustomer> findUnique(final Person person, final String fiscalCountryCode,
             final String fiscalNumber) {
-        return find(person, fiscalCountryCode, fiscalNumber).findFirst();
+        return find(person, fiscalCountryCode, fiscalNumber).sorted(SORT_BY_PERSON_MERGE).findFirst();
     }
 
 //    public static Stream<? extends PersonCustomer> findInactivePersonCustomers(final Person person) {

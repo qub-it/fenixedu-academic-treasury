@@ -42,6 +42,7 @@ valueType java.math.BigDecimal as BigDecimalAT
 class customer.PersonCustomer extends .org.fenixedu.treasury.domain.Customer {
 	String countryCode;
 	String fiscalNumber;
+	boolean fromPersonMerge;
 }
 
 	relation PersonCustomerPerson {

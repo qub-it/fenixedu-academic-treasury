@@ -45,6 +45,7 @@ import org.fenixedu.treasury.domain.FinantialInstitution;
 import org.fenixedu.treasury.domain.Product;
 import org.fenixedu.treasury.domain.document.DebitEntry;
 import org.fenixedu.treasury.domain.event.TreasuryEvent;
+import org.fenixedu.treasury.domain.exceptions.TreasuryDomainException;
 import org.fenixedu.treasury.domain.exemption.TreasuryExemption;
 import org.fenixedu.treasury.domain.paymentcodes.PaymentReferenceCode;
 import org.fenixedu.treasury.ui.accounting.managecustomer.DebtAccountController;
@@ -278,6 +279,10 @@ public class AcademicTreasuryEvent extends AcademicTreasuryEvent_Base implements
 
     public boolean isLegacy() {
         return false;
+    }
+    
+    public boolean isForLegacy() {
+        return isLegacy();
     }
 
     public boolean isForExtracurricularTuition() {
@@ -536,6 +541,106 @@ public class AcademicTreasuryEvent extends AcademicTreasuryEvent_Base implements
         return degree;
     }
 
+    // Category code for treasuryEvent propose
+    private int treasuryEventTypeCode() {
+        if (isForAcademicServiceRequest()) {
+            return 0;
+        } else if (isForAcademicTax()) {
+            return 1;
+        } else if (isForExtracurricularTuition()) {
+            return 2;
+        } else if (isForImprovementTax()) {
+            return 3;
+        } else if (isForRegistrationTuition()) {
+            return 4;
+        } else if (isForStandaloneTuition()) {
+            return 5;
+        } else if (isForTreasuryEventTarget()) {
+            return 6;
+        } else if(isLegacy()) {
+            return 7;
+        }
+
+        throw new AcademicTreasuryDomainException("error.AcademicTreasuryEvent.unkwnown.type");
+    }
+
+    public void mergeDebitEntriesAndExemptions(final AcademicTreasuryEvent event) {
+        if (this.treasuryEventTypeCode() != event.treasuryEventTypeCode()) {
+            throw new AcademicTreasuryDomainException("error.AcademicTreasuryEvent.cannot.merge.for.different.types");
+        }
+        
+        if (isForAcademicServiceRequest()) {
+            // Does not make sense
+            throw new AcademicTreasuryDomainException("error.AcademicTreasuryEvent.cannot.merge.not.supported");
+        } else if (isForAcademicTax()) {
+            if(getExecutionYear() != event.getExecutionYear()) {
+                throw new AcademicTreasuryDomainException("error.AcademicTreasuryEvent.cannot.merge.different.execution.year");
+            }
+            
+            if(getAcademicTax() != event.getAcademicTax()) {
+                throw new AcademicTreasuryDomainException("error.AcademicTreasuryEvent.cannot.merge.different.academic.tax");
+            }
+        } else if (isForExtracurricularTuition()) {
+            if(getExecutionYear() != event.getExecutionYear()) {
+                throw new AcademicTreasuryDomainException("error.AcademicTreasuryEvent.cannot.merge.different.execution.year");
+            }
+            
+        } else if (isForImprovementTax()) {
+            if(getExecutionYear() != event.getExecutionYear()) {
+                throw new AcademicTreasuryDomainException("error.AcademicTreasuryEvent.cannot.merge.different.execution.year");
+            }
+        } else if (isForRegistrationTuition()) {
+            if(getExecutionYear() != event.getExecutionYear()) {
+                throw new AcademicTreasuryDomainException("error.AcademicTreasuryEvent.cannot.merge.different.execution.year");
+            }
+        } else if (isForStandaloneTuition()) {
+            if(getExecutionYear() != event.getExecutionYear()) {
+                throw new AcademicTreasuryDomainException("error.AcademicTreasuryEvent.cannot.merge.different.execution.year");
+            }
+        } else if (isForTreasuryEventTarget()) {
+            // Does not make sense
+            throw new AcademicTreasuryDomainException("error.AcademicTreasuryEvent.cannot.merge.not.supported");
+        } else if(isForLegacy()) {
+            throw new AcademicTreasuryDomainException("error.AcademicTreasuryEvent.cannot.merge.not.supported");
+        } else {
+            throw new AcademicTreasuryDomainException("error.AcademicTreasuryEvent.unkwnown.type");
+        }
+        
+        for(final DebitEntry debitEntry : Sets.newHashSet(event.getDebitEntriesSet())) {
+            debitEntry.setTreasuryEvent(this);
+        }
+        
+        for(final TreasuryExemption exemption : Sets.newHashSet(event.getTreasuryExemptionsSet())) {
+            exemption.setTreasuryEvent(this);
+        }
+        
+    }
+
+    @Override
+    public boolean isDeletable() {
+        return getDebitEntriesSet().isEmpty() && getTreasuryExemptionsSet().isEmpty();
+    }
+    
+    @Atomic
+    @Override
+    public void delete() {
+        if (!isDeletable()) {
+            throw new TreasuryDomainException("error.AcademicTreasuryEvent.cannot.delete");
+        }
+        
+        setPerson(null);
+        setITreasuryServiceRequest(null);
+        setTuitionPaymentPlanGroup(null);
+        setRegistration(null);
+        setAcademicTax(null);
+        setRegistration(null);
+        setExecutionYear(null);
+        setAcademicTax(null);
+        setTreasuryEventTarget(null);
+
+        super.delete();
+    }
+    
     // @formatter: off
     /************
      * SERVICES *
@@ -699,14 +804,15 @@ public class AcademicTreasuryEvent extends AcademicTreasuryEvent_Base implements
 
     public static AcademicTreasuryEvent createForAcademicTreasuryEventTarget(final Product product,
             final IAcademicTreasuryTarget target) {
-
         return new AcademicTreasuryEvent(product, target);
     }
 
+    // @formatter:off
     /* -----
      * UTILS
      * -----
      */
+    // @formatter:on
 
     // @formatter:off
     public static enum AcademicTreasuryEventKeys {
