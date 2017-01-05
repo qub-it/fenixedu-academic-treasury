@@ -1,5 +1,7 @@
 package org.fenixedu.academictreasury.scripts;
 
+import java.math.BigDecimal;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.fenixedu.academic.domain.Country;
@@ -19,6 +21,7 @@ import org.fenixedu.treasury.domain.Customer;
 import org.fenixedu.treasury.domain.FinantialInstitution;
 import org.fenixedu.treasury.domain.Product;
 import org.fenixedu.treasury.domain.ProductGroup;
+import org.fenixedu.treasury.domain.Vat;
 import org.fenixedu.treasury.domain.VatExemptionReason;
 import org.fenixedu.treasury.domain.VatType;
 import org.fenixedu.treasury.domain.debt.DebtAccount;
@@ -26,12 +29,15 @@ import org.fenixedu.treasury.domain.document.AdvancedPaymentCreditNote;
 import org.fenixedu.treasury.domain.document.CreditEntry;
 import org.fenixedu.treasury.domain.document.CreditNote;
 import org.fenixedu.treasury.domain.document.DebitEntry;
+import org.fenixedu.treasury.domain.document.DebitNote;
 import org.fenixedu.treasury.domain.document.DocumentNumberSeries;
 import org.fenixedu.treasury.domain.document.FinantialDocument;
 import org.fenixedu.treasury.domain.document.FinantialDocumentType;
 import org.fenixedu.treasury.domain.document.Invoice;
 import org.fenixedu.treasury.domain.document.InvoiceEntry;
 import org.fenixedu.treasury.domain.document.Series;
+import org.fenixedu.treasury.domain.document.SettlementEntry;
+import org.fenixedu.treasury.domain.document.SettlementNote;
 import org.fenixedu.treasury.domain.document.reimbursement.ReimbursementProcessStatusType;
 import org.fenixedu.treasury.domain.event.TreasuryEvent;
 import org.fenixedu.treasury.domain.forwardpayments.ForwardPayment;
@@ -96,8 +102,97 @@ public class PrepareTreasuryForSAP extends CustomTask {
 
         checkAllPersonCustomersWithFiscalCountryAndNumber();
 
-        taskLog("End");
+        replacePendingAdvancePaymentCredits();
 
+        taskLog("End");
+    }
+
+    private void replacePendingAdvancePaymentCredits() {
+        taskLog("replacePendingAdvancePaymentCredits");
+
+        final FinantialInstitution finantialInstitution = FinantialInstitution.findAll().iterator().next();
+        if (!Product.findUniqueByCode("CREDITO").isPresent()) {
+
+            final LocalizedString productName = new LocalizedString(Constants.DEFAULT_LANGUAGE, "Crédito");
+            final LocalizedString unitDescription = new LocalizedString(Constants.DEFAULT_LANGUAGE, "Unidade");
+            Product.create(ProductGroup.findByCode("OTHER"), "CREDITO", productName, unitDescription, true, false, 0,
+                    VatType.findByCode("ISE"), Lists.newArrayList(finantialInstitution), VatExemptionReason.findByCode("M07"));
+        }
+
+        final Product product = Product.findUniqueByCode("CREDITO").get();
+        final Series regulationSeries = Series.findByCode(finantialInstitution, "REG");
+
+        for (final CreditEntry creditEntry : CreditEntry.findAll().collect(Collectors.toSet())) {
+            if (creditEntry.getFinantialDocument() == null) {
+                continue;
+            }
+
+            final CreditNote creditNote = (CreditNote) creditEntry.getFinantialDocument();
+
+            if (!creditNote.isAdvancePayment()) {
+                continue;
+            }
+
+            if (!Constants.isPositive(creditEntry.getOpenAmount())) {
+                continue;
+            }
+
+            if (creditEntry.getProduct() != TreasurySettings.getInstance().getAdvancePaymentProduct()) {
+                continue;
+            }
+
+            if (creditNote.isPreparing()) {
+                throw new RuntimeException("error");
+            }
+            
+            taskLog("Change in  [%s - %s]: %s\n", creditEntry.getDebtAccount().getCustomer().getFiscalNumber(),
+                    creditEntry.getDebtAccount().getCustomer().getName(),
+                    creditEntry.getFinantialDocument().getUiDocumentNumber());
+
+            {
+                final DebtAccount debtAccount = creditEntry.getDebtAccount();
+                final Series defaultSeries = Series.findUniqueDefault(finantialInstitution).get();
+                final DocumentNumberSeries debitNoteSeries =
+                        DocumentNumberSeries.find(FinantialDocumentType.findForDebitNote(), regulationSeries);
+                final DocumentNumberSeries creditNoteSeries =
+                        DocumentNumberSeries.find(FinantialDocumentType.findForCreditNote(), regulationSeries);
+                final DocumentNumberSeries settlementNoteSeries =
+                        DocumentNumberSeries.find(FinantialDocumentType.findForSettlementNote(), defaultSeries);
+                final DateTime now = new DateTime();
+                final Vat transferVat = Vat.findActiveUnique(product.getVatType(), finantialInstitution, now).get();
+
+                final BigDecimal creditOpenAmount = creditEntry.getOpenAmount();
+                final BigDecimal creditOpenAmountWithoutVat =
+                        creditOpenAmount.subtract(creditOpenAmount.multiply(transferVat.getTaxRate()));
+
+                final DebitNote regulationDebitNote = DebitNote.create(debtAccount, debitNoteSeries, now);
+
+                DebitEntry regulationDebitEntry = DebitEntry.create(Optional.of(regulationDebitNote), debtAccount, null,
+                        transferVat, creditOpenAmountWithoutVat, now.toLocalDate(), null, product, creditEntry.getDescription(),
+                        BigDecimal.ONE, null, now);
+
+                regulationDebitNote.closeDocument();
+                regulationDebitNote.clearDocumentToExport("Integração SAP");
+                final CreditNote regulationCreditNote =
+                        CreditNote.create(debtAccount, creditNoteSeries, now, null, regulationDebitNote.getUiDocumentNumber());
+                CreditEntry.create(regulationCreditNote, creditEntry.getDescription(), product, transferVat,
+                        creditOpenAmountWithoutVat, now, null, BigDecimal.ONE);
+
+                final SettlementNote settlementNote =
+                        SettlementNote.create(debtAccount, settlementNoteSeries, now, now, null, null);
+                if(creditEntry.getFinantialDocument().isPreparing()) {
+                    creditEntry.getFinantialDocument().closeDocument();
+                }
+                
+                SettlementEntry.create(regulationDebitEntry, settlementNote, regulationDebitEntry.getOpenAmount(),
+                        creditEntry.getDescription(), now, false);
+                SettlementEntry.create(creditEntry, settlementNote, creditOpenAmount, creditEntry.getDescription(), now, false);
+
+                settlementNote.closeDocument();
+                settlementNote.clearDocumentToExport("Integração SAP");
+            }
+
+        }
     }
 
     private void createTransferBalanceProduct() {
@@ -139,16 +234,15 @@ public class PrepareTreasuryForSAP extends CustomTask {
         taskLog("replaceProductAndSeriesForCreditsImportedFromSIGES");
 
         final FinantialInstitution finantialInstitution = FinantialInstitution.findAll().iterator().next();
-        if (!Product.findUniqueByCode("CREDITO_SIGES").isPresent()) {
+        if (!Product.findUniqueByCode("CREDITO").isPresent()) {
 
-            final LocalizedString productName = new LocalizedString(Constants.DEFAULT_LANGUAGE, "Crédito SIGES");
+            final LocalizedString productName = new LocalizedString(Constants.DEFAULT_LANGUAGE, "Crédito");
             final LocalizedString unitDescription = new LocalizedString(Constants.DEFAULT_LANGUAGE, "Unidade");
-            Product.create(ProductGroup.findByCode("OTHER"), "CREDITO_SIGES",
-                    new LocalizedString(Constants.DEFAULT_LANGUAGE, "Crédito SIGES"), unitDescription, true, false, 0,
+            Product.create(ProductGroup.findByCode("OTHER"), "CREDITO", productName, unitDescription, true, false, 0,
                     VatType.findByCode("ISE"), Lists.newArrayList(finantialInstitution), VatExemptionReason.findByCode("M07"));
         }
 
-        final Product product = Product.findUniqueByCode("CREDITO_SIGES").get();
+        final Product product = Product.findUniqueByCode("CREDITO").get();
         final Series regulationSeries = Series.findByCode(finantialInstitution, "REG");
         DocumentNumberSeries documentNumberSeries =
                 DocumentNumberSeries.find(FinantialDocumentType.findForCreditNote(), regulationSeries);

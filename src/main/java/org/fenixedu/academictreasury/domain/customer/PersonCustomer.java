@@ -86,9 +86,11 @@ public class PersonCustomer extends PersonCustomer_Base {
             throw new AcademicTreasuryDomainException(
                     "error.PersonCustomer.default.fiscal.number.applied.only.to.default.country");
         }
+        
+        final Person person = isActive() ? getPerson() : getPersonForInactivePersonCustomer();
 
         if (!DEFAULT_FISCAL_NUMBER.equals(getFiscalNumber())
-                && find(getPerson(), getFiscalCountry(), getFiscalNumber()).filter(pc -> !pc.isFromPersonMerge()).count() > 1) {
+                && find(person, getFiscalCountry(), getFiscalNumber()).filter(pc -> !pc.isFromPersonMerge()).count() > 1) {
             throw new AcademicTreasuryDomainException("error.PersonCustomer.person.customer.duplicated");
         }
     }
@@ -96,6 +98,10 @@ public class PersonCustomer extends PersonCustomer_Base {
     @Override
     public String getCode() {
         return this.getExternalId();
+    }
+    
+    public Person getAssociatedPerson() {
+        return isActive() ? getPerson() : getPersonForInactivePersonCustomer();
     }
 
     public static String fiscalNumber(final Person person) {

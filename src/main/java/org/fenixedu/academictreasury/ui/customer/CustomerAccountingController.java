@@ -233,6 +233,11 @@ public class CustomerAccountingController extends AcademicTreasuryBaseController
                 continue;
             }
 
+            if (!inactivePersonCustomer.getUiFiscalNumber()
+                    .equals(((PersonCustomer) debtAccount.getCustomer()).getUiFiscalNumber())) {
+                continue;
+            }
+
             for (InvoiceEntry invoiceEntry : inactivePersonCustomer.getDebtAccountFor(debtAccount.getFinantialInstitution())
                     .getPendingInvoiceEntriesSet()) {
                 if (!invoiceEntry.isDebitNoteEntry()) {
@@ -249,7 +254,7 @@ public class CustomerAccountingController extends AcademicTreasuryBaseController
                 }
             }
         }
-        
+
         model.addAttribute("usedPaymentCodeTargets", usedPaymentCodeTargets);
 
         return jspPage("readDebtAccount");
@@ -323,16 +328,16 @@ public class CustomerAccountingController extends AcademicTreasuryBaseController
     public static final String DOWNLOAD_CERTIFIED_DOCUMENT_PRINT_URL = CONTROLLER_URL + _DOWNLOAD_CERTIFIED_DOCUMENT_PRINT_URI;
 
     @RequestMapping(value = _DOWNLOAD_CERTIFIED_DOCUMENT_PRINT_URI + "/{oid}", method = RequestMethod.GET)
-    public String downloadcertifieddocumentprint(@PathVariable("oid") final FinantialDocument finantialDocument, final Model model,
-            final RedirectAttributes redirectAttributes, final HttpServletResponse response) {
+    public String downloadcertifieddocumentprint(@PathVariable("oid") final FinantialDocument finantialDocument,
+            final Model model, final RedirectAttributes redirectAttributes, final HttpServletResponse response) {
 
         try {
             final byte[] contents = ERPExporterManager.downloadCertifiedDocumentPrint(finantialDocument);
 
             response.setContentType("application/pdf");
-            String filename = URLEncoder.encode(StringNormalizer
-                    .normalizePreservingCapitalizedLetters((finantialDocument.getDebtAccount().getFinantialInstitution().getFiscalNumber()
-                            + "_" + finantialDocument.getUiDocumentNumber() + ".pdf").replaceAll("/", "_").replaceAll("\\s", "_")
+            String filename = URLEncoder.encode(StringNormalizer.normalizePreservingCapitalizedLetters(
+                    (finantialDocument.getDebtAccount().getFinantialInstitution().getFiscalNumber() + "_"
+                            + finantialDocument.getUiDocumentNumber() + ".pdf").replaceAll("/", "_").replaceAll("\\s", "_")
                                     .replaceAll(" ", "_")),
                     "Windows-1252");
 

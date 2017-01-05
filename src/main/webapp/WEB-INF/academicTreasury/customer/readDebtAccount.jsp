@@ -191,14 +191,20 @@ ${portal.angularToolkit()}
                                 <spring:message code="label.InvoiceEntry.fiscalNumber" />
                             </datatables:columnHead>
                             <c:set var="c" value="${pendingEntry.debtAccount.customer}" />
-                            <p><em><c:out value="${c.uiFiscalNumber}" /></em></p>
+                            <p><c:out value="${c.uiFiscalNumber}" /></p>
                         </datatables:column>
                         <datatables:column cssStyle="width:100px;">
                             <datatables:columnHead>
                                 <spring:message code="label.InvoiceEntry.finantialDocument" />
                             </datatables:columnHead>
                             <c:if test="${not empty pendingEntry.finantialDocument }">
-                                <p><strong><c:out value="${pendingEntry.finantialDocument.uiDocumentNumber}" /></strong></p>
+                                <p><c:out value="${pendingEntry.finantialDocument.uiDocumentNumber}" /></p>
+								<c:if test="${pendingEntry.finantialDocument.certifiedPrintedDocumentAvailable}">
+									<a style="align: center" href='${pageContext.request.contextPath}<%= CustomerAccountingController.DOWNLOAD_CERTIFIED_DOCUMENT_PRINT_URL %>/${pendingEntry.finantialDocument.externalId}'>
+										<span class="glyphicon glyphicon-print"></span>
+										<spring:message code="label.accounting.manageCustomer.download.certified.document.${pendingEntry.finantialDocument.finantialDocumentType.type.name()}" />
+									</a>
+								</c:if>
                             </c:if>
                             <c:if test="${empty pendingEntry.finantialDocument }">
                                 <p><strong>---</strong></p>
@@ -227,12 +233,6 @@ ${portal.angularToolkit()}
 	                        				<strong><spring:message code="label.Invoice.payorDebtAccount" />:</strong> 
 	                        				<span><c:out value="${c.uiFiscalNumber} - ${c.name}" /></span>
 	                        		</em></p>
-                                </c:if>
-                                <c:if test="${pendingEntry.finantialDocument.certifiedPrintedDocumentAvailable}">
-                                	<a href='${pageContext.request.contextPath}<%= CustomerAccountingController.DOWNLOAD_CERTIFIED_DOCUMENT_PRINT_URL %>/${pendingEntry.finantialDocument.externalId}'>
-                                		<span class="glyphicon glyphicon-print"></span>
-                                		<spring:message code="label.accounting.manageCustomer.download.certified.document.${pendingEntry.finantialDocument.finantialDocumentType.type.name()}" />
-                                	</a>
                                 </c:if>
                             </c:if>
                         </datatables:column>
@@ -320,14 +320,20 @@ ${portal.angularToolkit()}
                                 <spring:message code="label.InvoiceEntry.fiscalNumber" />
                             </datatables:columnHead>
                             <c:set var="c" value="${pendingEntry.debtAccount.customer}" />
-                            <p><em><c:out value="${c.uiFiscalNumber}" /></em></p>
+                            <p><c:out value="${c.uiFiscalNumber}" /></p>
                         </datatables:column>
                         <datatables:column cssStyle="width:100px;">
                             <datatables:columnHead>
                                 <spring:message code="label.InvoiceEntry.finantialDocument" />
                             </datatables:columnHead>
                             <c:if test="${not empty entry.finantialDocument }">
-                                <p><strong><c:out value="${entry.finantialDocument.uiDocumentNumber}" /></strong></p>
+                                <p><c:out value="${entry.finantialDocument.uiDocumentNumber}" /></p>
+								<c:if test="${entry.finantialDocument.certifiedPrintedDocumentAvailable}">
+									<a href='${pageContext.request.contextPath}<%= CustomerAccountingController.DOWNLOAD_CERTIFIED_DOCUMENT_PRINT_URL %>/${entry.finantialDocument.externalId}'>
+										<span class="glyphicon glyphicon-print"></span>
+										<spring:message code="label.accounting.manageCustomer.download.certified.document.${entry.finantialDocument.finantialDocumentType.type.name()}" />
+									</a>
+								</c:if>
                             </c:if>
                             <c:if test="${empty entry.finantialDocument }">
                                 <p>---</p>
@@ -344,12 +350,6 @@ ${portal.angularToolkit()}
 									<strong><spring:message code="label.Invoice.payorDebtAccount" />:</strong> 
 									<span><c:out value="${c.uiFiscalNumber} - ${c.name}" /></span>
 								</em></p>
-							</c:if>
-							<c:if test="${pendingEntry.finantialDocument.certifiedPrintedDocumentAvailable}">
-								<a href='${pageContext.request.contextPath}<%= CustomerAccountingController.DOWNLOAD_CERTIFIED_DOCUMENT_PRINT_URL %>/${entry.finantialDocument.externalId}'>
-                               		<span class="glyphicon glyphicon-print"></span>
-									<spring:message code="label.accounting.manageCustomer.download.certified.document.${entry.finantialDocument.finantialDocumentType.type.name()}" />
-								</a>
 							</c:if>
                         </datatables:column>
                         <datatables:column cssStyle="width:110px">
@@ -507,7 +507,15 @@ ${portal.angularToolkit()}
 	
                         	<c:out value='${target.dueDate.toString("YYYY-MM-dd")}' />
                         </datatables:column>
-                        	
+
+                        <datatables:column cssStyle="width:10%">
+                            <datatables:columnHead>
+                                <spring:message code="label.InvoiceEntry.fiscalNumber" />
+                            </datatables:columnHead>
+                            <c:set var="c" value="${target.debtAccount.customer}" />
+                            <p><c:out value="${c.uiFiscalNumber}" /></p>
+                        </datatables:column>
+						                        	
                         <datatables:column cssStyle="width:65%">
 	                        <datatables:columnHead>
 	                            <spring:message code="label.InvoiceEntry.description" />
@@ -528,7 +536,6 @@ ${portal.angularToolkit()}
 									</c:forEach>
 								</ul>
                         	</c:if>
-                        	
                         </datatables:column>
 
                         <datatables:column cssStyle="width:30%">
