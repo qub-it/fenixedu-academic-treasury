@@ -31,6 +31,8 @@ import com.google.common.collect.Sets;
 import pt.ist.fenixframework.Atomic;
 import pt.ist.fenixframework.Atomic.TxMode;
 
+import static org.fenixedu.academictreasury.domain.debtGeneration.IAcademicDebtGenerationRuleStrategy.findActiveDebitEntries;
+
 public class CreateDebtsStrategy implements IAcademicDebtGenerationRuleStrategy {
 
     private static Logger logger = LoggerFactory.getLogger(CreateDebtsStrategy.class);

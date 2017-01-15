@@ -6,7 +6,6 @@ import java.util.stream.Collectors;
 
 import org.fenixedu.academic.domain.DegreeCurricularPlan;
 import org.fenixedu.academic.domain.ExecutionYear;
-import org.fenixedu.academic.domain.Person;
 import org.fenixedu.academic.domain.student.Registration;
 import org.fenixedu.academictreasury.domain.customer.PersonCustomer;
 import org.fenixedu.academictreasury.domain.debtGeneration.AcademicDebtGenerationRule;
@@ -29,11 +28,12 @@ import org.joda.time.LocalDate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Strings;
 import com.google.common.collect.Sets;
 
 import pt.ist.fenixframework.Atomic;
 import pt.ist.fenixframework.Atomic.TxMode;
+
+import static org.fenixedu.academictreasury.domain.debtGeneration.IAcademicDebtGenerationRuleStrategy.findActiveDebitEntries;
 
 public class CreatePaymentReferencesStrategy implements IAcademicDebtGenerationRuleStrategy {
 
@@ -228,8 +228,7 @@ public class CreatePaymentReferencesStrategy implements IAcademicDebtGenerationR
         final AcademicTreasuryEvent t = AcademicTaxServices.findAcademicTreasuryEvent(registration, executionYear, academicTax);
 
         if (t != null && t.isChargedWithDebitEntry()) {
-            return IAcademicDebtGenerationRuleStrategy.findActiveDebitEntries(customer, t).filter(d -> d.isInDebt()).findFirst()
-                    .orElse(null);
+            return findActiveDebitEntries(customer, t).filter(d -> d.isInDebt()).findFirst().orElse(null);
         }
 
         return null;
@@ -258,8 +257,7 @@ public class CreatePaymentReferencesStrategy implements IAcademicDebtGenerationR
             return null;
         }
 
-        return IAcademicDebtGenerationRuleStrategy.findActiveDebitEntries(customer, t, product).filter(d -> d.isInDebt())
-                .findFirst().orElse(null);
+        return findActiveDebitEntries(customer, t, product).filter(d -> d.isInDebt()).findFirst().orElse(null);
     }
 
     private static DebitEntry grabDebitEntry(final AcademicDebtGenerationRule rule, final Registration registration,
