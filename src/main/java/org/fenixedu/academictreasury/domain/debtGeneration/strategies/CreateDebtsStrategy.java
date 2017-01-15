@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 import org.fenixedu.academic.domain.DegreeCurricularPlan;
 import org.fenixedu.academic.domain.ExecutionYear;
 import org.fenixedu.academic.domain.student.Registration;
+import org.fenixedu.academictreasury.domain.customer.PersonCustomer;
 import org.fenixedu.academictreasury.domain.debtGeneration.AcademicDebtGenerationRule;
 import org.fenixedu.academictreasury.domain.debtGeneration.AcademicDebtGenerationRuleEntry;
 import org.fenixedu.academictreasury.domain.debtGeneration.IAcademicDebtGenerationRuleStrategy;
@@ -224,6 +225,10 @@ public class CreateDebtsStrategy implements IAcademicDebtGenerationRuleStrategy 
             if (debitNote.getPayorDebtAccount() == null && debitEntry.getPayorDebtAccount() != null) {
                 debitNote.updatePayorDebtAccount(debitEntry.getPayorDebtAccount());
             }
+            
+            if(debitEntry.getDebtAccount() != debitNote.getDebtAccount()) {
+                throw new AcademicTreasuryDomainException("error.AcademicDebtGenerationRule.debitEntry.debtAccount.not.equal.to.debitNote.debtAccount");
+            }
         }
 
         if (debitNote.getFinantialDocumentEntriesSet().isEmpty()) {
@@ -269,11 +274,16 @@ public class CreateDebtsStrategy implements IAcademicDebtGenerationRuleStrategy 
             }
         }
 
-        final AcademicTreasuryEvent academicTreasuryEvent =
-                AcademicTaxServices.findAcademicTreasuryEvent(registration, executionYear, academicTax);
+        final PersonCustomer customer = registration.getPerson().getPersonCustomer();
 
-        if (academicTreasuryEvent != null && academicTreasuryEvent.isChargedWithDebitEntry()) {
-            return DebitEntry.findActive(academicTreasuryEvent).filter(d -> d.isInDebt()).findFirst().orElse(null);
+        if (customer == null) {
+            return null;
+        }
+
+        final AcademicTreasuryEvent t = AcademicTaxServices.findAcademicTreasuryEvent(registration, executionYear, academicTax);
+
+        if (t != null && t.isChargedWithDebitEntry()) {
+            return findActiveDebitEntries(customer, t).filter(d -> d.isInDebt()).findFirst().orElse(null);
         }
 
         return null;
@@ -317,14 +327,19 @@ public class CreateDebtsStrategy implements IAcademicDebtGenerationRuleStrategy 
             return null;
         }
 
-        final AcademicTreasuryEvent academicTreasuryEvent =
+        final AcademicTreasuryEvent t =
                 TuitionServices.findAcademicTreasuryEventTuitionForRegistration(registration, executionYear);
 
-        if (!academicTreasuryEvent.isChargedWithDebitEntry(product)) {
+        if (!t.isChargedWithDebitEntry(product)) {
             return null;
         }
 
-        return DebitEntry.findActive(academicTreasuryEvent, product).filter(d -> d.isInDebt()).findFirst().orElse(null);
+        final PersonCustomer customer = registration.getPerson().getPersonCustomer();
+        if (customer == null) {
+            return null;
+        }
+
+        return findActiveDebitEntries(customer, t, product).filter(d -> d.isInDebt()).findFirst().orElse(null);
     }
 
     private DebitNote grabPreparingOrCreateDebitNote(final Set<DebitEntry> debitEntries) {

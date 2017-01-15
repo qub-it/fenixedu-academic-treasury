@@ -215,15 +215,21 @@ public class CreatePaymentReferencesStrategy implements IAcademicDebtGenerationR
 
     private static DebitEntry grabDebitEntryForAcademicTax(final AcademicDebtGenerationRule rule, final Registration registration,
             final AcademicDebtGenerationRuleEntry entry) {
+        final PersonCustomer customer = registration.getPerson().getPersonCustomer();
+
+        if (customer == null) {
+            return null;
+        }
+
         final Product product = entry.getProduct();
         final ExecutionYear executionYear = rule.getExecutionYear();
         final AcademicTax academicTax = AcademicTax.findUnique(product).get();
 
-        final AcademicTreasuryEvent academicTreasuryEvent =
-                AcademicTaxServices.findAcademicTreasuryEvent(registration, executionYear, academicTax);
+        final AcademicTreasuryEvent t = AcademicTaxServices.findAcademicTreasuryEvent(registration, executionYear, academicTax);
 
-        if (academicTreasuryEvent != null && academicTreasuryEvent.isChargedWithDebitEntry()) {
-            return DebitEntry.findActive(academicTreasuryEvent).filter(d -> d.isInDebt()).findFirst().orElse(null);
+        if (t != null && t.isChargedWithDebitEntry()) {
+            return IAcademicDebtGenerationRuleStrategy.findActiveDebitEntries(customer, t).filter(d -> d.isInDebt()).findFirst()
+                    .orElse(null);
         }
 
         return null;
@@ -231,6 +237,12 @@ public class CreatePaymentReferencesStrategy implements IAcademicDebtGenerationR
 
     private static DebitEntry grabDebitEntryForTuition(final AcademicDebtGenerationRule rule, final Registration registration,
             final AcademicDebtGenerationRuleEntry entry) {
+        final PersonCustomer customer = registration.getPerson().getPersonCustomer();
+
+        if (customer == null) {
+            return null;
+        }
+
         final Product product = entry.getProduct();
         final ExecutionYear executionYear = rule.getExecutionYear();
 
@@ -239,14 +251,15 @@ public class CreatePaymentReferencesStrategy implements IAcademicDebtGenerationR
             return null;
         }
 
-        final AcademicTreasuryEvent academicTreasuryEvent =
+        final AcademicTreasuryEvent t =
                 TuitionServices.findAcademicTreasuryEventTuitionForRegistration(registration, executionYear);
 
-        if (!academicTreasuryEvent.isChargedWithDebitEntry(product)) {
+        if (!t.isChargedWithDebitEntry(product)) {
             return null;
         }
 
-        return DebitEntry.findActive(academicTreasuryEvent, product).filter(d -> d.isInDebt()).findFirst().orElse(null);
+        return IAcademicDebtGenerationRuleStrategy.findActiveDebitEntries(customer, t, product).filter(d -> d.isInDebt())
+                .findFirst().orElse(null);
     }
 
     private static DebitEntry grabDebitEntry(final AcademicDebtGenerationRule rule, final Registration registration,
@@ -265,21 +278,11 @@ public class CreatePaymentReferencesStrategy implements IAcademicDebtGenerationR
             return null;
         }
 
-        final Person person = registration.getPerson();
-        final String fiscalCountryCode = PersonCustomer.countryCode(person);
-        final String fiscalNumber = PersonCustomer.fiscalNumber(person);
-        if (Strings.isNullOrEmpty(fiscalCountryCode) || Strings.isNullOrEmpty(fiscalNumber)) {
-            throw new AcademicTreasuryDomainException("error.PersonCustomer.fiscalInformation.required");
-        }
-
-        if (!PersonCustomer.findUnique(registration.getPerson(), fiscalCountryCode, fiscalNumber).isPresent()) {
+        if (registration.getPerson().getPersonCustomer() == null) {
             return null;
         }
 
-        final PersonCustomer personCustomer = PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber).get();
-        if (!personCustomer.isActive()) {
-            throw new AcademicTreasuryDomainException("error.PersonCustomer.not.active", fiscalCountryCode, fiscalNumber);
-        }
+        final PersonCustomer personCustomer = registration.getPerson().getPersonCustomer();
 
         if (!DebtAccount.findUnique(finantialEntity.getFinantialInstitution(), personCustomer).isPresent()) {
             return null;

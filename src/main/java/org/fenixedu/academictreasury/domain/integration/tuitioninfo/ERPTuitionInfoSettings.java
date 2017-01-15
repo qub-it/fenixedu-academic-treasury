@@ -14,10 +14,8 @@ public class ERPTuitionInfoSettings extends ERPTuitionInfoSettings_Base {
     }
     
     @Atomic
-    public void edit(final Series series, final String expectedSeriesDebitCode, final String expectedSeriesCreditCode) {
+    public void edit(final Series series) {
         setSeries(series);
-        setExpectedSeriesDebitCode(expectedSeriesDebitCode);
-        setExpectedSeriesCreditCode(expectedSeriesCreditCode);
     }
     
     public IERPTuitionInfoExporter exporter() {

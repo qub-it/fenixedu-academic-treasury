@@ -454,7 +454,7 @@ public class PersonCustomer extends PersonCustomer_Base {
         return findAll().filter(pc -> pc.getPerson() == person || pc.getPersonForInactivePersonCustomer() == person);
     }
 
-    protected static Stream<? extends PersonCustomer> find(final Person person, final String fiscalCountryCode,
+    public static Stream<? extends PersonCustomer> find(final Person person, final String fiscalCountryCode,
             final String fiscalNumber) {
         return find(person).filter(pc -> !Strings.isNullOrEmpty(pc.getFiscalCountry())
                 && lowerCase(pc.getFiscalCountry()).equals(lowerCase(fiscalCountryCode))
@@ -538,14 +538,6 @@ public class PersonCustomer extends PersonCustomer_Base {
         } else {
             return CustomerType.findByCode(CANDIDACY_CODE).findFirst().orElse(null);
         }
-    }
-
-    private static String lowerCase(final String value) {
-        if (value == null) {
-            return null;
-        }
-
-        return value.toLowerCase();
     }
 
 }

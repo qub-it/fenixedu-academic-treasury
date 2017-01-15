@@ -122,8 +122,8 @@ ${portal.toolkit()}
                         <td><c:out value="${erpTuitionInfo.executionYear.qualifiedName}" /></td>
                     </tr>
                     <tr>
-                        <th scope="row" class="col-xs-3"><spring:message code="label.ERPTuitionInfo.product" /></th>
-                        <td><c:out value="${erpTuitionInfo.product.name.content}" /></td>
+                        <th scope="row" class="col-xs-3"><spring:message code="label.ERPTuitionInfo.erpTuitionInfoType" /></th>
+                        <td><c:out value="${erpTuitionInfo.erpTuitionInfoType.name}" /></td>
                     </tr>
                     <tr>
                         <th scope="row" class="col-xs-3"><spring:message code="label.ERPTuitionInfo.tuitionTotalAmount" /></th>

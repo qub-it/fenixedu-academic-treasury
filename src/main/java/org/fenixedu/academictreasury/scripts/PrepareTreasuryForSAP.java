@@ -1,20 +1,23 @@
 package org.fenixedu.academictreasury.scripts;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.fenixedu.academic.domain.Country;
 import org.fenixedu.academic.domain.Person;
 import org.fenixedu.academic.domain.contacts.PhysicalAddress;
+import org.fenixedu.academic.domain.degree.DegreeType;
 import org.fenixedu.academic.domain.organizationalStructure.Party;
 import org.fenixedu.academic.domain.organizationalStructure.PartySocialSecurityNumber;
 import org.fenixedu.academictreasury.domain.customer.PersonCustomer;
 import org.fenixedu.academictreasury.domain.event.AcademicTreasuryEvent;
 import org.fenixedu.academictreasury.domain.integration.tuitioninfo.ERPTuitionInfoSettings;
+import org.fenixedu.academictreasury.domain.integration.tuitioninfo.ERPTuitionInfoType;
+import org.fenixedu.academictreasury.domain.integration.tuitioninfo.exporter.ERPTuitionInfoExporterForSAP;
 import org.fenixedu.bennu.core.domain.Bennu;
 import org.fenixedu.bennu.scheduler.custom.CustomTask;
-import org.fenixedu.commons.i18n.I18N;
 import org.fenixedu.commons.i18n.LocalizedString;
 import org.fenixedu.treasury.domain.AdhocCustomer;
 import org.fenixedu.treasury.domain.Customer;
@@ -73,8 +76,6 @@ public class PrepareTreasuryForSAP extends CustomTask {
         // Make available internal and legacy document series
         activateSeriesAndCreateNewForRegulation();
 
-        // Configure ERP tuition info exportation
-        configureERPTuitionInfoExportation();
 
         // Create reimbursements process state types
         createReimbursementStatusTypes();
@@ -86,7 +87,7 @@ public class PrepareTreasuryForSAP extends CustomTask {
         saveAddressCountryOnAdhocCustomers();
 
         // For all finantial documents exported set close date and mark as erp legacy
-        saveCloseDateForFinantialDocumentsClosed();
+        // saveCloseDateForFinantialDocumentsClosed();
 
         // Mark documents exported in legacy ERP
         markDocumentsExportedInLegacyERP();
@@ -104,22 +105,63 @@ public class PrepareTreasuryForSAP extends CustomTask {
 
         replacePendingAdvancePaymentCredits();
 
+        // Configure ERP tuition info exportation
+        prepareERPTuitionInfoSettings();
+        
         taskLog("End");
+    }
+
+    private void prepareERPTuitionInfoSettings() {
+        taskLog("prepareERPTuitionInfoSettings");
+
+        final FinantialInstitution finantialInstitution = FinantialInstitution.findAll().iterator().next();
+        if (Series.findByCode(finantialInstitution, "PRO") == null) {
+            final LocalizedString seriesName = new LocalizedString(org.fenixedu.academictreasury.util.Constants.DEFAULT_LANGUAGE,
+                    "Especialização de Propinas");
+            final Series series = Series.create(finantialInstitution, "PRO", seriesName, false, true, false, false, false);
+
+            DocumentNumberSeries.find(FinantialDocumentType.findForDebitNote(), series).editReplacingPrefix(true, "NG");
+            DocumentNumberSeries.find(FinantialDocumentType.findForCreditNote(), series).editReplacingPrefix(true, "NJ");
+        }
+
+        ERPTuitionInfoSettings.getInstance().edit(Series.findByCode(finantialInstitution, "PRO"));
+        ERPTuitionInfoSettings.getInstance().setExporterClassName(ERPTuitionInfoExporterForSAP.class.getName());
+
+        final List<String> DEGREE_TYPES =
+                Lists.newArrayList(
+                        "BOLONHA_DEGREE", 
+                        "BOLONHA_MASTER_DEGREE", 
+                        "BOLONHA_INTEGRATED_MASTER_DEGREE", 
+                        "BOLONHA_PHD",
+                        "BOLONHA_SPECIALIZATION_DEGREE", 
+                        "FREE_DEGREE", 
+                        "BOLONHA_POST_DOCTORAL_DEGREE");
+
+        for (final String code : DEGREE_TYPES) {
+            final DegreeType degreeType = DegreeType.matching(p -> code.equals(p.getCode())).get();
+            ERPTuitionInfoType.createForRegistrationTuition(degreeType, "ESP_PROP_" + code,
+                    "Especialização Propina: " + degreeType.getName().getContent(Constants.DEFAULT_LANGUAGE));
+        }
+
+        ERPTuitionInfoType.createForStandaloneTuition("ESP_PROP_STANDALONE",
+                "Especialização Propina: Unidades Curriculares Isoladas");
+        ERPTuitionInfoType.createForStandaloneTuition("ESP_PROP_EXTRACURRICULAR",
+                "Especialização Propina: Unidades Extracurriculares");
     }
 
     private void replacePendingAdvancePaymentCredits() {
         taskLog("replacePendingAdvancePaymentCredits");
 
         final FinantialInstitution finantialInstitution = FinantialInstitution.findAll().iterator().next();
-        if (!Product.findUniqueByCode("CREDITO").isPresent()) {
+        if (!Product.findUniqueByCode("CREDITO_PAGAMENTO").isPresent()) {
 
-            final LocalizedString productName = new LocalizedString(Constants.DEFAULT_LANGUAGE, "Crédito");
+            final LocalizedString productName = new LocalizedString(Constants.DEFAULT_LANGUAGE, "Crédito de Adiantamento");
             final LocalizedString unitDescription = new LocalizedString(Constants.DEFAULT_LANGUAGE, "Unidade");
-            Product.create(ProductGroup.findByCode("OTHER"), "CREDITO", productName, unitDescription, true, false, 0,
+            Product.create(ProductGroup.findByCode("OTHER"), "CREDITO_PAGAMENTO", productName, unitDescription, true, false, 0,
                     VatType.findByCode("ISE"), Lists.newArrayList(finantialInstitution), VatExemptionReason.findByCode("M07"));
         }
 
-        final Product product = Product.findUniqueByCode("CREDITO").get();
+        final Product product = Product.findUniqueByCode("CREDITO_PAGAMENTO").get();
         final Series regulationSeries = Series.findByCode(finantialInstitution, "REG");
 
         for (final CreditEntry creditEntry : CreditEntry.findAll().collect(Collectors.toSet())) {
@@ -144,7 +186,7 @@ public class PrepareTreasuryForSAP extends CustomTask {
             if (creditNote.isPreparing()) {
                 throw new RuntimeException("error");
             }
-            
+
             taskLog("Change in  [%s - %s]: %s\n", creditEntry.getDebtAccount().getCustomer().getFiscalNumber(),
                     creditEntry.getDebtAccount().getCustomer().getName(),
                     creditEntry.getFinantialDocument().getUiDocumentNumber());
@@ -172,26 +214,27 @@ public class PrepareTreasuryForSAP extends CustomTask {
                         BigDecimal.ONE, null, now);
 
                 regulationDebitNote.closeDocument();
-                regulationDebitNote.clearDocumentToExport("Integração SAP");
+                regulationDebitNote.clearDocumentToExport("Migração de dados para integração SAP");
                 final CreditNote regulationCreditNote =
                         CreditNote.create(debtAccount, creditNoteSeries, now, null, regulationDebitNote.getUiDocumentNumber());
                 CreditEntry.create(regulationCreditNote, creditEntry.getDescription(), product, transferVat,
                         creditOpenAmountWithoutVat, now, null, BigDecimal.ONE);
+                regulationCreditNote.setCloseDate(creditEntry.getFinantialDocument().getCloseDate());
+                regulationCreditNote.setDocumentDate(creditEntry.getFinantialDocument().getDocumentDate());
 
                 final SettlementNote settlementNote =
                         SettlementNote.create(debtAccount, settlementNoteSeries, now, now, null, null);
-                if(creditEntry.getFinantialDocument().isPreparing()) {
+                if (creditEntry.getFinantialDocument().isPreparing()) {
                     creditEntry.getFinantialDocument().closeDocument();
                 }
-                
+
                 SettlementEntry.create(regulationDebitEntry, settlementNote, regulationDebitEntry.getOpenAmount(),
                         creditEntry.getDescription(), now, false);
                 SettlementEntry.create(creditEntry, settlementNote, creditOpenAmount, creditEntry.getDescription(), now, false);
 
                 settlementNote.closeDocument();
-                settlementNote.clearDocumentToExport("Integração SAP");
+                settlementNote.clearDocumentToExport("Migração de dados para integração SAP");
             }
-
         }
     }
 
@@ -336,6 +379,8 @@ public class PrepareTreasuryForSAP extends CustomTask {
                 }
 
                 if (!ipc.getDebtAccountsSet().isEmpty()) {
+                    taskLog("Found inactive debt account %s\n", ipc.getName());
+
                     final DebtAccount ipcDebtAccount = ipc.getDebtAccountsSet().iterator().next();
 
                     if (debtAccount != null) {
@@ -370,9 +415,10 @@ public class PrepareTreasuryForSAP extends CustomTask {
                             treasuryEvent.setDebtAccount(debtAccount);
                         }
 
+                        ipcDebtAccount.delete();
+                    } else {
+                        ipcDebtAccount.setCustomer(personCustomer);
                     }
-
-                    ipcDebtAccount.delete();
                 }
 
                 ipc.delete();
@@ -421,29 +467,29 @@ public class PrepareTreasuryForSAP extends CustomTask {
         }
     }
 
-    private void saveCloseDateForFinantialDocumentsClosed() {
-        taskLog("saveCloseDateForFinantialDocumentsClosed");
-
-        int count = 0;
-        long totalCount = FinantialDocument.findAll().count();
-
-        for (final FinantialDocument doc : FinantialDocument.findAll().collect(Collectors.<FinantialDocument> toSet())) {
-            if (++count % 1000 == 0) {
-                taskLog("Processing " + count + "/" + totalCount + " finantial documents.");
-            }
-
-            if (!doc.isClosed()) {
-                continue;
-            }
-
-            if (doc.getCloseDate() != null) {
-                continue;
-            }
-
-            doc.setCloseDate(new DateTime().minusDays(1));
-        }
-    }
-
+//    private void saveCloseDateForFinantialDocumentsClosed() {
+//        taskLog("saveCloseDateForFinantialDocumentsClosed");
+//
+//        int count = 0;
+//        long totalCount = FinantialDocument.findAll().count();
+//
+//        for (final FinantialDocument doc : FinantialDocument.findAll().collect(Collectors.<FinantialDocument> toSet())) {
+//            if (++count % 1000 == 0) {
+//                taskLog("Processing " + count + "/" + totalCount + " finantial documents.");
+//            }
+//
+//            if (!doc.isClosed()) {
+//                continue;
+//            }
+//
+//            if (doc.getCloseDate() != null) {
+//                continue;
+//            }
+//
+//            doc.setCloseDate(SAPExporter.ERP_INTEGRATION_DATE.minusDays(1));
+//        }
+//    }
+//
     private void saveAddressCountryOnAdhocCustomers() {
         taskLog("saveAddressCountryOnAdhocCustomers");
 
@@ -516,17 +562,6 @@ public class PrepareTreasuryForSAP extends CustomTask {
         }
     }
 
-    private void configureERPTuitionInfoExportation() {
-        taskLog("configureERPTuitionInfoExportation");
-
-        final ERPTuitionInfoSettings settings = ERPTuitionInfoSettings.getInstance();
-        final FinantialInstitution finantialInstitution = FinantialInstitution.findAll().findFirst().get();
-
-        final Series series = Series.create(finantialInstitution, "PRO",
-                new LocalizedString(I18N.getLocale(), "Especialização de Propinas"), false, true, false, false, false);
-        settings.edit(series, "NG", "NJ");
-    }
-
     private void activateSeriesAndCreateNewForRegulation() {
         taskLog("activateSeries");
 
@@ -536,7 +571,7 @@ public class PrepareTreasuryForSAP extends CustomTask {
 
         if (Series.findByCode(finantialInstitution, "REG") == null) {
             final Series regulationSeries = Series.create(finantialInstitution, "REG",
-                    new LocalizedString(Constants.DEFAULT_LANGUAGE, "Regularização"), false, true, false, false, false);
+                    new LocalizedString(Constants.DEFAULT_LANGUAGE, "Regularização"), false, false, false, false, false);
 
             finantialInstitution.setRegulationSeries(regulationSeries);
 

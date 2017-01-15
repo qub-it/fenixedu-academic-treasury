@@ -41,6 +41,14 @@ ${portal.toolkit()}
    	<a href="${pageContext.request.contextPath}/academictreasury/erptuitioninfo/pendingdocuments">
    		<spring:message code="label.ERPTuitionInfo.search.pending.documents" />
     </a>
+    
+    <c:if test="${not empty customer}">
+	    &nbsp;|&nbsp;
+	    <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>&nbsp;
+	    <a href="${pageContext.request.contextPath}<%= ERPTuitionInfoController.CREATE_URL %>/${customer.externalId}">
+	    	<spring:message code="label.ERPTuitionInfo.create" />
+	    </a>
+    </c:if>
 </div>
 
 <c:if test="${not empty infoMessages}">

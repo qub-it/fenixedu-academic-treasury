@@ -1103,8 +1103,6 @@ class importation.TreasuryImportFile extends .org.fenixedu.bennu.io.domain.Gener
  */
 
 class integration.tuitioninfo.ERPTuitionInfoSettings {
-	String expectedSeriesDebitCode;
-	String expectedSeriesCreditCode;
 	String exporterClassName;
 }
 
@@ -1159,16 +1157,6 @@ class integration.tuitioninfo.ERPTuitionInfoType {
 	
 	relation ERPTuitionInfoSettingsERPTuitionInfoType {
 		integration.tuitioninfo.ERPTuitionInfoSettings playsRole erpTuitionInfoSettings {
-			multiplicity 1..1;
-		}
-
-		integration.tuitioninfo.ERPTuitionInfoType playsRole erpTuitionInfoTypes {
-			multiplicity *;
-		}
-	}
-	
-	relation ERPTuitionInfoTypeProduct {
-		.org.fenixedu.treasury.domain.Product playsRole product {
 			multiplicity 1..1;
 		}
 
@@ -1248,11 +1236,11 @@ class integration.tuitioninfo.ERPTuitionInfo {
 		}
 	}
 	
-	relation ERPTuitionInfoProduct {
-		.org.fenixedu.treasury.domain.Product playsRole product {
+	relation ERPTuitionInfoERPTuitionInfoType {
+		integration.tuitioninfo.ERPTuitionInfoType playsRole erpTuitionInfoType {
 			multiplicity 1..1;
 		}
-		
+			
 		integration.tuitioninfo.ERPTuitionInfo playsRole erpTuitionInfos {
 			multiplicity *;
 		}

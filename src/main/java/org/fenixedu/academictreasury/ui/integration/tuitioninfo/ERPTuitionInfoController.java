@@ -1,10 +1,13 @@
 package org.fenixedu.academictreasury.ui.integration.tuitioninfo;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.fenixedu.academic.domain.ExecutionYear;
+import org.fenixedu.academic.domain.degree.DegreeType;
+import org.fenixedu.academic.domain.student.Student;
 import org.fenixedu.academictreasury.domain.customer.PersonCustomer;
 import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainException;
 import org.fenixedu.academictreasury.domain.integration.tuitioninfo.ERPTuitionInfo;
@@ -13,6 +16,7 @@ import org.fenixedu.academictreasury.ui.AcademicTreasuryBaseController;
 import org.fenixedu.academictreasury.ui.AcademicTreasuryController;
 import org.fenixedu.academictreasury.util.Constants;
 import org.fenixedu.bennu.spring.portal.SpringFunctionality;
+import org.fenixedu.treasury.domain.Customer;
 import org.joda.time.LocalDate;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.ui.Model;
@@ -53,10 +57,11 @@ public class ERPTuitionInfoController extends AcademicTreasuryBaseController {
             @RequestParam(value = "customerName", required = false) final String customerName,
             @RequestParam(value = "erpTuitionDocumentNumber", required = false) final String erpTuitionDocumentNumber,
             @RequestParam(value = "pendingToExport", required = false) final Boolean pendingToExport,
-            @RequestParam(value = "exportationSuccess", required = false) final Boolean exportationSuccess, final Model model) {
+            @RequestParam(value = "exportationSuccess", required = false) final Boolean exportationSuccess,
+            @RequestParam(value = "customerId", required = false) final Customer customer, final Model model) {
 
         List<ERPTuitionInfo> result = filter(fromDate, toDate, executionYear, studentNumber, customerName,
-                erpTuitionDocumentNumber, pendingToExport, exportationSuccess);
+                erpTuitionDocumentNumber, pendingToExport, exportationSuccess, customer);
 
         if (result.size() > MAX_SEARCH_RESULT_SIZE) {
             model.addAttribute("result_totalCount", result.size());
@@ -69,16 +74,26 @@ public class ERPTuitionInfoController extends AcademicTreasuryBaseController {
         Collections.sort(executionYearsList, ExecutionYear.REVERSE_COMPARATOR_BY_YEAR);
 
         model.addAttribute("executionYearsList", executionYearsList);
+        model.addAttribute("customersList", PersonCustomer.findAll().sorted(PersonCustomer.COMPARE_BY_NAME_IGNORE_CASE));
         model.addAttribute("result", result);
+        model.addAttribute("customer", customer);
 
         return jspPage(_SEARCH_URI);
     }
 
     private List<ERPTuitionInfo> filter(final LocalDate fromDate, final LocalDate toDate, final ExecutionYear executionYear,
             final String studentNumber, final String customerName, final String erpTuitionDocumentNumber,
-            final Boolean pendingToExport, final Boolean exportationSuccess) {
+            final Boolean pendingToExport, final Boolean exportationSuccess, final Customer customer) {
 
-        Stream<ERPTuitionInfo> stream = ERPTuitionInfo.findAll();
+        Stream<ERPTuitionInfo> stream = null;
+
+        if (customer != null) {
+            stream = customer.getErpTuitionInfosSet().stream();
+        }
+
+        if (stream == null) {
+            stream = ERPTuitionInfo.findAll();
+        }
 
         if (!Strings.isNullOrEmpty(erpTuitionDocumentNumber)) {
             return stream.filter(e -> erpTuitionDocumentNumber.equals(e.getUiDocumentNumber()))
@@ -127,8 +142,17 @@ public class ERPTuitionInfoController extends AcademicTreasuryBaseController {
         model.addAttribute("executionYearsList", ExecutionYear.readNotClosedExecutionYears().stream()
                 .sorted(ExecutionYear.REVERSE_COMPARATOR_BY_YEAR).collect(Collectors.toList()));
 
+        if (customer.getPerson().getStudent() == null) {
+            addErrorMessage(Constants.bundle("error.ERPTuitionInfo.customer.not.student"), model);
+            return search(null, null, null, null, null, null, null, null, customer, model);
+        }
+
+        final Set<DegreeType> degreeTypesSet = customer.getPerson().getStudent().getRegistrationsSet().stream()
+                .map(r -> r.getDegree().getDegreeType()).collect(Collectors.toSet());
+
         model.addAttribute("erpTuitionInfoTypesList",
-                ERPTuitionInfoType.findActive().sorted(ERPTuitionInfoType.COMPARE_BY_NAME).collect(Collectors.toList()));
+                ERPTuitionInfoType.findActive().filter(e -> degreeTypesSet.contains(e.getDegreeType()))
+                        .sorted(ERPTuitionInfoType.COMPARE_BY_NAME).collect(Collectors.toList()));
 
         return jspPage(_CREATE_URI);
     }
@@ -147,7 +171,7 @@ public class ERPTuitionInfoController extends AcademicTreasuryBaseController {
         } catch (final AcademicTreasuryDomainException e) {
             addErrorMessage(e.getLocalizedMessage(), model);
 
-            return search(null, null, null, customer.getBusinessIdentification(), null, null, null, null, model);
+            return search(null, null, null, customer.getBusinessIdentification(), null, null, null, null, customer, model);
         }
     }
 
@@ -185,7 +209,7 @@ public class ERPTuitionInfoController extends AcademicTreasuryBaseController {
     private static final String _TESTS_MARK_SUCCESS_URI = "/testsmarksuccess";
     public static final String TESTS_MARK_SUCCESS_URL = CONTROLLER_URL + _TESTS_MARK_SUCCESS_URI;
 
-    @RequestMapping(value=_TESTS_MARK_SUCCESS_URI + "/{erpTuitionInfoId}", method=RequestMethod.GET)
+    @RequestMapping(value = _TESTS_MARK_SUCCESS_URI + "/{erpTuitionInfoId}", method = RequestMethod.GET)
     public String testsmarksuccess(@PathVariable("erpTuitionInfoId") final ERPTuitionInfo erpTuitionInfo, final Model model,
             final RedirectAttributes redirectAttributes) {
 

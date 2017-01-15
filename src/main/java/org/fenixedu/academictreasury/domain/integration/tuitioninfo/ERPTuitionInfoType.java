@@ -1,139 +1,143 @@
 package org.fenixedu.academictreasury.domain.integration.tuitioninfo;
 
 import java.util.Comparator;
-import java.util.stream.Collectors;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import org.fenixedu.academic.domain.degree.DegreeType;
 import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainException;
 import org.fenixedu.bennu.core.domain.Bennu;
-import org.fenixedu.treasury.domain.Product;
+
+import com.google.common.base.Strings;
 
 public class ERPTuitionInfoType extends ERPTuitionInfoType_Base {
-    
+
     public static final Comparator<ERPTuitionInfoType> COMPARE_BY_NAME = new Comparator<ERPTuitionInfoType>() {
 
         @Override
         public int compare(final ERPTuitionInfoType o1, final ERPTuitionInfoType o2) {
             int c = o1.getName().compareTo(o2.getName());
-            
+
             return c != 0 ? c : o1.getExternalId().compareTo(o2.getExternalId());
         }
-        
+
     };
-    
-    
+
     public ERPTuitionInfoType() {
         super();
         setBennu(Bennu.getInstance());
         setErpTuitionInfoSettings(ERPTuitionInfoSettings.getInstance());
         setActive(true);
     }
-    
-    public ERPTuitionInfoType(final Product product, final DegreeType degreeType) {
+
+    public ERPTuitionInfoType(final DegreeType degreeType, final String code, final String name) {
         this();
-        
-        setProduct(product);
+
         setDegreeType(degreeType);
+        setCode(code);
+        setName(name);
         
         setForRegistration(true);
         setForStandalone(false);
         setForExtracurricular(false);
-        
+
         checkRules();
     }
-    
-    public ERPTuitionInfoType(final Product product, final boolean forStandalone, final boolean forExtracurricular) {
+
+    public ERPTuitionInfoType(final String code, final String name, final boolean forStandalone,
+            final boolean forExtracurricular) {
         this();
-        
-        setProduct(product);
-        
+        setCode(code);
+        setName(name);
+
         setForRegistration(false);
         setForStandalone(forStandalone);
         setForExtracurricular(forExtracurricular);
-        
+
         checkRules();
     }
-    
+
     private void checkRules() {
-        if(getBennu() == null) {
-            throw new AcademicTreasuryDomainException("error.ERPTuitionInfoSettingsEntry.bennu.required");
+        if (getBennu() == null) {
+            throw new AcademicTreasuryDomainException("error.ERPTuitionInfoType.bennu.required");
         }
-        
-        if(getProduct() == null) {
-            throw new AcademicTreasuryDomainException("error.ERPTuitionInfoSettingsEntry.product.required");
+
+        if (Strings.isNullOrEmpty(getCode())) {
+            throw new AcademicTreasuryDomainException("error.ERPTuitionInfoType.code.required");
         }
-        
-        if(!(isForRegistration() ^ isForStandalone() ^ isForExtracurricular())) {
-            throw new AcademicTreasuryDomainException("error.ERPTuitionInfoSettingsEntry.entry.for.one.tuition.type.only");
+
+        if (Strings.isNullOrEmpty(getName())) {
+            throw new AcademicTreasuryDomainException("error.ERPTuitionInfoType.name.required");
         }
-        
-        if(isForRegistration() && getDegreeType() == null) {
-            throw new AcademicTreasuryDomainException("error.ERPTuitionInfoSettingsEntry.entry.degreeType.required");
+
+        if (!(isForRegistration() ^ isForStandalone() ^ isForExtracurricular())) {
+            throw new AcademicTreasuryDomainException("error.ERPTuitionInfoType.entry.for.one.tuition.type.only");
         }
-        
-        if((isForStandalone() || isForExtracurricular()) && getDegreeType() != null) {
-            throw new AcademicTreasuryDomainException("error.ERPTuitionInfoSettingsEntry.entry.degreeType.not.supported.for.standalone.or.extracurricular");
+
+        if (isForRegistration() && getDegreeType() == null) {
+            throw new AcademicTreasuryDomainException("error.ERPTuitionInfoType.entry.degreeType.required");
+        }
+
+        if ((isForStandalone() || isForExtracurricular()) && getDegreeType() != null) {
+            throw new AcademicTreasuryDomainException(
+                    "error.ERPTuitionInfoType.entry.degreeType.not.supported.for.standalone.or.extracurricular");
+        }
+
+        if (findByCode(getCode()).count() > 1) {
+            throw new AcademicTreasuryDomainException("error.ERPTuitionInfoType.code.not.unique");
         }
     }
-    
-    public String getCode() {
-        return getProduct().getCode();
-    }
-    
-    public String getName() {
-        return getProduct().getName().getContent();
-    }
-    
+
     public boolean isForRegistration() {
         return getForRegistration();
     }
-    
+
     public boolean isForStandalone() {
         return getForStandalone();
     }
-    
+
     public boolean isForExtracurricular() {
         return getForExtracurricular();
     }
-    
+
     public boolean isActive() {
         return getActive();
     }
-    
+
     // @formatter:off
     /* ********
      * SERVICES
      * ********
      */
     // @formatter:on
-    
+
     public static Stream<ERPTuitionInfoType> findAll() {
         return ERPTuitionInfoSettings.getInstance().getErpTuitionInfoTypesSet().stream();
     }
-    
+
     public static Stream<ERPTuitionInfoType> findActive() {
         return findAll().filter(e -> e.isActive());
     }
-    
-    public static Stream<Product> _findProducts() {
-        return findAll().map(t -> t.getProduct()).collect(Collectors.toSet()).stream();
-    }
-    
-    public static Stream<ERPTuitionInfoType> findByProduct(final Product product) {
-        return findAll().filter(t -> t.getProduct() == product);
+
+    public static Stream<ERPTuitionInfoType> findByCode(final String code) {
+        return findAll().filter(e -> e.getCode().equals(code));
     }
 
-    public static ERPTuitionInfoType createForRegistrationTuition(final Product product, final DegreeType degreeType) {
-        return new ERPTuitionInfoType(product, degreeType);
+    public static Optional<ERPTuitionInfoType> findUniqueByCode(final String code) {
+        return findAll().filter(e -> e.getCode().equals(code)).findFirst();
     }
-    
-    public static ERPTuitionInfoType createForStandaloneTuition(final Product product) {
-        return new ERPTuitionInfoType(product, true, false);
+
+    public static ERPTuitionInfoType createForRegistrationTuition(final DegreeType degreeType, final String code,
+            final String name) {
+        return new ERPTuitionInfoType(degreeType, code, name);
     }
-    
-    public static ERPTuitionInfoType createForExtracurricularTuition(final Product product) {
-        return new ERPTuitionInfoType(product, false, true);
+
+    public static ERPTuitionInfoType createForStandaloneTuition(final String code, final String name) {
+        return new ERPTuitionInfoType(code, name, true, false);
+    }
+
+    public static ERPTuitionInfoType createForExtracurricularTuition(final String code, final String name) {
+        return new ERPTuitionInfoType(code, name, false, true);
     }
 
 }
