@@ -152,7 +152,7 @@ public class ERPTuitionInfoController extends AcademicTreasuryBaseController {
 
         model.addAttribute("erpTuitionInfoTypesList",
                 ERPTuitionInfoType.findActive().filter(e -> degreeTypesSet.contains(e.getDegreeType()))
-                        .sorted(ERPTuitionInfoType.COMPARE_BY_NAME).collect(Collectors.toList()));
+                        .sorted(ERPTuitionInfoType.COMPARE_BY_PRODUCT_NAME).collect(Collectors.toList()));
 
         return jspPage(_CREATE_URI);
     }

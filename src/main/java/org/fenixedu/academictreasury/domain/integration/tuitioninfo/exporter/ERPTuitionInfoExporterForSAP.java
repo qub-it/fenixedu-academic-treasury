@@ -143,9 +143,8 @@ public class ERPTuitionInfoExporterForSAP implements IERPTuitionInfoExporter {
         // Build SAFT-MovementOfGoods (Customer and Products are built inside)
         // ProductsTable (Chapter 2.4 in AuditFile)
         List<org.fenixedu.treasury.generated.sources.saft.sap.Product> productList = masterFiles.getProduct();
-        Map<String, org.fenixedu.treasury.generated.sources.saft.sap.Product> productMap =
-                new HashMap<String, org.fenixedu.treasury.generated.sources.saft.sap.Product>();
-        Set<String> productCodes = new HashSet<String>();
+        Map<org.fenixedu.treasury.domain.Product, org.fenixedu.treasury.generated.sources.saft.sap.Product> productMap =
+                Maps.newHashMap();
 
         // ClientsTable (Chapter 2.2 in AuditFile)
         List<org.fenixedu.treasury.generated.sources.saft.sap.Customer> customerList = masterFiles.getCustomer();
@@ -379,7 +378,7 @@ public class ERPTuitionInfoExporterForSAP implements IERPTuitionInfoExporter {
 
     private WorkDocument convertToSAFTWorkDocument(final ERPTuitionInfo erpTuitionInfo,
             final Map<String, ERPCustomerFieldsBean> baseCustomers,
-            final Map<String, org.fenixedu.treasury.generated.sources.saft.sap.Product> baseProducts) {
+            final Map<org.fenixedu.treasury.domain.Product, org.fenixedu.treasury.generated.sources.saft.sap.Product> baseProducts) {
         final ERPCustomerFieldsBean customerBean = ERPCustomerFieldsBean.fillFromCustomer(erpTuitionInfo.getCustomer());
 
         WorkDocument workDocument = new WorkDocument();
@@ -490,7 +489,7 @@ public class ERPTuitionInfoExporterForSAP implements IERPTuitionInfoExporter {
 
     private org.fenixedu.treasury.generated.sources.saft.sap.SourceDocuments.WorkingDocuments.WorkDocument.Line convertToSAFTWorkDocumentLine(
             final ERPTuitionInfo erpTuitionInfo,
-            Map<String, org.fenixedu.treasury.generated.sources.saft.sap.Product> baseProducts) {
+            Map<org.fenixedu.treasury.domain.Product, org.fenixedu.treasury.generated.sources.saft.sap.Product> baseProducts) {
 
         final org.fenixedu.treasury.generated.sources.saft.sap.SourceDocuments.WorkingDocuments.WorkDocument.Line line =
                 new org.fenixedu.treasury.generated.sources.saft.sap.SourceDocuments.WorkingDocuments.WorkDocument.Line();
@@ -503,11 +502,11 @@ public class ERPTuitionInfoExporterForSAP implements IERPTuitionInfoExporter {
 
             final ERPTuitionInfoType tuitionInfoType = erpTuitionInfo.getErpTuitionInfoType();
 
-            if (tuitionInfoType.getCode() != null && baseProducts.containsKey(tuitionInfoType.getCode())) {
-                currentProduct = baseProducts.get(tuitionInfoType.getCode());
+            if (baseProducts.containsKey(tuitionInfoType.getProduct())) {
+                currentProduct = baseProducts.get(tuitionInfoType.getProduct());
             } else {
-                currentProduct = convertERPTuitionInfoTypeToSAFTProduct(tuitionInfoType);
-                baseProducts.put(currentProduct.getProductCode(), currentProduct);
+                currentProduct = convertERPTuitionInfoTypeToSAFTProduct(tuitionInfoType.getProduct());
+                baseProducts.put(tuitionInfoType.getProduct(), currentProduct);
             }
             XMLGregorianCalendar documentDateCalendar = null;
             documentDateCalendar = SAPExporter.convertToXMLDate(dataTypeFactory, documentDate);
@@ -519,7 +518,7 @@ public class ERPTuitionInfoExporterForSAP implements IERPTuitionInfoExporter {
             }
 
             // Description
-            line.setDescription(tuitionInfoType.getName());
+            line.setDescription(tuitionInfoType.getProduct().getName().getContent(Constants.DEFAULT_LANGUAGE));
             List<OrderReferences> orderReferences = line.getOrderReferences();
 
             line.setMetadata(fillMetadata(erpTuitionInfo, dataTypeFactory));
@@ -569,18 +568,18 @@ public class ERPTuitionInfoExporterForSAP implements IERPTuitionInfoExporter {
     }
 
     private org.fenixedu.treasury.generated.sources.saft.sap.Product convertERPTuitionInfoTypeToSAFTProduct(
-            ERPTuitionInfoType tuitionInfoType) {
+            final org.fenixedu.treasury.domain.Product product) {
         org.fenixedu.treasury.generated.sources.saft.sap.Product p =
                 new org.fenixedu.treasury.generated.sources.saft.sap.Product();
 
         // ProductCode
-        p.setProductCode(tuitionInfoType.getCode());
+        p.setProductCode(product.getCode());
 
         // ProductDescription
-        p.setProductDescription(tuitionInfoType.getName());
+        p.setProductDescription(product.getName().getContent(Constants.DEFAULT_LANGUAGE));
 
         // ProductGroup
-        p.setProductGroup(AcademicTreasurySettings.getInstance().getTuitionProductGroup().getName().getContent());
+        p.setProductGroup(product.getProductGroup().getName().getContent(Constants.DEFAULT_LANGUAGE));
 
         // ProductNumberCode
         p.setProductNumberCode(p.getProductCode());
@@ -847,7 +846,7 @@ public class ERPTuitionInfoExporterForSAP implements IERPTuitionInfoExporter {
                 /* ANIL: 2015/10/20 converted from dateTime to Date */
                 sourceDocument.setInvoiceDate(SAPExporter.convertToXMLDate(dataTypeFactory, erpTuitionInfo.getCreationDate()));
 
-                sourceDocument.setDescription(erpTuitionInfo.getErpTuitionInfoType().getName());
+                sourceDocument.setDescription(erpTuitionInfo.getErpTuitionInfoType().getProduct().getName().getContent(Constants.DEFAULT_LANGUAGE));
                 line.getSourceDocumentID().add(sourceDocument);
 
                 //SettlementAmount
@@ -868,7 +867,7 @@ public class ERPTuitionInfoExporterForSAP implements IERPTuitionInfoExporter {
                 /* ANIL: 2015/10/20 converted from dateTime to Date */
                 sourceDocument.setInvoiceDate(SAPExporter.convertToXMLDate(dataTypeFactory, erpTuitionInfo.getCreationDate()));
 
-                sourceDocument.setDescription(erpTuitionInfo.getErpTuitionInfoType().getName());
+                sourceDocument.setDescription(erpTuitionInfo.getErpTuitionInfoType().getProduct().getName().getContent(Constants.DEFAULT_LANGUAGE));
                 line.getSourceDocumentID().add(sourceDocument);
 
                 //SettlementAmount

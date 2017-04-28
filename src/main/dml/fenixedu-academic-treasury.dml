@@ -1137,8 +1137,6 @@ class integration.tuitioninfo.ERPTuitionInfoSettings {
 	}
 
 class integration.tuitioninfo.ERPTuitionInfoType {
-	String code;
-	String name;
 	boolean forRegistration;
 	boolean forStandalone;
 	boolean forExtracurricular;
@@ -1165,6 +1163,17 @@ class integration.tuitioninfo.ERPTuitionInfoType {
 		}
 	}
 	
+	relation ERPTuitionInfoTypeProduct {
+		
+		.org.fenixedu.treasury.domain.Product playsRole product {
+			multiplicity 1..1;
+		}
+		
+		integration.tuitioninfo.ERPTuitionInfoType playsRole erpTuitionInfoTypes {
+			multiplicity *;
+		}
+	}
+	
 	relation ERPTuitionInfoTypeDegreeType {
 		.org.fenixedu.academic.domain.degree.DegreeType playsRole degreeType {
 			multiplicity 0..1;
@@ -1172,7 +1181,17 @@ class integration.tuitioninfo.ERPTuitionInfoType {
 
 		integration.tuitioninfo.ERPTuitionInfoType playsRole erpTuitionInfoTypes {
 			multiplicity *;
-		}	
+		}
+	}
+	
+	relation ERPTuitionInfoTypeDegree {
+		.org.fenixedu.academic.domain.Degree playsRole degree {
+			multiplicity 0..1;
+		}
+		
+		integration.tuitioninfo.ERPTuitionInfoType playsRole erpTuitionInfoTypes {
+			multiplicity *;
+		}
 	}
 	
 class integration.tuitioninfo.ERPTuitionInfo {
