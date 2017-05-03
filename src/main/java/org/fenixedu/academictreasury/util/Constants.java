@@ -81,6 +81,22 @@ public class Constants {
         return v1.compareTo(v2) > 0;
     }
 
+    public static boolean isGreaterOrEqualThan(final BigDecimal v1, final BigDecimal v2) {
+        return v1.compareTo(v2) >= 0;
+    }
+
+    public static boolean isEqual(final BigDecimal v1, final BigDecimal v2) {
+        return v1.compareTo(v2) == 0;
+    }
+
+    public static boolean isLessThan(final BigDecimal v1, final BigDecimal v2) {
+        return v1.compareTo(v2) < 0;
+    }
+
+    public static boolean isLessOrEqualThan(final BigDecimal v1, final BigDecimal v2) {
+        return v1.compareTo(v2) <= 0;
+    }
+    
     public static BigDecimal defaultScale(final BigDecimal v) {
         return v.setScale(20, RoundingMode.HALF_EVEN);
     }

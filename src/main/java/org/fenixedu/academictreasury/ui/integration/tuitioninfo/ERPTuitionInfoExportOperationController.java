@@ -24,8 +24,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import com.google.common.base.Strings;
 
 @RequestMapping(ERPTuitionInfoExportOperationController.CONTROLLER_URL)
-@SpringFunctionality(app = AcademicTreasuryController.class, title = "label.ERPTuitionInfoExportOperation.title",
-        accessGroup = "#managers")
+@SpringFunctionality(app = AcademicTreasuryController.class, title = "label.ERPTuitionInfoExportOperation.title", accessGroup = "#managers")
 public class ERPTuitionInfoExportOperationController extends AcademicTreasuryBaseController {
 
     private static final int MAX_SEARCH_RESULT_SIZE = 3000;

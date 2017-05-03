@@ -1,7 +1,5 @@
 package org.fenixedu.academictreasury.domain.integration.tuitioninfo.exporter;
 
-import java.io.File;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
@@ -11,11 +9,9 @@ import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.net.MalformedURLException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
@@ -24,16 +20,12 @@ import javax.xml.datatype.XMLGregorianCalendar;
 import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainException;
 import org.fenixedu.academictreasury.domain.integration.ERPTuitionInfoExportOperation;
 import org.fenixedu.academictreasury.domain.integration.tuitioninfo.ERPTuitionInfo;
-import org.fenixedu.academictreasury.domain.integration.tuitioninfo.ERPTuitionInfoType;
 import org.fenixedu.academictreasury.domain.integration.tuitioninfo.IERPTuitionInfoExporter;
-import org.fenixedu.academictreasury.domain.settings.AcademicTreasurySettings;
 import org.fenixedu.academictreasury.util.Constants;
 import org.fenixedu.bennu.core.i18n.BundleUtil;
 import org.fenixedu.treasury.domain.FinantialInstitution;
 import org.fenixedu.treasury.domain.Product;
 import org.fenixedu.treasury.domain.Vat;
-import org.fenixedu.treasury.domain.VatExemptionReason;
-import org.fenixedu.treasury.domain.VatType;
 import org.fenixedu.treasury.domain.document.ERPCustomerFieldsBean;
 import org.fenixedu.treasury.domain.document.FinantialDocument;
 import org.fenixedu.treasury.domain.exceptions.TreasuryDomainException;
@@ -83,8 +75,11 @@ public class ERPTuitionInfoExporterForSAP implements IERPTuitionInfoExporter {
     public ERPTuitionInfoExportOperation export(final ERPTuitionInfo erpTuitionInfo) {
         final FinantialInstitution institution = erpTuitionInfo.getDocumentNumberSeries().getSeries().getFinantialInstitution();
 
-        if (!institution.getErpIntegrationConfiguration().isIntegratedDocumentsExportationEnabled()
-                && !erpTuitionInfo.isPendingToExport()) {
+        if (!institution.getErpIntegrationConfiguration().getActive()) {
+            throw new AcademicTreasuryDomainException("error.ERPTuitionInfo.exportation.disabled");
+        }
+        
+        if(!erpTuitionInfo.isPendingToExport()) {
             throw new AcademicTreasuryDomainException("error.ERPTuitionInfoExporterForSAP.export.not.pending");
         }
 
@@ -498,15 +493,14 @@ public class ERPTuitionInfoExporterForSAP implements IERPTuitionInfoExporter {
         try {
             final DatatypeFactory dataTypeFactory = DatatypeFactory.newInstance();
 
-            org.fenixedu.treasury.generated.sources.saft.sap.Product currentProduct = null;
+            org.fenixedu.treasury.generated.sources.saft.sap.Product currentSAFTProduct = null;
 
-            final ERPTuitionInfoType tuitionInfoType = erpTuitionInfo.getErpTuitionInfoType();
-
-            if (baseProducts.containsKey(tuitionInfoType.getProduct())) {
-                currentProduct = baseProducts.get(tuitionInfoType.getProduct());
+            final Product product = erpTuitionInfo.getProduct();
+            if (baseProducts.containsKey(product)) {
+                currentSAFTProduct = baseProducts.get(product);
             } else {
-                currentProduct = convertERPTuitionInfoTypeToSAFTProduct(tuitionInfoType.getProduct());
-                baseProducts.put(tuitionInfoType.getProduct(), currentProduct);
+                currentSAFTProduct = convertERPTuitionInfoTypeToSAFTProduct(product);
+                baseProducts.put(product, currentSAFTProduct);
             }
             XMLGregorianCalendar documentDateCalendar = null;
             documentDateCalendar = SAPExporter.convertToXMLDate(dataTypeFactory, documentDate);
@@ -518,7 +512,7 @@ public class ERPTuitionInfoExporterForSAP implements IERPTuitionInfoExporter {
             }
 
             // Description
-            line.setDescription(tuitionInfoType.getProduct().getName().getContent(Constants.DEFAULT_LANGUAGE));
+            line.setDescription(product.getName().getContent(Constants.DEFAULT_LANGUAGE));
             List<OrderReferences> orderReferences = line.getOrderReferences();
 
             line.setMetadata(fillMetadata(erpTuitionInfo, dataTypeFactory));
@@ -536,10 +530,10 @@ public class ERPTuitionInfoExporterForSAP implements IERPTuitionInfoExporter {
             }
 
             // ProductCode
-            line.setProductCode(currentProduct.getProductCode());
+            line.setProductCode(currentSAFTProduct.getProductCode());
 
             // ProductDescription
-            line.setProductDescription(currentProduct.getProductDescription());
+            line.setProductDescription(currentSAFTProduct.getProductDescription());
 
             // Quantity
             line.setQuantity(BigDecimal.ONE);
@@ -846,7 +840,7 @@ public class ERPTuitionInfoExporterForSAP implements IERPTuitionInfoExporter {
                 /* ANIL: 2015/10/20 converted from dateTime to Date */
                 sourceDocument.setInvoiceDate(SAPExporter.convertToXMLDate(dataTypeFactory, erpTuitionInfo.getCreationDate()));
 
-                sourceDocument.setDescription(erpTuitionInfo.getErpTuitionInfoType().getProduct().getName().getContent(Constants.DEFAULT_LANGUAGE));
+                sourceDocument.setDescription(erpTuitionInfo.getProduct().getName().getContent(Constants.DEFAULT_LANGUAGE));
                 line.getSourceDocumentID().add(sourceDocument);
 
                 //SettlementAmount
@@ -867,7 +861,7 @@ public class ERPTuitionInfoExporterForSAP implements IERPTuitionInfoExporter {
                 /* ANIL: 2015/10/20 converted from dateTime to Date */
                 sourceDocument.setInvoiceDate(SAPExporter.convertToXMLDate(dataTypeFactory, erpTuitionInfo.getCreationDate()));
 
-                sourceDocument.setDescription(erpTuitionInfo.getErpTuitionInfoType().getProduct().getName().getContent(Constants.DEFAULT_LANGUAGE));
+                sourceDocument.setDescription(erpTuitionInfo.getProduct().getName().getContent(Constants.DEFAULT_LANGUAGE));
                 line.getSourceDocumentID().add(sourceDocument);
 
                 //SettlementAmount

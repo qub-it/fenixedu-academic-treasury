@@ -74,7 +74,7 @@ ${portal.angularToolkit()}
 
 angular.module('angularAppTuitionPaymentPlan', ['ngSanitize', 'ui.select','bennuToolkit']).controller('TuitionPaymentPlanController', ['$scope', function($scope) {
 
- 	$scope.object=angular.fromJson('${tuitionPaymentPlanBeanJson}');
+ 	$scope.object=${tuitionPaymentPlanBeanJson};
 	$scope.postBack = createAngularPostbackFunction($scope); 
 	
 	$scope.backToChooseDegreeCurricularPlans = function() {

@@ -1203,6 +1203,7 @@ class integration.tuitioninfo.ERPTuitionInfo {
 	LocalDate endDate;
 	boolean exportationSuccess;
 	String exportationMessage;
+	int orderNumber;
 }
 
 	relation ERPTuitionInfoBennu {
@@ -1255,8 +1256,8 @@ class integration.tuitioninfo.ERPTuitionInfo {
 		}
 	}
 	
-	relation ERPTuitionInfoERPTuitionInfoType {
-		integration.tuitioninfo.ERPTuitionInfoType playsRole erpTuitionInfoType {
+	relation ERPTuitionInfoProduct {
+		.org.fenixedu.treasury.domain.Product playsRole product {
 			multiplicity 1..1;
 		}
 			

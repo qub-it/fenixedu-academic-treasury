@@ -38,8 +38,7 @@ ${portal.toolkit()}
 </div>
 <%-- NAVIGATION --%>
 <div class="well well-sm" style="display: inline-block">
-    &nbsp;|&nbsp;
-    <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>&nbsp;
+    <span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span>&nbsp;
     <a href="${pageContext.request.contextPath}<%= ERPTuitionInfoTypeController.CREATE_URL %>">
     	<spring:message code="label.ERPTuitionInfoType.create" />
     </a>
@@ -68,6 +67,50 @@ ${portal.toolkit()}
 
     </div>
 </c:if>
+
+<script type="text/javascript">
+	  function processDelete(externalId) {
+	    url = "${pageContext.request.contextPath}<%= ERPTuitionInfoTypeController.DELETE_URL %>/" + externalId;
+	    $("#deleteForm").attr("action", url);
+	    $('#deleteModal').modal('toggle')
+	  }
+</script>
+
+
+<div class="modal fade" id="deleteModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="deleteForm" action="#" method="POST">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <h4 class="modal-title">
+                        <spring:message code="label.confirmation" />
+                    </h4>
+                </div>
+                <div class="modal-body">
+                    <p>
+                        <spring:message code="label.ERPTuitionInfoType.confirmDelete" />
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">
+                        <spring:message code="label.close" />
+                    </button>
+                    <button id="deleteButton" class="btn btn-warning" type="submit">
+                        <spring:message code="label.delete" />
+                    </button>
+                </div>
+            </form>
+        </div>
+        <!-- /.modal-content -->
+    </div>
+    <!-- /.modal-dialog -->
+</div>
+<!-- /.modal -->
+
+
 <c:if test="${not empty errorMessages}">
     <div class="alert alert-danger" role="alert">
 
@@ -88,11 +131,8 @@ ${portal.toolkit()}
 				<tr>
 					<%--!!!  Field names here --%>
 					<th><spring:message code="label.ERPTuitionInfoType.product" /></th>
-					<th><spring:message code="label.ERPTuitionInfoType.forRegistration" /></th>
-					<th><spring:message code="label.ERPTuitionInfoType.forStandalone" /></th>
-					<th><spring:message code="label.ERPTuitionInfoType.forExtracurricular" /></th>
-					<th><spring:message code="label.ERPTuitionInfoType.degreeType" /></th>
-					<th><spring:message code="label.ERPTuitionInfoType.degree" /></th>
+					<th><spring:message code="label.ERPTuitionInfoType.appliedTo" /></th>
+					<th><spring:message code="label.ERPTuitionInfoType.degreeInformation" /></th>
 					<%-- Operations Column --%>
 					<th></th>
 				</tr>
@@ -101,11 +141,40 @@ ${portal.toolkit()}
 				<c:forEach var="row" items="${result}">
 					<tr>
 						<td><c:out value='${row.product.name.content}' /></td>
-						<td><c:out value='${row.forRegistration}' /></td>
-						<td><c:out value='${row.forStandalone}' /></td>
-						<td><c:out value='${row.forExtracurricular}' /></td>
-						<td><c:out value='${row.degreeType.name}' /></td>
-						<td><c:out value='${row.degree.name}' /></td>
+						<td>
+							<p>
+								<strong><spring:message code="label.ERPTuitionInfoType.forRegistration" />:</strong>
+								<spring:message code="label.${row.forRegistration}" />
+							</p>
+							<p>
+								<strong><spring:message code="label.ERPTuitionInfoType.forStandalone" />:</strong>
+								<spring:message code="label.${row.forStandalone}" />
+							</p>
+							<p>
+								<strong><spring:message code="label.ERPTuitionInfoType.forExtracurricular" />:</strong>
+								<spring:message code="label.${row.forExtracurricular}" />
+							</p>
+						</td>
+						<td>
+							<c:if test="${row.degreeType != null}">
+								<p>
+									<strong><spring:message code="label.ERPTuitionInfoType.degreeType" />:</strong>
+									<c:out value='${row.degreeType.name.content}' />
+								</p>
+							</c:if>
+							<c:if test="${row.degree != null}">
+								<p>
+									<strong><spring:message code="label.ERPTuitionInfoType.degree" />:</strong>
+									<c:out value='${row.degree.presentationNameI18N.content}' />
+								</p>
+							</c:if>
+						</td>
+						<td>
+							<a  class="btn btn-xs btn-warning" href="#" onClick="javascript:processDelete('${row.externalId}')">
+								<span class="glyphicon glyphicon-trash" aria-hidden="true"></span>&nbsp;
+								<spring:message code='label.delete'/>
+							</a>							
+						</td>
 					</tr>
 				</c:forEach>
 			</tbody>

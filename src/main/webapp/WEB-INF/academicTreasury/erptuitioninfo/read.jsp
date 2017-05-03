@@ -105,46 +105,74 @@ ${portal.toolkit()}
         <form method="post" class="form-horizontal">
             <table class="table">
                 <tbody>
-                    <tr>
-                        <th scope="row" class="col-xs-3"><spring:message code="label.ERPTuitionInfo.creationDate" /></th>
-                        <td><c:out value='${erpTuitionInfo.creationDate.toString("YYYY-MM-dd HH:mm:ss")}' /></td>
-                    </tr>
-                    <tr>
-                        <th scope="row" class="col-xs-3"><spring:message code="label.ERPTuitionInfo.documentNumber" /></th>
-                        <td><c:out value='${erpTuitionInfo.uiDocumentNumber}' /></td>
-                    </tr>
-                    <tr>
-                        <th scope="row" class="col-xs-3"><spring:message code="label.ERPTuitionInfo.customer" /></th>
-                        <td><strong><c:out value='${erpTuitionInfo.customer.businessIdentification} - ${erpTuitionInfo.customer.name}' /></strong></td>
-                    </tr>
-                    <tr>
-                        <th scope="row" class="col-xs-3"><spring:message code="label.ERPTuitionInfo.executionYear" /></th>
-                        <td><c:out value="${erpTuitionInfo.executionYear.qualifiedName}" /></td>
-                    </tr>
-                    <tr>
-                        <th scope="row" class="col-xs-3"><spring:message code="label.ERPTuitionInfo.erpTuitionInfoType" /></th>
-                        <td><c:out value="${erpTuitionInfo.erpTuitionInfoType.name}" /></td>
-                    </tr>
-                    <tr>
-                        <th scope="row" class="col-xs-3"><spring:message code="label.ERPTuitionInfo.tuitionTotalAmount" /></th>
-                        <td><c:out value='${erpTuitionInfo.tuitionTotalAmount}' /></td>
-                    </tr>
-                    <tr>
-                        <th scope="row" class="col-xs-3"><spring:message code="label.ERPTuitionInfo.tuitionDeltaAmount" /></th>
-                        <td><c:out value='${erpTuitionInfo.tuitionDeltaAmount}' /></td>
-                    </tr>
-                    <tr>
-                        <th scope="row" class="col-xs-3"><spring:message code="label.ERPTuitionInfo.pendingToExport" /></th>
-                        <td><spring:message code='label.${erpTuitionInfo.pendingToExport}' /></td>
-                    </tr>
-                    <tr>
-                        <th scope="row" class="col-xs-3"><spring:message code="label.ERPTuitionInfo.exportationSuccess" /></th>
-                        <td><spring:message code='label.${erpTuitionInfo.exportationSuccess}' /></td>
-                    </tr>
-                    <tr>
-                        <th scope="row" class="col-xs-3"><spring:message code="label.Versioning.creator" /></th>
-                        <td>[<c:out value='${erpTuitionInfo.getVersioningCreator()}' />] <joda:format value="${erpTuitionInfo.getVersioningCreationDate()}" style="SS" /></td>
-                    </tr>
+	                    <tr>
+	                        <th scope="row" class="col-xs-3"><spring:message code="label.ERPTuitionInfo.creationDate" /></th>
+	                        <td><c:out value='${erpTuitionInfo.creationDate.toString("YYYY-MM-dd HH:mm:ss")}' /></td>
+	                    </tr>
+	                    <tr>
+	                        <th scope="row" class="col-xs-3"><spring:message code="label.ERPTuitionInfo.orderNumber" /></th>
+	                        <td><c:out value='${erpTuitionInfo.orderNumber}' /></td>
+	                    </tr>
+	                    <tr>
+	                        <th scope="row" class="col-xs-3"><spring:message code="label.ERPTuitionInfo.documentNumber" /></th>
+	                        <td><c:out value='${erpTuitionInfo.uiDocumentNumber}' /></td>
+	                    </tr>
+	                    
+                    <c:if test="${erpTuitionInfo.firstERPTuitionInfo != null}">
+                    	
+	                    <tr>
+	                        <th scope="row" class="col-xs-3"><spring:message code="label.ERPTuitionInfo.firstERPTuitionInfo" /></th>
+	                        <td><c:out value='${erpTuitionInfo.firstERPTuitionInfo.uiDocumentNumber}' /></td>
+	                    </tr>
+	                    
+                    </c:if>
+                    
+                    <c:if test="${erpTuitionInfo.lastSuccessfulSentERPTuitionInfo != null}">
+                    	
+	                    <tr>
+	                        <th scope="row" class="col-xs-3"><spring:message code="label.ERPTuitionInfo.lastSuccessfulSentERPTuitionInfo" /></th>
+	                        <td><c:out value='${erpTuitionInfo.lastSuccessfulSentERPTuitionInfo.uiDocumentNumber}' /></td>
+	                    </tr>
+	                    
+                    </c:if>
+                    
+                    
+	                    <tr>
+	                        <th scope="row" class="col-xs-3"><spring:message code="label.ERPTuitionInfo.customer" /></th>
+	                        <td><strong><c:out value='${erpTuitionInfo.customer.businessIdentification} - ${erpTuitionInfo.customer.name}' /></strong></td>
+	                    </tr>
+	                    <tr>
+	                        <th scope="row" class="col-xs-3"><spring:message code="label.ERPTuitionInfo.executionYear" /></th>
+	                        <td><c:out value="${erpTuitionInfo.executionYear.qualifiedName}" /></td>
+	                    </tr>
+	                    <tr>
+	                        <th scope="row" class="col-xs-3"><spring:message code="label.ERPTuitionInfo.product" /></th>
+	                        <td><c:out value="${erpTuitionInfo.product.name.content}" /></td>
+	                    </tr>
+	                    <tr>
+	                        <th scope="row" class="col-xs-3"><spring:message code="label.ERPTuitionInfo.tuitionTotalAmount" /></th>
+	                        <td><c:out value='${erpTuitionInfo.tuitionTotalAmount}' /></td>
+	                    </tr>
+	                    <tr>
+	                        <th scope="row" class="col-xs-3"><spring:message code="label.ERPTuitionInfo.tuitionDeltaAmount" /></th>
+	                        <td><c:out value='${erpTuitionInfo.tuitionDeltaAmount}' /></td>
+	                    </tr>
+	                    <tr>
+	                        <th scope="row" class="col-xs-3"><spring:message code="label.ERPTuitionInfo.pendingToExport" /></th>
+	                        <td><spring:message code='label.${erpTuitionInfo.pendingToExport}' /></td>
+	                    </tr>
+	                    <tr>
+	                        <th scope="row" class="col-xs-3"><spring:message code="label.ERPTuitionInfo.exportationSuccess" /></th>
+	                        <td><spring:message code='label.${erpTuitionInfo.exportationSuccess}' /></td>
+	                    </tr>
+	                    <tr>
+	                        <th scope="row" class="col-xs-3"><spring:message code="label.ERPTuitionInfo.exportationMessage" /></th>
+	                        <td><c:out value='${erpTuitionInfo.exportationMessage}' /></td>
+	                    </tr>
+	                    <tr>
+	                        <th scope="row" class="col-xs-3"><spring:message code="label.Versioning.creator" /></th>
+	                        <td>[<c:out value='${erpTuitionInfo.getVersioningCreator()}' />] <joda:format value="${erpTuitionInfo.getVersioningCreationDate()}" style="SS" /></td>
+	                    </tr>
                 </tbody>
             </table>
         </form>

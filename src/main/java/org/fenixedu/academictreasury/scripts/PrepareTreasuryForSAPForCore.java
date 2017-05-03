@@ -14,6 +14,7 @@ import org.fenixedu.academictreasury.domain.event.AcademicTreasuryEvent;
 import org.fenixedu.academictreasury.domain.integration.tuitioninfo.ERPTuitionInfoSettings;
 import org.fenixedu.academictreasury.domain.integration.tuitioninfo.ERPTuitionInfoType;
 import org.fenixedu.academictreasury.domain.integration.tuitioninfo.exporter.ERPTuitionInfoExporterForSAP;
+import org.fenixedu.academictreasury.domain.settings.AcademicTreasurySettings;
 import org.fenixedu.bennu.core.domain.Bennu;
 import org.fenixedu.bennu.scheduler.custom.CustomTask;
 import org.fenixedu.commons.i18n.LocalizedString;
@@ -93,7 +94,7 @@ public class PrepareTreasuryForSAPForCore extends CustomTask {
 
         // Configure ERP tuition info exportation
         prepareERPTuitionInfoSettings();
-        
+
         taskLog("End");
     }
 
@@ -114,25 +115,30 @@ public class PrepareTreasuryForSAPForCore extends CustomTask {
         ERPTuitionInfoSettings.getInstance().setExporterClassName(ERPTuitionInfoExporterForSAP.class.getName());
 
         final List<String> DEGREE_TYPES =
-                Lists.newArrayList(
-                        "BOLONHA_DEGREE", 
-                        "BOLONHA_MASTER_DEGREE", 
-                        "BOLONHA_INTEGRATED_MASTER_DEGREE", 
-                        "BOLONHA_PHD",
-                        "BOLONHA_SPECIALIZATION_DEGREE", 
-                        "FREE_DEGREE", 
-                        "BOLONHA_POST_DOCTORAL_DEGREE");
+                Lists.newArrayList("BOLONHA_DEGREE", "BOLONHA_MASTER_DEGREE", "BOLONHA_INTEGRATED_MASTER_DEGREE", "BOLONHA_PHD",
+                        "BOLONHA_SPECIALIZATION_DEGREE", "FREE_DEGREE", "BOLONHA_POST_DOCTORAL_DEGREE");
 
         for (final String code : DEGREE_TYPES) {
-            final DegreeType degreeType = DegreeType.matching(p -> code.equals(p.getCode())).get();
-            ERPTuitionInfoType.createForRegistrationTuition(degreeType, "ESP_PROP_" + code,
-                    "Especialização Propina: " + degreeType.getName().getContent(Constants.DEFAULT_LANGUAGE));
-        }
+            Product product = createTuitionInfoProduct(code);
 
-        ERPTuitionInfoType.createForStandaloneTuition("ESP_PROP_STANDALONE",
-                "Especialização Propina: Unidades Curriculares Isoladas");
-        ERPTuitionInfoType.createForStandaloneTuition("ESP_PROP_EXTRACURRICULAR",
-                "Especialização Propina: Unidades Extracurriculares");
+            final DegreeType degreeType = DegreeType.matching(p -> code.equals(p.getCode())).get();
+            ERPTuitionInfoType.createForRegistrationTuition(product, degreeType);
+        }
+        
+    }
+
+    private Product createTuitionInfoProduct(String code) {
+        final DegreeType degreeType = DegreeType.matching(p -> code.equals(p.getCode())).get();
+        ProductGroup tuitionProductGroup = AcademicTreasurySettings.getInstance().getTuitionProductGroup();
+        String productCode = "ESP_PROP_" + code;
+        LocalizedString productDesignation = new LocalizedString(org.fenixedu.academictreasury.util.Constants.DEFAULT_LANGUAGE,
+                "Especialização Propina: " + degreeType.getName().getContent(Constants.DEFAULT_LANGUAGE));
+        LocalizedString productUnitDesignation = new LocalizedString(org.fenixedu.academictreasury.util.Constants.DEFAULT_LANGUAGE, "Unidade");
+        VatType vatType = VatType.findByCode("ISE");
+        VatExemptionReason vatExemptionReason = VatExemptionReason.findByCode("M07");
+
+        return Product.create(tuitionProductGroup, productCode, productDesignation, productUnitDesignation, true, false, 1, vatType,
+                FinantialInstitution.findAll().collect(Collectors.toList()), vatExemptionReason);
     }
 
     private void createTransferBalanceProduct() {
@@ -169,7 +175,6 @@ public class PrepareTreasuryForSAPForCore extends CustomTask {
         ReimbursementProcessStatusType.create("ANNULED", "Reembolso anulado", 2, false, true, true);
         ReimbursementProcessStatusType.create("CONCLUDED", "Reembolso concluído", 3, false, true, false);
     }
-
 
     private void moveAcademicTreasuryEventsFromDebtAccountToPerson() {
         taskLog("moveAcademicTreasuryEventsFromDebtAccountToPerson");

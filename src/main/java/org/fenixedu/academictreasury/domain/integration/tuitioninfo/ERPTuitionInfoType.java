@@ -1,13 +1,17 @@
 package org.fenixedu.academictreasury.domain.integration.tuitioninfo;
 
 import java.util.Comparator;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.fenixedu.academic.domain.Degree;
 import org.fenixedu.academic.domain.degree.DegreeType;
+import org.fenixedu.academictreasury.domain.event.AcademicTreasuryEvent;
 import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainException;
 import org.fenixedu.bennu.core.domain.Bennu;
 import org.fenixedu.treasury.domain.Product;
+
+import pt.ist.fenixframework.Atomic;
 
 public class ERPTuitionInfoType extends ERPTuitionInfoType_Base {
 
@@ -76,7 +80,7 @@ public class ERPTuitionInfoType extends ERPTuitionInfoType_Base {
             throw new AcademicTreasuryDomainException("error.ERPTuitionInfoType.product.required");
         }
         
-        if(isForRegistration() && (getDegree() != null ^ getDegreeType() != null)) {
+        if(isForRegistration() && !(getDegree() != null ^ getDegreeType() != null)) {
             throw new AcademicTreasuryDomainException("error.ERPTuitionInfoType.degree.or.degree.type.required");
         }
 
@@ -84,7 +88,7 @@ public class ERPTuitionInfoType extends ERPTuitionInfoType_Base {
             throw new AcademicTreasuryDomainException("error.ERPTuitionInfoType.entry.for.one.tuition.type.only");
         }
 
-        if ((isForStandalone() || isForExtracurricular()) && (getDegreeType() != null || getDegree() == null)) {
+        if ((isForStandalone() || isForExtracurricular()) && (getDegreeType() != null || getDegree() != null)) {
             throw new AcademicTreasuryDomainException(
                     "error.ERPTuitionInfoType.entry.degreeType.not.supported.for.standalone.or.extracurricular");
         }
@@ -107,6 +111,47 @@ public class ERPTuitionInfoType extends ERPTuitionInfoType_Base {
         return getActive();
     }
 
+    private boolean isDeletable() {
+        return true;
+    }
+    
+    public boolean isAppliedToAcademicTreasuryEvent(final AcademicTreasuryEvent event) {
+        if (isForRegistration() && event.isForRegistrationTuition()) {
+            if(getDegree() == event.getRegistration().getDegree()) {
+                return true;
+            } 
+            
+            if(getDegreeType() == event.getRegistration().getDegreeType()) {
+                return true;
+            }                    
+        } 
+        
+        if(isForStandalone() && event.isForStandaloneTuition()) {
+            return true;
+        } 
+        
+        if (isForExtracurricular() && event.isForExtracurricularTuition()) {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    @Atomic
+    public void delete() {
+        if(!isDeletable()) {
+            throw new AcademicTreasuryDomainException("error.ERPTuitionInfoType.delete.impossible");
+        }
+        
+        setProduct(null);
+        setBennu(null);
+        setDegree(null);
+        setDegreeType(null);
+        setErpTuitionInfoSettings(null);
+        
+        deleteDomainObject();
+    }
+
     // @formatter:off
     /* ********
      * SERVICES
@@ -121,18 +166,31 @@ public class ERPTuitionInfoType extends ERPTuitionInfoType_Base {
     public static Stream<ERPTuitionInfoType> findActive() {
         return findAll().filter(e -> e.isActive());
     }
+
+    public static Stream<Product> findActiveProducts() {
+        return findActive().map(e -> e.getProduct()).collect(Collectors.toSet()).stream();
+    }
+    
+    public static Stream<ERPTuitionInfoType> findActive(final Product product) {
+        return findActive().filter(e -> e.getProduct() == product);
+    }
+    
+    @Atomic
     public static ERPTuitionInfoType createForRegistrationTuition(final Product product, final DegreeType degreeType) {
         return new ERPTuitionInfoType(product, degreeType);
     }
-
+    
+    @Atomic
     public static ERPTuitionInfoType createForRegistrationTuition(final Product product, final Degree degree) {
         return new ERPTuitionInfoType(product, degree);
     }
 
+    @Atomic
     public static ERPTuitionInfoType createForStandaloneTuition(final Product product) {
         return new ERPTuitionInfoType(product, true, false);
     }
 
+    @Atomic
     public static ERPTuitionInfoType createForExtracurricularTuition(final Product product) {
         return new ERPTuitionInfoType(product, false, true);
     }

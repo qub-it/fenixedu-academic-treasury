@@ -35,7 +35,7 @@ ${portal.angularToolkit()}
 <%-- TITLE --%>
 <div class="page-header">
 	<h1>
-		<spring:message code="label.TuitionDebtCreation.createTuitionDebtCreationBean" />
+		<spring:message code="label.ERPTuitionInfoType.create" />
 		<small></small>
 	</h1>
 </div>
@@ -43,7 +43,7 @@ ${portal.angularToolkit()}
 <%-- NAVIGATION --%>
 <div class="well well-sm" style="display: inline-block">
 	<span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span> &nbsp; <a class=""
-		href="${pageContext.request.contextPath}/treasury/accounting/managecustomer/debtaccount/read/${debtAccount.externalId}">
+		href="${pageContext.request.contextPath}<%= ERPTuitionInfoTypeController.SEARCH_URL %>">
 		<spring:message code="label.event.back" />
 	</a> &nbsp;
 </div>
@@ -87,11 +87,7 @@ ${portal.angularToolkit()}
 			[ 'ngSanitize', 'ui.select', 'bennuToolkit' ]).controller(
 			'angularController', [ '$scope', function($scope) {
 
-				$scope.object = $
-				{
-					tuitionDebtCreationBeanJson
-				}
-				;
+				$scope.object = ${beanJson};
 				// $scope.$apply();
 				$scope.booleanvalues = [ {
 					name : '<spring:message code="label.no"/>',
@@ -110,9 +106,9 @@ ${portal.angularToolkit()}
 </script>
 
 <form name='form' method="post" class="form-horizontal" ng-app="angularApp" ng-controller="angularController"
-	action='${pageContext.request.contextPath}<%= ERPTuitionInfoTypeController.CREATE_URL %>/${debtAccount.externalId}'>
+	action='${pageContext.request.contextPath}<%= ERPTuitionInfoTypeController.CREATE_URL %>'>
 
-	<input type="hidden" name="postback" value='${pageContext.request.contextPath}<%=  %>/${debtAccount.externalId}' />
+	<input type="hidden" name="postback" value='${pageContext.request.contextPath}<%= ERPTuitionInfoTypeController.CREATE_POSTBACK_URL %>' />
 
 	<input name="bean" type="hidden" value="{{ object }}" />
 	<div class="panel panel-default">
@@ -152,14 +148,14 @@ ${portal.angularToolkit()}
 				</div>
 			</div>
 			
-			<div class="form-group row">
+			<div class="form-group row" ng-show="object.tuitionType == 'REGISTRATION'">
 				<div class="col-sm-2 control-label">
 					<spring:message code="label.ERPTuitionInfoTypeBean.degreeType" />
 				</div>
 
 				<div class="col-sm-6">
 					<%-- Relation to side 1 drop down rendered in input --%>
-					<ui-select id="erpTuitionInfoTypeBean_degreeType" name="degreeType" ng-model="$parent.object.product"
+					<ui-select id="erpTuitionInfoTypeBean_degreeType" name="degreeType" ng-model="$parent.object.degreeType"
 						theme="bootstrap" ng-disabled="disabled" on-select="postBack($model)">
 						<ui-select-match>{{$select.selected.text}}</ui-select-match>
 						<ui-select-choices repeat="degreeType.id as degreeType in object.degreeTypeDataSourceList | filter: $select.search">
@@ -169,14 +165,14 @@ ${portal.angularToolkit()}
 				</div>
 			</div>
 			
-			<div class="form-group row">
+			<div class="form-group row" ng-show="object.tuitionType == 'REGISTRATION' && object.degreeType != ''">
 				<div class="col-sm-2 control-label">
 					<spring:message code="label.ERPTuitionInfoTypeBean.degree" />
 				</div>
 
 				<div class="col-sm-6">
 					<%-- Relation to side 1 drop down rendered in input --%>
-					<ui-select id="erpTuitionInfoTypeBean_degree" name="degree" ng-model="$parent.object.product"
+					<ui-select id="erpTuitionInfoTypeBean_degree" name="degree" ng-model="$parent.object.degree"
 						theme="bootstrap" ng-disabled="disabled" on-select="postBack($model)">
 						<ui-select-match>{{$select.selected.text}}</ui-select-match>
 						<ui-select-choices repeat="degree.id as degree in object.degreeDataSourceList | filter: $select.search">
@@ -194,6 +190,5 @@ ${portal.angularToolkit()}
 </form>
 
 <script>
-	$(document).ready(function() {
-	});
+	$(document).ready(function() { });
 </script>

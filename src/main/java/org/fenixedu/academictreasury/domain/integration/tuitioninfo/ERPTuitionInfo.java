@@ -18,6 +18,8 @@ import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainExc
 import org.fenixedu.academictreasury.util.Constants;
 import org.fenixedu.bennu.core.domain.Bennu;
 import org.fenixedu.treasury.domain.Customer;
+import org.fenixedu.treasury.domain.FinantialInstitution;
+import org.fenixedu.treasury.domain.Product;
 import org.fenixedu.treasury.domain.document.DocumentNumberSeries;
 import org.fenixedu.treasury.domain.document.FinantialDocumentType;
 import org.fenixedu.treasury.domain.document.Series;
@@ -40,6 +42,22 @@ public class ERPTuitionInfo extends ERPTuitionInfo_Base {
             int c = o1.getCreationDate().compareTo(o2.getCreationDate());
             return c != 0 ? c : o1.getExternalId().compareTo(o2.getExternalId());
         }
+
+    };
+
+    public static Comparator<ERPTuitionInfo> COMPARE_BY_ORDER_NUMBER = new Comparator<ERPTuitionInfo>() {
+
+        @Override
+        public int compare(final ERPTuitionInfo o1, final ERPTuitionInfo o2) {
+            int c = Long.compare(o1.getOrderNumber(), o2.getOrderNumber());
+
+            if (c == 0) {
+                throw new RuntimeException("error");
+            }
+
+            return c;
+        }
+
     };
 
     public ERPTuitionInfo() {
@@ -47,7 +65,7 @@ public class ERPTuitionInfo extends ERPTuitionInfo_Base {
         setBennu(Bennu.getInstance());
     }
 
-    public ERPTuitionInfo(final Customer customer, final ExecutionYear executionYear, final ERPTuitionInfoType erpTuitionInfoType,
+    public ERPTuitionInfo(final Customer customer, final ExecutionYear executionYear, final Product product,
             final BigDecimal tuitionTotalAmount, final BigDecimal deltaTuitionAmount, final LocalDate beginDate,
             final LocalDate endDate, final ERPTuitionInfo lastSucessfulSentErpTuitionInfo) {
         this();
@@ -55,7 +73,7 @@ public class ERPTuitionInfo extends ERPTuitionInfo_Base {
         setCreationDate(new DateTime());
         setCustomer(customer);
         setExecutionYear(executionYear);
-        setErpTuitionInfoType(erpTuitionInfoType);
+        setProduct(product);
         setTuitionTotalAmount(tuitionTotalAmount);
         setTuitionDeltaAmount(deltaTuitionAmount);
         setBeginDate(beginDate);
@@ -78,6 +96,8 @@ public class ERPTuitionInfo extends ERPTuitionInfo_Base {
 
         setFirstERPTuitionInfo(findFirstIntegratedWithSuccess(this).orElse(null));
 
+        setOrderNumber(find(customer, executionYear, product).sorted(COMPARE_BY_ORDER_NUMBER.reversed()).map(e -> e.getOrderNumber()).findFirst().orElse(0) + 1);
+        
         checkRules();
 
         markToInfoExport();
@@ -92,8 +112,8 @@ public class ERPTuitionInfo extends ERPTuitionInfo_Base {
             throw new AcademicTreasuryDomainException("error.ERPTuitionInfo.createDate.required");
         }
 
-        if (getErpTuitionInfoType() == null) {
-            throw new AcademicTreasuryDomainException("error.ERPTuitionInfo.erpTuitionInfoType.required");
+        if (getProduct() == null) {
+            throw new AcademicTreasuryDomainException("error.ERPTuitionInfo.product.required");
         }
 
         if (getDocumentNumberSeries() == null) {
@@ -144,7 +164,7 @@ public class ERPTuitionInfo extends ERPTuitionInfo_Base {
                     "error.ERPTuitionInfo.tuitionDeltaAmount.negative.but.finantialDocument.not.credit.note");
         }
 
-        if (findPendingToExport(getCustomer(), getExecutionYear(), getErpTuitionInfoType()).count() > 1) {
+        if (findPendingToExport(getCustomer(), getExecutionYear(), getProduct()).count() > 1) {
             throw new AcademicTreasuryDomainException("error.ERPTuitionInfo.pending.to.export.already.exists");
         }
 
@@ -187,8 +207,12 @@ public class ERPTuitionInfo extends ERPTuitionInfo_Base {
     public boolean isFollowedBySuccessfulSent() {
         return getLastSuccessfulSentERPTuitionInfo() != null;
     }
-
+    
     public void export() {
+        if(!isPendingToExport()) {
+            return;
+        }
+        
         ERPTuitionInfoSettings.getInstance().exporter().export(this);
     }
 
@@ -213,20 +237,6 @@ public class ERPTuitionInfo extends ERPTuitionInfo_Base {
         checkRules();
     }
 
-    public void editPendingToExport(final BigDecimal tuitionTotalAmount, final BigDecimal tuitionDeltaAmount,
-            final LocalDate beginDate, final LocalDate endDate) {
-        if (!isPendingToExport()) {
-            throw new AcademicTreasuryDomainException("error.ERPTuitionInfo.editPendingToExport.already.exported");
-        }
-
-        setTuitionTotalAmount(tuitionTotalAmount);
-        setTuitionDeltaAmount(tuitionDeltaAmount);
-        setBeginDate(beginDate);
-        setEndDate(endDate);
-
-        checkRules();
-    }
-
     // @formatter:off
     /* ********
      * SERVICES
@@ -243,8 +253,8 @@ public class ERPTuitionInfo extends ERPTuitionInfo_Base {
     }
 
     public static Stream<ERPTuitionInfo> find(final Customer customer, final ExecutionYear executionYear,
-            final ERPTuitionInfoType type) {
-        return find(customer).filter(i -> i.getExecutionYear() == executionYear).filter(i -> i.getErpTuitionInfoType() == type);
+            final Product product) {
+        return find(customer).filter(i -> i.getExecutionYear() == executionYear).filter(i -> i.getProduct() == product);
     }
 
     public static Optional<ERPTuitionInfo> findUniqueByDocumentNumber(final String documentNumber) {
@@ -252,51 +262,62 @@ public class ERPTuitionInfo extends ERPTuitionInfo_Base {
     }
 
     public static Stream<ERPTuitionInfo> findPendingToExport(final Customer customer, final ExecutionYear executionYear,
-            final ERPTuitionInfoType type) {
-        return find(customer, executionYear, type).filter(i -> i.isPendingToExport());
+            final Product product) {
+        return find(customer, executionYear, product).filter(i -> i.isPendingToExport());
     }
 
     public static Optional<ERPTuitionInfo> findUniquePendingToExport(final Customer customer, final ExecutionYear executionYear,
-            final ERPTuitionInfoType type) {
-        return findPendingToExport(customer, executionYear, type).findFirst();
+            final Product product) {
+        return findPendingToExport(customer, executionYear, product).findFirst();
     }
 
     public static Optional<ERPTuitionInfo> findFirstIntegratedWithSuccess(final Customer customer,
-            final ExecutionYear executionYear, final ERPTuitionInfoType type) {
-        return find(customer, executionYear, type).filter(t -> t.isExportationSuccess()).sorted(COMPARE_BY_CREATION_DATE)
-                .findFirst();
+            final ExecutionYear executionYear, final Product product) {
+        return find(customer, executionYear, product).filter(t -> t.isExportationSuccess())
+                .sorted(COMPARE_BY_CREATION_DATE).findFirst();
     }
 
     public static Optional<ERPTuitionInfo> findFirstIntegratedWithSuccess(final ERPTuitionInfo erpTuitionInfo) {
         return findFirstIntegratedWithSuccess(erpTuitionInfo.getCustomer(), erpTuitionInfo.getExecutionYear(),
-                erpTuitionInfo.getErpTuitionInfoType());
+                erpTuitionInfo.getProduct());
     }
 
     public static Optional<ERPTuitionInfo> findLastIntegratedWithSuccess(final Customer customer,
-            final ExecutionYear executionYear, final ERPTuitionInfoType type) {
-        return find(customer, executionYear, type).filter(t -> t.isExportationSuccess())
-                .sorted(COMPARE_BY_CREATION_DATE.reversed()).findFirst();
+            final ExecutionYear executionYear, final Product product) {
+        return find(customer, executionYear, product).filter(t -> t.isExportationSuccess())
+                .sorted(COMPARE_BY_ORDER_NUMBER.reversed()).findFirst();
     }
 
     private static ERPTuitionInfo create(final Customer customer, final ExecutionYear executionYear,
-            final ERPTuitionInfoType type, final BigDecimal tuitionTotalAmount, final BigDecimal deltaTuitionAmount,
-            final LocalDate beginDate, final LocalDate endDate, final ERPTuitionInfo lastSucessfulSentErpTuitionInfo) {
+            final Product product, 
+            final BigDecimal tuitionTotalAmount, 
+            final BigDecimal deltaTuitionAmount,
+            final LocalDate beginDate, 
+            final LocalDate endDate, 
+            final ERPTuitionInfo lastSucessfulSentErpTuitionInfo) {
 
-        if (findUniquePendingToExport(customer, executionYear, type).isPresent()) {
+        if (findUniquePendingToExport(customer, executionYear, product).isPresent()) {
             throw new AcademicTreasuryDomainException("error.ERPTuitionInfo.pending.to.export.already.exists");
         }
 
-        return new ERPTuitionInfo(customer, executionYear, type, tuitionTotalAmount, deltaTuitionAmount, beginDate, endDate,
+        return new ERPTuitionInfo(customer, executionYear, product, tuitionTotalAmount, deltaTuitionAmount, beginDate, endDate,
                 lastSucessfulSentErpTuitionInfo);
     }
 
     public static void triggerFullExportation() {
+
+        for(final FinantialInstitution institution : FinantialInstitution.findAll().collect(Collectors.toSet())) {
+            if (!institution.getErpIntegrationConfiguration().getActive()) {
+                throw new AcademicTreasuryDomainException("error.ERPTuitionInfo.exportation.disabled");
+            }
+        }
+
         List<Callable<ERPTuitionInfo>> callablesList = Lists.newArrayList();
 
-        for (final ERPTuitionInfoType type : ERPTuitionInfoType.findAll().collect(Collectors.toSet())) {
+        for (final Product product : ERPTuitionInfoType.findActiveProducts().collect(Collectors.toSet())) {
             for (final ExecutionYear executionYear : ERPTuitionInfoSettings.getInstance().getActiveExecutionYearsSet()) {
                 for (final PersonCustomer customer : PersonCustomer.findAll().collect(Collectors.<PersonCustomer> toSet())) {
-                    exportTuitionInformationCallable(customer, type, executionYear);
+                    exportTuitionInformationCallable(customer, product, executionYear);
                 }
             }
         }
@@ -309,65 +330,89 @@ public class ERPTuitionInfo extends ERPTuitionInfo_Base {
         }
     }
 
+    // @formatter:off
+    /* ********************
+     * EXPORTATION SERVICES
+     * ********************
+     */
+    // @formatter:on
+
     @Atomic(mode = TxMode.WRITE)
-    public static ERPTuitionInfo exportTuitionInformation(final PersonCustomer customer, final ERPTuitionInfoType type,
+    public static ERPTuitionInfo exportTuitionInformation(final PersonCustomer customer, final Product product,
             final ExecutionYear executionYear) {
 
-        BigDecimal totalAmount = BigDecimal.ZERO;
-        for (final AcademicTreasuryEvent event : AcademicTreasuryEvent.find(customer.getPerson())
-                .collect(Collectors.<AcademicTreasuryEvent> toSet())) {
-            if (type.isForRegistration() && event.isForRegistrationTuition()
-                    && type.getDegreeType() == event.getRegistration().getDegreeType()) {
-                totalAmount = totalAmount.add(event.getAmountToPay(customer, null));
-            } else if (type.isForStandalone() && event.isForStandaloneTuition()) {
-                totalAmount = totalAmount.add(event.getAmountToPay(customer, null));
-            } else if (type.isForExtracurricular() && event.isForExtracurricularTuition()) {
-                totalAmount = totalAmount.add(event.getAmountToPay(customer, null));
+        for(final FinantialInstitution institution : FinantialInstitution.findAll().collect(Collectors.toSet())) {
+            if (!institution.getErpIntegrationConfiguration().getActive()) {
+                throw new AcademicTreasuryDomainException("error.ERPTuitionInfo.exportation.disabled");
             }
         }
 
-        final Optional<ERPTuitionInfo> lastIntegratedWithSuccess = findLastIntegratedWithSuccess(customer, executionYear, type);
+        BigDecimal totalAmount = BigDecimal.ZERO;
+
+        for (final ERPTuitionInfoType type : ERPTuitionInfoType.findActive(product).collect(Collectors.toSet())) {
+            for (final AcademicTreasuryEvent event : AcademicTreasuryEvent.find(customer.referencedPerson())
+                    .collect(Collectors.<AcademicTreasuryEvent> toSet())) {
+
+                if (event.getExecutionYear() != executionYear) {
+                    continue;
+                }
+
+                if (type.isAppliedToAcademicTreasuryEvent(event)) {
+                    totalAmount = totalAmount.add(amountToPayWithoutInterests(customer, event));
+                }
+            }
+        }
+
+        final Optional<ERPTuitionInfo> lastIntegratedWithSuccess = findLastIntegratedWithSuccess(customer, executionYear, product);
         final BigDecimal deltaAmount = totalAmount.subtract(lastIntegratedWithSuccess.isPresent() ? lastIntegratedWithSuccess
                 .get().getTuitionTotalAmount() : BigDecimal.ZERO);
 
-        if (findUniquePendingToExport(customer, executionYear, type).isPresent()) {
-            final ERPTuitionInfo pendingErpTuitionInfo = findUniquePendingToExport(customer, executionYear, type).get();
+        if (findUniquePendingToExport(customer, executionYear, product).isPresent()) {
+            final ERPTuitionInfo pendingErpTuitionInfo = findUniquePendingToExport(customer, executionYear, product).get();
 
-            pendingErpTuitionInfo.editPendingToExport(totalAmount, deltaAmount, executionYear.getBeginLocalDate(),
-                    executionYear.getEndLocalDate());
-
-            if (Constants.isZero(deltaAmount)) {
-                pendingErpTuitionInfo.cancelExportation(Constants.bundle("label.ERPTuitionInfo.cancelExportation.delta.zero"));
-                return null;
+            if (Constants.isEqual(pendingErpTuitionInfo.getTuitionDeltaAmount(), deltaAmount)) {
+                return pendingErpTuitionInfo;
             }
-
-            return pendingErpTuitionInfo;
+            
+            pendingErpTuitionInfo.cancelExportation(Constants.bundle("label.ERPTuitionInfo.cancelExportation.delta.amount.different"));
+            
+            if(Constants.isZero(deltaAmount)) {
+                return pendingErpTuitionInfo;
+            }
         }
 
         if (org.fenixedu.academictreasury.util.Constants.isZero(deltaAmount)) {
             throw new AcademicTreasuryDomainException("error.ErpTuitionInfo.no.differences.from.last.successul.exportation");
         }
 
-        return ERPTuitionInfo.create(customer, executionYear, type, totalAmount, deltaAmount, executionYear.getBeginLocalDate(),
+        return ERPTuitionInfo.create(customer, executionYear, product, totalAmount, deltaAmount, executionYear.getBeginLocalDate(),
                 executionYear.getEndLocalDate(), lastIntegratedWithSuccess.orElse(null));
     }
 
+    private static BigDecimal amountToPayWithoutInterests(final PersonCustomer personCustomer, AcademicTreasuryEvent event) {
+        BigDecimal amountToPay = event.getAmountToPay(personCustomer, null);
+        
+        amountToPay = amountToPay.subtract(event.getInterestsAmountToPay(personCustomer));
+        
+        return Constants.isPositive(amountToPay) ? amountToPay : BigDecimal.ZERO;
+    }
+
     protected static Callable<ERPTuitionInfo> exportTuitionInformationCallable(final PersonCustomer customer,
-            final ERPTuitionInfoType type, final ExecutionYear executionYear) {
+            final Product product, final ExecutionYear executionYear) {
         return new Callable<ERPTuitionInfo>() {
 
             private String customerId = customer.getExternalId();
-            private String erpTuitionInfoTypeId = type.getExternalId();
+            private String productId = product.getExternalId();
             private String executionYearId = executionYear.getExternalId();
 
             @Override
             @Atomic(mode = TxMode.READ)
             public ERPTuitionInfo call() throws Exception {
                 final PersonCustomer c = FenixFramework.getDomainObject(customerId);
-                final ERPTuitionInfoType t = FenixFramework.getDomainObject(erpTuitionInfoTypeId);
+                final Product p = FenixFramework.getDomainObject(productId);
                 final ExecutionYear e = FenixFramework.getDomainObject(executionYearId);
 
-                return exportTuitionInformation(c, t, e);
+                return exportTuitionInformation(c, p, e);
             }
         };
     }

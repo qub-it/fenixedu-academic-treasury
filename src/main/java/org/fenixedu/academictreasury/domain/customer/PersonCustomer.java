@@ -320,6 +320,14 @@ public class PersonCustomer extends PersonCustomer_Base {
 
         return activeCustomer.get();
     }
+    
+    public Person referencedPerson() {
+        if(isActive()) {
+            return getPerson();
+        }
+        
+        return getPersonForInactivePersonCustomer();
+    }
 
     @Override
     public void delete() {
@@ -456,7 +464,8 @@ public class PersonCustomer extends PersonCustomer_Base {
 
     public static Stream<? extends PersonCustomer> find(final Person person, final String fiscalCountryCode,
             final String fiscalNumber) {
-        return find(person).filter(pc -> !Strings.isNullOrEmpty(pc.getFiscalCountry())
+        return find(person).filter(pc -> 
+                !Strings.isNullOrEmpty(pc.getFiscalCountry())
                 && lowerCase(pc.getFiscalCountry()).equals(lowerCase(fiscalCountryCode))
                 && !Strings.isNullOrEmpty(pc.getFiscalNumber())
                 && lowerCase(pc.getFiscalNumber()).equals(lowerCase(fiscalNumber)));

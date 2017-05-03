@@ -137,7 +137,7 @@ ${portal.toolkit()}
                 </div>
                 <div class="col-sm-3">
                     <input id="erpTuitionInfo_studentNumber" class="form-control" type="text" name="studentNumber" 
-                        value='<c:out value='${param.studentNumber}'/>' />
+                        value='<c:out value='${param.studentNumber != null ? param.studentNumber : studentNumber}'/>' />
                 </div>
             </div>
 
@@ -148,7 +148,7 @@ ${portal.toolkit()}
                 </div>
                 <div class="col-sm-3">
                     <input id="erpTuitionInfo_customerName" class="form-control" type="text" name="customerName" 
-                        value='<c:out value='${param.customerName}'/>' />
+                        value='<c:out value='${param.customerName != null ? param.customerName : customerName}'/>' />
                 </div>
             </div>
 

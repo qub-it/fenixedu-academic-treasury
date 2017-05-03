@@ -8,10 +8,12 @@ import org.fenixedu.academictreasury.dto.integration.tuitioninfo.ERPTuitionInfoT
 import org.fenixedu.academictreasury.ui.AcademicTreasuryBaseController;
 import org.fenixedu.academictreasury.ui.AcademicTreasuryController;
 import org.fenixedu.academictreasury.util.Constants;
+import org.fenixedu.bennu.core.domain.exceptions.DomainException;
 import org.fenixedu.bennu.spring.portal.SpringFunctionality;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -46,20 +48,20 @@ public class ERPTuitionInfoTypeController extends AcademicTreasuryBaseController
 
     @RequestMapping(value = _CREATE_URI, method = RequestMethod.GET)
     public String create(final Model model) {
-
-        return null;
+        return _create(new ERPTuitionInfoTypeBean(), model);
     }
 
     private String _create(final ERPTuitionInfoTypeBean bean, final Model model) {
 
         model.addAttribute("bean", bean);
-        model.addAttribute("bean", getBeanJson(bean));
+        model.addAttribute("beanJson", getBeanJson(bean));
 
         return jspPage(_CREATE_URI);
     }
 
     @RequestMapping(value = _CREATE_URI, method = RequestMethod.POST)
-    public String createpost(final ERPTuitionInfoTypeBean bean, final Model model, final RedirectAttributes redirectAttributes) {
+    public String createpost(@RequestParam(value = "bean", required = false) final ERPTuitionInfoTypeBean bean, final Model model, 
+            final RedirectAttributes redirectAttributes) {
 
         try {
             if (bean.getTuitionType() == null) {
@@ -116,6 +118,19 @@ public class ERPTuitionInfoTypeController extends AcademicTreasuryBaseController
     private static final String _DELETE_URI = "/delete";
     public static final String DELETE_URL = CONTROLLER_URL + _DELETE_URI;
 
+    @RequestMapping(value = _DELETE_URI + "/{erpTuitionInfoTypeId}", method=RequestMethod.POST)
+    public String delete(@PathVariable("erpTuitionInfoTypeId") final ERPTuitionInfoType erpTuitionInfoType, 
+            final Model model, final RedirectAttributes redirectAttributes) {
+        try {
+            erpTuitionInfoType.delete();
+            
+            return redirect(SEARCH_URL, model, redirectAttributes);
+        } catch(final DomainException e) {
+            addErrorMessage(e.getLocalizedMessage(), model);
+            return search(model);
+        }
+    }
+    
     private String jspPage(final String page) {
         return JSP_PATH + page;
     }
