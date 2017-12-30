@@ -2,7 +2,7 @@ package org.fenixedu.academictreasury.domain.treasury;
 
 import org.fenixedu.academic.domain.Enrolment;
 import org.fenixedu.academictreasury.services.TuitionServices;
-import org.fenixedu.bennu.signals.DomainObjectEvent;
+import org.fenixedu.bennu.core.signals.DomainObjectEvent;
 
 import com.google.common.eventbus.Subscribe;
 

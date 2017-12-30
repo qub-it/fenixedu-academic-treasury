@@ -8,7 +8,7 @@ import org.fenixedu.academictreasury.domain.academicalAct.AcademicActBlockingSus
 import org.fenixedu.academictreasury.domain.customer.PersonCustomer;
 import org.fenixedu.academictreasury.domain.event.AcademicTreasuryEvent;
 import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainException;
-import org.fenixedu.bennu.signals.DomainObjectEvent;
+import org.fenixedu.bennu.core.signals.DomainObjectEvent;
 import org.joda.time.LocalDate;
 
 import pt.ist.fenixframework.Atomic;

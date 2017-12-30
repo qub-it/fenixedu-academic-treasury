@@ -6,7 +6,7 @@ import org.fenixedu.academic.domain.Person;
 import org.fenixedu.academic.domain.student.Registration;
 import org.fenixedu.academictreasury.domain.customer.PersonCustomer;
 import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainException;
-import org.fenixedu.bennu.signals.DomainObjectEvent;
+import org.fenixedu.bennu.core.signals.DomainObjectEvent;
 
 import com.google.common.base.Strings;
 import com.google.common.eventbus.Subscribe;

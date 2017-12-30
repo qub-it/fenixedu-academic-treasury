@@ -31,7 +31,7 @@ import org.fenixedu.academictreasury.domain.tariff.AcademicTariff;
 import org.fenixedu.academictreasury.services.AcademicTaxServices;
 import org.fenixedu.academictreasury.services.PersonServices;
 import org.fenixedu.academictreasury.services.TuitionServices;
-import org.fenixedu.bennu.signals.DomainObjectEvent;
+import org.fenixedu.bennu.core.signals.DomainObjectEvent;
 import org.fenixedu.treasury.domain.FinantialEntity;
 import org.fenixedu.treasury.domain.FinantialInstitution;
 import org.fenixedu.treasury.domain.Product;

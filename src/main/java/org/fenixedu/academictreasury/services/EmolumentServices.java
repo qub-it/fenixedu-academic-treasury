@@ -21,7 +21,7 @@ import org.fenixedu.academictreasury.domain.serviceRequests.ITreasuryServiceRequ
 import org.fenixedu.academictreasury.domain.settings.AcademicTreasurySettings;
 import org.fenixedu.academictreasury.domain.tariff.AcademicTariff;
 import org.fenixedu.academictreasury.dto.academicservicerequest.AcademicServiceRequestDebitEntryBean;
-import org.fenixedu.bennu.signals.DomainObjectEvent;
+import org.fenixedu.bennu.core.signals.DomainObjectEvent;
 import org.fenixedu.commons.i18n.LocalizedString;
 import org.fenixedu.treasury.domain.FinantialEntity;
 import org.fenixedu.treasury.domain.FinantialInstitution;

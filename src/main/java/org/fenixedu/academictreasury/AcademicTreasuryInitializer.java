@@ -17,7 +17,7 @@ import org.fenixedu.academictreasury.services.signals.AcademicServiceRequestCanc
 import org.fenixedu.academictreasury.services.signals.ExtracurricularEnrolmentHandler;
 import org.fenixedu.academictreasury.services.signals.ImprovementEnrolmentHandler;
 import org.fenixedu.academictreasury.services.signals.StandaloneEnrolmentHandler;
-import org.fenixedu.bennu.signals.Signal;
+import org.fenixedu.bennu.core.signals.Signal;
 import org.fenixedu.treasury.domain.bennu.signals.BennuSignalsServices;
 import org.fenixedu.treasury.services.accesscontrol.TreasuryAccessControlAPI;
 

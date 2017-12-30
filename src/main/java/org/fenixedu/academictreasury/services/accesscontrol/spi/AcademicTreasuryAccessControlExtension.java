@@ -2,6 +2,7 @@ package org.fenixedu.academictreasury.services.accesscontrol.spi;
 
 import java.util.Collections;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.fenixedu.academic.domain.accessControl.academicAdministration.AcademicAccessRule;
 import org.fenixedu.academic.domain.accessControl.academicAdministration.AcademicOperationType;
@@ -33,7 +34,7 @@ public class AcademicTreasuryAccessControlExtension implements ITreasuryAccessCo
         return AcademicAccessRule.isMember(user, AcademicOperationType.MANAGE_STUDENT_PAYMENTS, Collections.emptySet(),
                 Collections.singleton(finantialEntity.getAdministrativeOffice()));
     }
-    
+
     @Override
     public boolean isBackOfficeMember(final User user) {
         return FinantialInstitution.findAll().map(l -> isBackOfficeMember(user, l)).reduce((a, b) -> a || b).orElse(false);
@@ -56,21 +57,17 @@ public class AcademicTreasuryAccessControlExtension implements ITreasuryAccessCo
 
     @Override
     public Set<User> getFrontOfficeMembers() {
-        return FinantialEntity
-                .findAll()
-                .filter(l -> l.getAdministrativeOffice() != null)
+        return FinantialEntity.findAll().filter(l -> l.getAdministrativeOffice() != null)
                 .map(l -> AcademicAccessRule.getMembers(AcademicOperationType.MANAGE_STUDENT_PAYMENTS, Collections.emptySet(),
-                        Collections.singleton(l.getAdministrativeOffice()))).reduce((a, b) -> Sets.union(a, b))
-                .orElse(Collections.emptySet());
+                        Collections.singleton(l.getAdministrativeOffice())).collect(Collectors.toSet()))
+                .reduce((a, b) -> Sets.union(a, b)).orElse(Collections.emptySet());
     }
 
     @Override
     public Set<User> getBackOfficeMembers() {
-        return FinantialEntity
-                .findAll()
-                .filter(l -> l.getAdministrativeOffice() != null)
-                .map(l -> AcademicAccessRule.getMembers(AcademicOperationType.MANAGE_STUDENT_PAYMENTS_ADV,
-                        Collections.emptySet(), Collections.singleton(l.getAdministrativeOffice())))
+        return FinantialEntity.findAll().filter(l -> l.getAdministrativeOffice() != null)
+                .map(l -> AcademicAccessRule.getMembers(AcademicOperationType.MANAGE_STUDENT_PAYMENTS_ADV, Collections.emptySet(),
+                        Collections.singleton(l.getAdministrativeOffice())).collect(Collectors.toSet()))
                 .reduce((a, b) -> Sets.union(a, b)).orElse(Collections.emptySet());
     }
 
