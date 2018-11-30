@@ -63,13 +63,11 @@ ${portal.angularToolkit()}
 </div>
 
 <%-- Choose Execution Year --%>
-<div ng-app="changeExample" ng-controller="ExampleController"
-    style="margin-bottom: 20px" class="container">
-    <div class="col-sm-12">
-        <strong><spring:message
-                code="label.DegreeCurricularPlan.executionYear" /></strong>
+<div ng-app="changeExample" ng-controller="ExampleController" style="margin-bottom: 20px" class="row">
+    <div class="col-sx-2">
+        <strong><spring:message code="label.DegreeCurricularPlan.executionYear" /></strong>
     </div>
-    <div class="col-sm-2">
+    <div class="col-sx-2">
         <select id="executionYearOptions"
             class="js-example-basic-single form-control"
             name="executionYearId"

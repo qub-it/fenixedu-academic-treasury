@@ -147,15 +147,9 @@ angular.module('angularAppAcademicDebtGenerationRule', ['ngSanitize', 'ui.select
 }]);
 </script>
 
-<div
-	ng-app="angularAppAcademicDebtGenerationRule"
-	ng-controller="AcademicDebtGenerationRuleController">
+<div ng-app="angularAppAcademicDebtGenerationRule" ng-controller="AcademicDebtGenerationRuleController">
 
-
-
-    <h3>
-        <spring:message code="label.AcademicDebtGenerationRule.rules" />
-    </h3>
+    <h3><spring:message code="label.AcademicDebtGenerationRule.rules" /></h3>
     
     <form id="execution-year-select-form" name='form' method="post" class="form-horizontal"
         action='${pageContext.request.contextPath}<%= AcademicDebtGenerationRuleController.CREATE_URL %>/${academicDebtGenerationRuleType.externalId}/${executionYear.externalId}'>
@@ -472,7 +466,7 @@ angular.module('angularAppAcademicDebtGenerationRule', ['ngSanitize', 'ui.select
             </div>
           </div>
         </div>
-    </form>
+</form>
 
     <h3 style="margin-top:100px;">
         <spring:message code="label.AcademicDebtGenerationRule.degreeCurricularPlans" />

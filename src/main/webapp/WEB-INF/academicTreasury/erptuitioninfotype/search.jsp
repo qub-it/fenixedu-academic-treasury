@@ -78,6 +78,26 @@ ${portal.toolkit()}
     </div>
 </c:if>
 
+<%-- Choose Execution Year --%>
+<div class="form-group">
+    <div class="col-xs-2 control-label">
+        <strong><spring:message code="label.ERPTuitionInfoType.executionYear" /></strong>
+    </div>
+    <div class="col-xs-2">
+        <select id="executionYearOptionsId" class="form-control" name="executionYearId" value=""
+        	onchange="window.location='${pageContext.request.contextPath}<%= ERPTuitionInfoTypeController.SEARCH_URL %>/' + this.options[this.selectedIndex].value;">
+            <c:forEach items="${executionYearOptions}" var="e">
+                <option value="${e.externalId}">${e.qualifiedName}</option>
+            </c:forEach>
+        </select>
+        <script type="text/javascript">
+        	$(document).ready(function() {
+        		document.getElementById('executionYearOptionsId').value=${executionYear.externalId};
+        	});
+        </script>
+    </div>
+</div>
+
 <c:choose>
 	<c:when test="${not empty result}">
 		<table id="simpletable" class="table responsive table-bordered table-hover">
