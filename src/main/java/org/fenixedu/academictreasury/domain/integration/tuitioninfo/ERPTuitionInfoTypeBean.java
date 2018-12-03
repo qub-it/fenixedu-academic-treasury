@@ -8,9 +8,11 @@ import java.util.stream.Collectors;
 
 import org.fenixedu.academic.domain.Degree;
 import org.fenixedu.academic.domain.DegreeCurricularPlan;
+import org.fenixedu.academic.domain.ExecutionYear;
 import org.fenixedu.academic.domain.degree.DegreeType;
 import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainException;
 import org.fenixedu.academictreasury.domain.settings.AcademicTreasurySettings;
+import org.fenixedu.academictreasury.domain.tuition.TuitionPaymentPlanGroup;
 import org.fenixedu.bennu.core.domain.Bennu;
 import org.fenixedu.treasury.domain.Product;
 import org.fenixedu.treasury.dto.ITreasuryBean;
@@ -26,6 +28,8 @@ public class ERPTuitionInfoTypeBean implements ITreasuryBean, Serializable {
     
     private static final long serialVersionUID = 1L;
     
+    private ExecutionYear executionYear;
+    
     private ERPTuitionInfoProduct erpTuitionInfoProduct;
     
     private List<Product> tuitionProducts = Lists.newArrayList();
@@ -33,6 +37,7 @@ public class ERPTuitionInfoTypeBean implements ITreasuryBean, Serializable {
     private List<Degree> degrees = Lists.newArrayList();
     private List<DegreeCurricularPlan> degreeCurricularPlans = Lists.newArrayList();
     
+    private List<TreasuryTupleDataSourceBean> tuitionPaymentPlanGroupDataSource = Lists.newArrayList();
     private List<TreasuryTupleDataSourceBean> erpTuitionInfoProductDataSource = Lists.newArrayList();
     private List<TreasuryTupleDataSourceBean> productDataSource = Lists.newArrayList();
     private List<TreasuryTupleDataSourceBean> degreeTypeDataSource = Lists.newArrayList();
@@ -40,12 +45,19 @@ public class ERPTuitionInfoTypeBean implements ITreasuryBean, Serializable {
     private List<TreasuryTupleDataSourceBean> degreeCurricularPlanDataSource = Lists.newArrayList();
     
     private DegreeType selectedDegreeType;
-    private List<Degree> selectedDegrees;
-    private List<DegreeCurricularPlan> selectedDegreeCurricularPlans;
+    private List<Degree> selectedDegrees = Lists.newArrayList();
+    private List<DegreeCurricularPlan> selectedDegreeCurricularPlans = Lists.newArrayList();
     
     private Product selectedTuitionProduct;
     
     private String degreeInfoSelectOption;
+    
+    private TuitionPaymentPlanGroup tuitionPaymentPlanGroup;
+    
+    public ERPTuitionInfoTypeBean(final ExecutionYear executionYear) {
+        this.executionYear = executionYear;
+        this.degreeInfoSelectOption = DEGREE_TYPE_OPTION;
+    }
     
     public void addTuitionProduct() {
         if(this.selectedTuitionProduct == null) {
@@ -57,6 +69,22 @@ public class ERPTuitionInfoTypeBean implements ITreasuryBean, Serializable {
         }
         
         this.selectedTuitionProduct = null;
+    }
+    
+    public void removeTuitionProduct(final Product product) {
+        this.tuitionProducts.remove(product);
+    }
+    
+    public void removeDegreeType(final DegreeType degreeType) {
+        this.degreeTypes.remove(degreeType);
+    }
+    
+    public void removeDegree(final Degree degree) {
+        this.degrees.remove(degree);
+    }
+    
+    public void removeDegreeCurricularPlan(final DegreeCurricularPlan degreeCurricularPlan) {
+        this.degreeCurricularPlans.remove(degreeCurricularPlan);
     }
     
     public void addDegreeType() {
@@ -102,6 +130,8 @@ public class ERPTuitionInfoTypeBean implements ITreasuryBean, Serializable {
                 continue;
             }
             
+            this.degrees.add(degree);
+            
         }
         
         this.selectedDegrees = Lists.newArrayList();
@@ -133,12 +163,25 @@ public class ERPTuitionInfoTypeBean implements ITreasuryBean, Serializable {
     }
 
     public void update() {
+        {
+            final TuitionPaymentPlanGroup r = TuitionPaymentPlanGroup.findUniqueDefaultGroupForRegistration().get();
+            final TuitionPaymentPlanGroup s = TuitionPaymentPlanGroup.findUniqueDefaultGroupForStandalone().get();
+            final TuitionPaymentPlanGroup e = TuitionPaymentPlanGroup.findUniqueDefaultGroupForExtracurricular().get();
+            
+            this.tuitionPaymentPlanGroupDataSource = Lists.newArrayList(
+                    new TreasuryTupleDataSourceBean(r.getExternalId(), r.getName().getContent()),
+                    new TreasuryTupleDataSourceBean(s.getExternalId(), s.getName().getContent()),
+                    new TreasuryTupleDataSourceBean(e.getExternalId(), e.getName().getContent()));
+        }
+        
         this.erpTuitionInfoProductDataSource = ERPTuitionInfoProduct.findAll()
                 .map(l -> new TreasuryTupleDataSourceBean(l.getExternalId(), format("[%s] %s", l.getCode(), l.getName())))
                 .sorted(TreasuryTupleDataSourceBean.COMPARE_BY_TEXT)
                 .collect(Collectors.toList());
         
-        this.productDataSource = AcademicTreasurySettings.getInstance().getTuitionProductGroup().getProductsSet().stream().sorted(Product.COMPARE_BY_NAME)
+        this.productDataSource = AcademicTreasurySettings.getInstance().getTuitionProductGroup().getProductsSet().stream()
+                .filter(p -> !this.tuitionProducts.contains(p))
+                .sorted(Product.COMPARE_BY_NAME)
                 .map(l -> new TreasuryTupleDataSourceBean(l.getExternalId(), format("%s [%s]", l.getName().getContent(), l.getCode()))).collect(Collectors.toList());
 
         this.degreeTypeDataSource = DegreeType.all().filter(d -> !degreeTypes.contains(d))
@@ -147,9 +190,13 @@ public class ERPTuitionInfoTypeBean implements ITreasuryBean, Serializable {
         
         if(DEGREES_OPTION.equals(this.degreeInfoSelectOption)) {
             if(this.selectedDegreeType != null) {
-                this.degreeDataSource = this.selectedDegreeType.getDegreeSet().stream().filter(d -> !this.degrees.contains(d))
+                this.degreeDataSource = this.selectedDegreeType.getDegreeSet().stream()
+                        .filter(d -> !this.degrees.contains(d))
+                        .filter(d -> !this.degreeTypes.contains(d.getDegreeType()))
+                        .filter(d -> !d.getExecutionDegrees(executionYear.getAcademicInterval()).isEmpty())
                         .map(d -> new TreasuryTupleDataSourceBean(d.getExternalId(), degreeDescription(d)))
-                        .sorted(TreasuryTupleDataSourceBean.COMPARE_BY_TEXT).collect(Collectors.toList());
+                        .sorted(TreasuryTupleDataSourceBean.COMPARE_BY_TEXT)
+                        .collect(Collectors.toList());
             } else {
                 this.degreeDataSource = Lists.newArrayList();
             }
@@ -159,6 +206,9 @@ public class ERPTuitionInfoTypeBean implements ITreasuryBean, Serializable {
                 
                 this.degreeCurricularPlanDataSource = Bennu.getInstance().getDegreeCurricularPlansSet().stream()
                     .filter(d -> d.getDegreeType() == this.selectedDegreeType)
+                    .filter(d -> d.getExecutionDegreeByAcademicInterval(executionYear.getAcademicInterval()) != null)
+                    .filter(d -> !this.degrees.contains(d.getDegree()))
+                    .filter(d -> !this.degreeTypes.contains(d.getDegree().getDegreeType()))
                     .map((dcp) -> new TreasuryTupleDataSourceBean(dcp.getExternalId(), dcpDescription(dcp)))
                     .sorted(TreasuryTupleDataSourceBean.COMPARE_BY_TEXT)
                     .collect(Collectors.toList());
@@ -173,17 +223,30 @@ public class ERPTuitionInfoTypeBean implements ITreasuryBean, Serializable {
     }
 
     private String degreeDescription(final Degree d) {
-        return format("[%s] %s > %s", d.getCode(), d.getDegreeType().getName().getContent(), d.getPresentationNameI18N().getContent());
+        return format("[%s] %s", d.getCode(), d.getPresentationNameI18N().getContent());
     }
 
     public static String dcpDescription(final DegreeCurricularPlan dcp) {
-        return format("[%s] %s > %s - %s",
-                dcp.getDegree().getCode(), dcp.getDegreeType().getName().getContent(), dcp.getDegree().getPresentationNameI18N().getContent(), dcp.getName());
+        return format("[%s] %s - %s",
+                dcp.getDegree().getCode(), dcp.getDegree().getPresentationNameI18N().getContent(), dcp.getName());
     }
     
     public boolean isDegreeInformationDefined() {
         return !degreeTypes.isEmpty() || !degrees.isEmpty() || !degreeCurricularPlans.isEmpty();
     }
+    
+    public boolean isDegreeInfoSelectOptionDegreeType() {
+        return DEGREE_TYPE_OPTION.equals(this.degreeInfoSelectOption);
+    }
+    
+    public boolean isDegreeInfoSelectOptionDegrees() {
+        return DEGREES_OPTION.equals(this.degreeInfoSelectOption);
+    }
+    
+    public boolean isDegreeInfoSelectOptionDegreeCurricularPlans() {
+        return DEGREE_CURRICULAR_PLANS_OPTION.equals(this.degreeInfoSelectOption);
+    }
+    
 
     // @formatter:off
     /* *****************
@@ -192,6 +255,14 @@ public class ERPTuitionInfoTypeBean implements ITreasuryBean, Serializable {
      */
     // @formatter:on
 
+    public ExecutionYear getExecutionYear() {
+        return executionYear;
+    }
+    
+    public void setExecutionYear(ExecutionYear executionYear) {
+        this.executionYear = executionYear;
+    }
+    
     public ERPTuitionInfoProduct getErpTuitionInfoProduct() {
         return erpTuitionInfoProduct;
     }
@@ -312,7 +383,20 @@ public class ERPTuitionInfoTypeBean implements ITreasuryBean, Serializable {
         this.degreeInfoSelectOption = degreeInfoSelectOption;
     }
 
+    public TuitionPaymentPlanGroup getTuitionPaymentPlanGroup() {
+        return tuitionPaymentPlanGroup;
+    }
     
+    public void setTuitionPaymentPlanGroup(TuitionPaymentPlanGroup tuitionPaymentPlanGroup) {
+        this.tuitionPaymentPlanGroup = tuitionPaymentPlanGroup;
+    }
     
+    public List<TreasuryTupleDataSourceBean> getTuitionPaymentPlanGroupDataSource() {
+        return tuitionPaymentPlanGroupDataSource;
+    }
+    
+    public void setTuitionPaymentPlanGroupDataSource(List<TreasuryTupleDataSourceBean> tuitionPaymentPlanGroupDataSource) {
+        this.tuitionPaymentPlanGroupDataSource = tuitionPaymentPlanGroupDataSource;
+    }
     
 }

@@ -37,7 +37,7 @@ ${portal.toolkit()}
 <%-- NAVIGATION --%>
 <div class="well well-sm" style="display: inline-block">
     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>&nbsp;
-    <a href="${pageContext.request.contextPath}<%= ERPTuitionInfoTypeController.CREATE_URL %>">
+    <a href="${pageContext.request.contextPath}<%= ERPTuitionInfoTypeController.CREATE_URL %>/${executionYear.externalId}">
     	<spring:message code="label.ERPTuitionInfoType.create" />
     </a>
 </div>
@@ -79,22 +79,24 @@ ${portal.toolkit()}
 </c:if>
 
 <%-- Choose Execution Year --%>
-<div class="form-group">
-    <div class="col-xs-2 control-label">
+<div class="form-group row">
+    <label for="executionYearId" class="col-xs-1 control-label">
         <strong><spring:message code="label.ERPTuitionInfoType.executionYear" /></strong>
-    </div>
+    </label>
     <div class="col-xs-2">
         <select id="executionYearOptionsId" class="form-control" name="executionYearId" value=""
         	onchange="window.location='${pageContext.request.contextPath}<%= ERPTuitionInfoTypeController.SEARCH_URL %>/' + this.options[this.selectedIndex].value;">
             <c:forEach items="${executionYearOptions}" var="e">
-                <option value="${e.externalId}">${e.qualifiedName}</option>
+            	<c:choose>
+	            	<c:when test="${e == executionYear}">
+		                <option value="${e.externalId}" selected>${e.qualifiedName}</option>
+	            	</c:when>
+	            	<c:otherwise>
+		                <option value="${e.externalId}">${e.qualifiedName}</option>
+	            	</c:otherwise>
+            	</c:choose>
             </c:forEach>
         </select>
-        <script type="text/javascript">
-        	$(document).ready(function() {
-        		document.getElementById('executionYearOptionsId').value=${executionYear.externalId};
-        	});
-        </script>
     </div>
 </div>
 

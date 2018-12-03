@@ -2,15 +2,16 @@ package org.fenixedu.academictreasury.domain.integration.tuitioninfo;
 
 import java.util.Comparator;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Stream;
 
 import org.fenixedu.academic.domain.Degree;
 import org.fenixedu.academic.domain.DegreeCurricularPlan;
 import org.fenixedu.academic.domain.ExecutionYear;
+import org.fenixedu.academic.domain.degree.DegreeType;
 import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainException;
+
+import pt.ist.fenixframework.Atomic;
 import pt.ist.fenixframework.FenixFramework;
-import org.fenixedu.treasury.domain.Product;
 
 public class ERPTuitionInfoType extends ERPTuitionInfoType_Base {
 
@@ -32,15 +33,41 @@ public class ERPTuitionInfoType extends ERPTuitionInfoType_Base {
         setActive(true);
     }
 
-    private ERPTuitionInfoType(final ExecutionYear executionYear, final ERPTuitionInfoProduct product,
-            final Set<Product> tuitionProducts) {
+    private ERPTuitionInfoType(final ERPTuitionInfoTypeBean bean) {
         this();
 
-        setExecutionYear(executionYear);
-        setErpTuitionInfoProduct(product);
+        setExecutionYear(bean.getExecutionYear());
+        setErpTuitionInfoProduct(bean.getErpTuitionInfoProduct());
+        
+        getTuitionProductsSet().addAll(bean.getTuitionProducts());
 
-        getTuitionProductsSet().addAll(tuitionProducts);
+        if(bean.getTuitionPaymentPlanGroup() == null) {
+            throw new AcademicTreasuryDomainException("error.ERPTuitionInfoType.TuitionPaymentPlanGroup.required.to.infer.academic.info");
+        }
+        
+        if(bean.getTuitionPaymentPlanGroup().isForExtracurricular()) {
 
+            ERPTuitionInfoTypeAcademicEntry.createForExtracurricularTuition(this);
+
+        } else if(bean.getTuitionPaymentPlanGroup().isForStandalone()) {
+
+            ERPTuitionInfoTypeAcademicEntry.createForStandaloneTuition(this);
+
+        } else if(bean.getTuitionPaymentPlanGroup().isForRegistration()) {
+            
+            for (DegreeType degreeType : bean.getDegreeTypes()) {
+                ERPTuitionInfoTypeAcademicEntry.createForRegistrationTuition(this, degreeType);
+            }
+            
+            for (Degree degree : bean.getDegrees()) {
+                ERPTuitionInfoTypeAcademicEntry.createForRegistrationTuition(this, degree);
+            }
+            
+            for (DegreeCurricularPlan degreeCurricularPlan : bean.getDegreeCurricularPlans()) {
+                ERPTuitionInfoTypeAcademicEntry.createForRegistrationTuition(this, degreeCurricularPlan);
+            }
+        }
+        
         checkRules();
     }
 
@@ -58,18 +85,23 @@ public class ERPTuitionInfoType extends ERPTuitionInfoType_Base {
             throw new AcademicTreasuryDomainException("error.ERPTuitionInfoType.tuitionProducts.required");
         }
         
+        if(getErpTuitionInfoProduct() == null) {
+            throw new AcademicTreasuryDomainException("error.ERPTuitionInfoType.erpTuitionProduct.required");
+        }
+        
+        final ExecutionYear executionYear = getExecutionYear();
+        if(getErpTuitionInfoProduct().getErpTuitionInfoTypesSet().stream().filter(t -> t.getExecutionYear() == executionYear).count() > 1) {
+            throw new AcademicTreasuryDomainException("error.ERPTuitionInfoType.erpTuitionProduct.already.defined");
+        }
+        
+        if(getErpTuitionInfoTypeAcademicEntriesSet().isEmpty()) {
+            throw new AcademicTreasuryDomainException("error.ERPTuitionInfoType.academic.entries.required");
+        }
+        
     }
-
+    
     public boolean isActive() {
         return getActive();
-    }
-
-    public Degree getDegree() {
-        return null;
-    }
-
-    public DegreeCurricularPlan getDegreeCurricularPlan() {
-        return null;
     }
 
     public void delete() {
@@ -121,9 +153,9 @@ public class ERPTuitionInfoType extends ERPTuitionInfoType_Base {
         return findAll().filter(e -> e.getErpTuitionInfoProduct().getCode().equals(code)).findFirst();
     }
 
-    public static ERPTuitionInfoType create(final ExecutionYear executionYear, final ERPTuitionInfoProduct product,
-            final Set<Product> tuitionProducts) {
-        return new ERPTuitionInfoType(executionYear, product, tuitionProducts);
+    @Atomic
+    public static ERPTuitionInfoType create(final ERPTuitionInfoTypeBean bean) {
+        return new ERPTuitionInfoType(bean);
     }
 
 }
