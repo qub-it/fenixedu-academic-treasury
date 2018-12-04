@@ -13,13 +13,22 @@ public class ERPTuitionInfoSettings extends ERPTuitionInfoSettings_Base {
         setDomainRoot(FenixFramework.getDomainRoot());
     }
     
+    public IERPTuitionInfoExporter exporter() {
+        return new ERPTuitionInfoExporterForSAP();
+    }
+    
+    public boolean isExportationActive() {
+        return getExportationActive();
+    }
+    
     @Atomic
     public void edit(final Series series) {
         setSeries(series);
     }
     
-    public IERPTuitionInfoExporter exporter() {
-        return new ERPTuitionInfoExporterForSAP();
+    @Atomic
+    public void toogleExportationActive() {
+        setExportationActive(!isExportationActive());
     }
     
     // @formatter:off

@@ -1,3 +1,4 @@
+<%@page import="org.fenixedu.academictreasury.domain.integration.tuitioninfo.ERPTuitionInfoSettings"%>
 <%@page import="org.fenixedu.academictreasury.ui.integration.tuitioninfo.ERPTuitionInfoTypeController"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 <%@ taglib prefix="spring" uri="http://www.springframework.org/tags"%>
@@ -34,13 +35,166 @@ ${portal.toolkit()}
         <small></small>
     </h1>
 </div>
+
+<form id="toogleExportationActiveForm" action="${pageContext.request.contextPath}<%= ERPTuitionInfoTypeController.TOOGLE_EXPORTATION_ACTIVE_URL %>/${executionYear.externalId}" method="post">
+</form>
+
+
+<% if(!ERPTuitionInfoSettings.getInstance().isExportationActive()) { %>
+
+<script type="text/javascript">
+	function processDelete(externalId) {
+		url = "${pageContext.request.contextPath}<%= ERPTuitionInfoTypeController.DELETE_URL %>/${executionYear.externalId}" + "/" + externalId;
+		$("#deleteForm").attr("action", url);
+		$('#deleteModal').modal('toggle')
+	}
+	
+	function processToogleActive(externalId) {
+		url = "${pageContext.request.contextPath}<%= ERPTuitionInfoTypeController.TOOGLE_ACTIVE_URL %>/${executionYear.externalId}" + "/" + externalId;
+		$("#toogleForm").attr("action", url);
+		$('#toogleModal').modal('toggle')
+	}
+	
+</script>
+
+<div class="modal fade" id="deleteModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="deleteForm" action="#" method="POST">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <h4 class="modal-title">
+                        <spring:message code="label.confirmation" />
+                    </h4>
+                </div>
+                <div class="modal-body">
+                    <p>
+                        <spring:message code="label.ERPTuitionInfoType.delete.confirm" />
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">
+                        <spring:message code="label.close" />
+                    </button>
+                    <button id="deleteButton" class="btn btn-warning" type="submit">
+                        <spring:message code="label.delete" />
+                    </button>
+                </div>
+            </form>
+        </div>
+        <!-- /.modal-content -->
+    </div>
+    <!-- /.modal-dialog -->
+</div>
+<!-- /.modal -->
+
+<div class="modal fade" id="toogleModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="toogleForm" action="#" method="POST">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <h4 class="modal-title">
+                        <spring:message code="label.confirmation" />
+                    </h4>
+                </div>
+                <div class="modal-body">
+                    <p>
+                        <spring:message code="label.ERPTuitionInfoType.toogle.confirm" />
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">
+                        <spring:message code="label.close" />
+                    </button>
+                    <button id="deleteButton" class="btn btn-warning" type="submit">
+                        <spring:message code="label.confirm" />
+                    </button>
+                </div>
+            </form>
+        </div>
+        <!-- /.modal-content -->
+    </div>
+    <!-- /.modal-dialog -->
+</div>
+<!-- /.modal -->
+
+
+
 <%-- NAVIGATION --%>
 <div class="well well-sm" style="display: inline-block">
-    <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>&nbsp;
+    <span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span>&nbsp;
     <a href="${pageContext.request.contextPath}<%= ERPTuitionInfoTypeController.CREATE_URL %>/${executionYear.externalId}">
     	<spring:message code="label.ERPTuitionInfoType.create" />
     </a>
+    &nbsp;|&nbsp;
+    <span class="glyphicon glyphicon-off" aria-hidden="true"></span>&nbsp;
+    <a href="#" onclick="$('#toogleExportationActiveForm').submit(); return false;">
+    	<spring:message code="label.ERPTuitionInfoType.enable.exportation.active" />
+    </a>
+    
+    
+    
 </div>
+
+<div class="row">
+    <label for="executionYearId" class="col-xs-3">
+        <strong><spring:message code="label.ERPTuitionInfoType.exportationActive.state" /></strong>
+    </label>
+    <div class="col-xs-1">
+		<span class="label label-danger">
+			<spring:message code="label.false" />
+		</span>
+    </div>
+
+    <p>&nbsp;</p>
+    <p>&nbsp;</p>
+</div>
+
+<div class="alert alert-warning" role="alert">
+	<p>
+		<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true">&nbsp;</span>
+		<spring:message code="label.ERPTuitionInfoType.for.exportation.enable.after.info.type.edition" />
+	</p>
+</div>
+
+
+<% } else { %>
+
+<%-- NAVIGATION --%>
+<div class="well well-sm" style="display: inline-block">
+    <span class="glyphicon glyphicon-off" aria-hidden="true"></span>&nbsp;
+    <a href="#" onclick="$('#toogleExportationActiveForm').submit(); return false;">
+    	<spring:message code="label.ERPTuitionInfoType.disable.exportation.active" />
+    </a>
+</div>
+
+<div class="row">
+    <label for="executionYearId" class="col-xs-3">
+        <strong><spring:message code="label.ERPTuitionInfoType.exportationActive.state" /></strong>
+    </label>
+    <div class="col-xs-2">
+		<span class="label label-success">
+			<spring:message code="label.true" />
+		</span>
+    </div>
+    
+    <p>&nbsp;</p>
+    <p>&nbsp;</p>
+</div>
+
+<div class="alert alert-warning" role="alert">
+	<p>
+		<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true">&nbsp;</span>
+		<spring:message code="label.ERPTuitionInfoType.for.info.type.edition.disable.export" />
+	</p>
+</div>
+
+<% } %>
 
 <c:if test="${not empty infoMessages}">
     <div class="alert alert-info" role="alert">
@@ -109,10 +263,14 @@ ${portal.toolkit()}
 					<th><spring:message code="label.ERPTuitionInfoType.code" /></th>
 					<th><spring:message code="label.ERPTuitionInfoType.name" /></th>
 					<th><spring:message code="label.ERPTuitionInfoType.active" /></th>
-					<th><spring:message code="label.ERPTuitionInfo.degreeInformation" /></th>
-					<th><spring:message code="label.ERPTuitionInfo.tuitionProducts" /></th>
-					<%-- Operations Column --%>
-					<th></th>
+					<th><spring:message code="label.ERPTuitionInfoType.degreeInformation" /></th>
+					<th><spring:message code="label.ERPTuitionInfoType.tuitionProducts" /></th>
+
+					<% if(!ERPTuitionInfoSettings.getInstance().isExportationActive()) { %>
+
+						<%-- Operations Column --%>
+						<th></th>
+					<% } %>
 				</tr>
 			</thead>
 			<tbody>
@@ -120,7 +278,20 @@ ${portal.toolkit()}
 					<tr>
 						<td><c:out value='${row.erpTuitionInfoProduct.code}' /></td>
 						<td><c:out value='${row.erpTuitionInfoProduct.name}' /></td>
-						<td><spring:message code="label.${row.active}" /></td>
+						<td>
+							<c:choose>
+								<c:when test="${row.active}">
+									<span class="label label-success">
+										<spring:message code="label.${row.active}" />
+									</span>
+								</c:when>
+								<c:otherwise>
+									<span class="label label-danger">
+										<spring:message code="label.${row.active}" />
+									</span>								
+								</c:otherwise>
+							</c:choose> 
+						</td>
 						<td>
 
 							<ul>
@@ -137,8 +308,38 @@ ${portal.toolkit()}
 								</c:forEach>
 							</ul>
 						</td>
+
+						<% if(!ERPTuitionInfoSettings.getInstance().isExportationActive()) { %>
 						<td>
+
+
+
+							<button class="btn btn-default btn-xs" href="#" onclick="processToogleActive(${row.externalId}); return false;">
+				                <span class="glyphicon glyphicon-off" aria-hidden="true">&nbsp;</span>
+								<c:choose>
+									<c:when test="${row.active}">
+										<spring:message code='label.ERPTuitionInfoType.inactivate'/>
+									</c:when>
+									<c:otherwise>
+										<spring:message code='label.ERPTuitionInfoType.activate'/>
+									</c:otherwise>
+								</c:choose> 
+							</button>
+
+							<button class="btn btn-default btn-xs" href="${pageContext.request.contextPath}<%= ERPTuitionInfoTypeController.UPDATE_URL %>/${executionYear.externalId}/${row.externalId}">
+				                <span class="glyphicon glyphicon-pencil" aria-hidden="true">&nbsp;</span>
+								<spring:message code='label.update'/>
+							</button>
+
+							<button class="btn btn-danger btn-xs" href="#" onclick="processDelete(${row.externalId}); return false;">
+				                <span class="glyphicon glyphicon-trash" aria-hidden="true">&nbsp;</span>
+								<spring:message code='label.delete' />
+							</button>
+							
+							
 						</td>
+						<% } %>
+
 					</tr>
 				</c:forEach>
 			</tbody>

@@ -35,6 +35,10 @@ public class ERPTuitionInfoType extends ERPTuitionInfoType_Base {
 
     private ERPTuitionInfoType(final ERPTuitionInfoTypeBean bean) {
         this();
+        
+        if(ERPTuitionInfoSettings.getInstance().isExportationActive()) {
+            throw new AcademicTreasuryDomainException("error.ERPTuitionInfoType.exportation.active");
+        }
 
         setExecutionYear(bean.getExecutionYear());
         setErpTuitionInfoProduct(bean.getErpTuitionInfoProduct());
@@ -45,6 +49,12 @@ public class ERPTuitionInfoType extends ERPTuitionInfoType_Base {
             throw new AcademicTreasuryDomainException("error.ERPTuitionInfoType.TuitionPaymentPlanGroup.required.to.infer.academic.info");
         }
         
+        addAcademicEntries(bean);
+        
+        checkRules();
+    }
+
+    private void addAcademicEntries(final ERPTuitionInfoTypeBean bean) {
         if(bean.getTuitionPaymentPlanGroup().isForExtracurricular()) {
 
             ERPTuitionInfoTypeAcademicEntry.createForExtracurricularTuition(this);
@@ -67,8 +77,6 @@ public class ERPTuitionInfoType extends ERPTuitionInfoType_Base {
                 ERPTuitionInfoTypeAcademicEntry.createForRegistrationTuition(this, degreeCurricularPlan);
             }
         }
-        
-        checkRules();
     }
 
     private void checkRules() {
@@ -98,12 +106,47 @@ public class ERPTuitionInfoType extends ERPTuitionInfoType_Base {
             throw new AcademicTreasuryDomainException("error.ERPTuitionInfoType.academic.entries.required");
         }
         
+        for (final ERPTuitionInfoTypeAcademicEntry entry : getErpTuitionInfoTypeAcademicEntriesSet()) {
+            entry.checkRules();
+        }
+        
     }
-    
+
+    @Atomic
+    public void edit(final ERPTuitionInfoTypeBean bean) {
+        
+        if(ERPTuitionInfoSettings.getInstance().isExportationActive()) {
+            throw new AcademicTreasuryDomainException("error.ERPTuitionInfoType.exportation.active");
+        }
+
+        getTuitionProductsSet().clear();
+        getTuitionProductsSet().addAll(bean.getTuitionProducts());
+        
+        while(!getErpTuitionInfoTypeAcademicEntriesSet().isEmpty()) {
+            getErpTuitionInfoTypeAcademicEntriesSet().iterator().next().delete();
+        }
+        
+        addAcademicEntries(bean);
+        
+        checkRules();
+    }
+
     public boolean isActive() {
         return getActive();
     }
-
+    
+    @Atomic
+    public void toogleActive() {
+        if(ERPTuitionInfoSettings.getInstance().isExportationActive()) {
+            throw new AcademicTreasuryDomainException("error.ERPTuitionInfoType.exportation.active");
+        }
+        
+        setActive(!getActive());
+        
+        checkRules();
+    }
+    
+    @Atomic
     public void delete() {
         if (!getErpTuitionInfosSet().isEmpty()) {
             throw new AcademicTreasuryDomainException("error.ERPTuitionInfoType.delete.not.possible");

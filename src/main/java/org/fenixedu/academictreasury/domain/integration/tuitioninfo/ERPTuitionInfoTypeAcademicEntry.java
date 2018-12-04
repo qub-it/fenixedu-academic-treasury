@@ -1,5 +1,6 @@
 package org.fenixedu.academictreasury.domain.integration.tuitioninfo;
 
+import static java.lang.String.format;
 import static org.fenixedu.academictreasury.util.Constants.academicTreasuryBundleI18N;
 
 import java.util.Locale;
@@ -84,7 +85,7 @@ public class ERPTuitionInfoTypeAcademicEntry extends ERPTuitionInfoTypeAcademicE
         checkRules();
     }
 
-    private void checkRules() {
+    void checkRules() {
 
         if (getDomainRoot() == null) {
             throw new AcademicTreasuryDomainException("error.ERPTuitionInfoType.bennu.required");
@@ -132,9 +133,9 @@ public class ERPTuitionInfoTypeAcademicEntry extends ERPTuitionInfoTypeAcademicE
 
         final Set<ERPTuitionInfoTypeAcademicEntry> allAcademicEntries =
                 executionYear.getErpTuitionInfoTypesSet().stream()
-                        .filter(t -> !Sets.intersection(academicEntry.getErpTuitionInfoType().getTuitionProductsSet(),
-                                t.getTuitionProductsSet()).isEmpty())
-                        .flatMap(t -> t.getErpTuitionInfoTypeAcademicEntriesSet().stream()).collect(Collectors.toSet());
+                        .filter(t -> !Sets.intersection(academicEntry.getErpTuitionInfoType().getTuitionProductsSet(), t.getTuitionProductsSet()).isEmpty())
+                        .flatMap(t -> t.getErpTuitionInfoTypeAcademicEntriesSet().stream())
+                        .collect(Collectors.toSet());
 
         if (academicEntry.isDefinedForDegreeType()) {
             // Ensure degree type is not repeated
@@ -143,9 +144,9 @@ public class ERPTuitionInfoTypeAcademicEntry extends ERPTuitionInfoTypeAcademicE
                     continue;
                 }
 
-                if (!otherEntry.isDefinedForDegreeType()) {
-                    continue;
-                }
+//                if (!otherEntry.isDefinedForDegreeType()) {
+//                    continue;
+//                }
 
                 if (academicEntry.getDegreeType() == otherEntry.getDegreeType()) {
                     throw new AcademicTreasuryDomainException(
@@ -161,13 +162,14 @@ public class ERPTuitionInfoTypeAcademicEntry extends ERPTuitionInfoTypeAcademicE
                     continue;
                 }
 
-                if (otherEntry.isDefinedForDegreeCurricularPlan()) {
-                    continue;
-                }
+                
+                if(otherEntry.isDefinedForDegree() || otherEntry.isDefinedForDegreeCurricularPlan()) {
 
-                if (otherEntry.isDefinedForDegree() && academicEntry.getDegree() == otherEntry.getDegree()) {
-                    throw new AcademicTreasuryDomainException("error.ERPTuitionInfoTypeAcademicEntry.entry.duplicated.for.degree",
-                            otherEntry.getDegree().getPresentationNameI18N().getContent());
+                    if (academicEntry.getDegree() == otherEntry.getDegree()) {
+                        throw new AcademicTreasuryDomainException("error.ERPTuitionInfoTypeAcademicEntry.entry.duplicated.for.degree",
+                                otherEntry.getDegree().getPresentationNameI18N().getContent());
+                    }
+
                 }
 
                 if (otherEntry.isDefinedForDegreeType() && academicEntry.getDegreeType() == otherEntry.getDegreeType()) {
@@ -185,8 +187,7 @@ public class ERPTuitionInfoTypeAcademicEntry extends ERPTuitionInfoTypeAcademicE
                     continue;
                 }
 
-                if (otherEntry.isDefinedForDegreeCurricularPlan()
-                        && academicEntry.getDegreeCurricularPlan() == otherEntry.getDegreeCurricularPlan()) {
+                if (otherEntry.isDefinedForDegreeCurricularPlan() && academicEntry.getDegreeCurricularPlan() == otherEntry.getDegreeCurricularPlan()) {
                     throw new AcademicTreasuryDomainException(
                             "error.ERPTuitionInfoTypeAcademicEntry.entry.duplicated.for.degreeCurricularPlan",
                             otherEntry.getDegreeCurricularPlan().getName());
@@ -199,8 +200,7 @@ public class ERPTuitionInfoTypeAcademicEntry extends ERPTuitionInfoTypeAcademicE
                             otherEntry.getDegree().getPresentationNameI18N().getContent());
                 }
 
-                if (otherEntry.isDefinedForDegreeType()
-                        && academicEntry.getDegreeType() == otherEntry.getDegreeType()) {
+                if (otherEntry.isDefinedForDegreeType() && academicEntry.getDegreeType() == otherEntry.getDegreeType()) {
                     throw new AcademicTreasuryDomainException(
                             "error.ERPTuitionInfoTypeAcademicEntry.entry.degreeType.of.degreeCurricularPlan.defined",
                             academicEntry.getDegreeCurricularPlan().getPresentationName(executionYear),
@@ -320,8 +320,7 @@ public class ERPTuitionInfoTypeAcademicEntry extends ERPTuitionInfoTypeAcademicE
         if (isDefinedForDegree()) {
             LocalizedString result = new LocalizedString();
             for (Locale locale : Constants.supportedLocales()) {
-                result = result.with(locale, String.join(" > ", getDegreeType().getName().getContent(locale),
-                        getDegree().getPresentationNameI18N().getContent(locale)));
+                result = result.with(locale, format("[%s] %s", getDegree().getCode(), getDegree().getPresentationNameI18N().getContent(locale)));
             }
 
             return result;
@@ -330,7 +329,7 @@ public class ERPTuitionInfoTypeAcademicEntry extends ERPTuitionInfoTypeAcademicE
         if (isDefinedForDegreeCurricularPlan()) {
             LocalizedString result = new LocalizedString();
             for (Locale locale : Constants.supportedLocales()) {
-                result = result.with(locale, String.join(" > ", getDegreeType().getName().getContent(locale),
+                result = result.with(locale, String.format("[%s] %s - %s", getDegree().getCode(),
                         getDegree().getPresentationNameI18N().getContent(locale), getDegreeCurricularPlan().getName()));
 
             }

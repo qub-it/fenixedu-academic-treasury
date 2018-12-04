@@ -1095,6 +1095,7 @@ class importation.TreasuryImportFile extends .org.fenixedu.bennu.io.domain.Gener
 
 class integration.tuitioninfo.ERPTuitionInfoSettings {
 	String exporterClassName;
+	boolean exportationActive;
 }
 
 	relation ERPTuitionInfoSettingsBennu {

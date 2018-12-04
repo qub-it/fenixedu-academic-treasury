@@ -356,6 +356,10 @@ public class ERPTuitionInfo extends ERPTuitionInfo_Base {
     }
     
     public static void triggerTuitionInfoCalculation(Predicate<ERPTuitionInfoType> erpTuitionInfoTypeFilterPredicate, Predicate<PersonCustomer> personCustomerPredicate) {
+        if(!ERPTuitionInfoSettings.getInstance().isExportationActive()) {
+            return;
+        }
+        
         if(erpTuitionInfoTypeFilterPredicate == null) {
             erpTuitionInfoTypeFilterPredicate = t -> true;
         }
@@ -453,6 +457,10 @@ public class ERPTuitionInfo extends ERPTuitionInfo_Base {
     }
     
     public static void triggerTuitionExportationToERP(Predicate<ERPTuitionInfo> erpTuitionInfoPredicate) {
+        if(!ERPTuitionInfoSettings.getInstance().isExportationActive()) {
+            return;
+        }
+        
         if(erpTuitionInfoPredicate == null) {
             erpTuitionInfoPredicate = t -> true;
         }
@@ -480,6 +488,10 @@ public class ERPTuitionInfo extends ERPTuitionInfo_Base {
     @Atomic(mode = TxMode.WRITE)
     public static ERPTuitionInfo exportTuitionInformation(final PersonCustomer customer, final ERPTuitionInfoType type) {
 
+        if(!ERPTuitionInfoSettings.getInstance().isExportationActive()) {
+            throw new AcademicTreasuryDomainException("error.ERPTuitionInfo.exportation.active.disabled");
+        }
+        
         final ExecutionYear executionYear = type.getExecutionYear();
         
         BigDecimal totalAmount = BigDecimal.ZERO;

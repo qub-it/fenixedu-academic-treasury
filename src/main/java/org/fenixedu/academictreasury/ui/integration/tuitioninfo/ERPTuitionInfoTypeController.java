@@ -3,6 +3,7 @@ package org.fenixedu.academictreasury.ui.integration.tuitioninfo;
 import static org.fenixedu.academictreasury.domain.integration.tuitioninfo.ERPTuitionInfoTypeBean.DEGREES_OPTION;
 import static org.fenixedu.academictreasury.domain.integration.tuitioninfo.ERPTuitionInfoTypeBean.DEGREE_CURRICULAR_PLANS_OPTION;
 import static org.fenixedu.academictreasury.domain.integration.tuitioninfo.ERPTuitionInfoTypeBean.DEGREE_TYPE_OPTION;
+import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
 import java.util.ArrayList;
@@ -11,10 +12,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import javax.sound.midi.ControllerEventListener;
+
 import org.fenixedu.academic.domain.Degree;
 import org.fenixedu.academic.domain.DegreeCurricularPlan;
 import org.fenixedu.academic.domain.ExecutionYear;
 import org.fenixedu.academic.domain.degree.DegreeType;
+import org.fenixedu.academictreasury.domain.integration.tuitioninfo.ERPTuitionInfoSettings;
 import org.fenixedu.academictreasury.domain.integration.tuitioninfo.ERPTuitionInfoType;
 import org.fenixedu.academictreasury.domain.integration.tuitioninfo.ERPTuitionInfoTypeBean;
 import org.fenixedu.academictreasury.domain.tuition.TuitionPaymentPlanGroup;
@@ -65,7 +69,7 @@ public class ERPTuitionInfoTypeController extends AcademicTreasuryBaseController
     public static final String CREATE_URL = CONTROLLER_URL + _CREATE_URI;
 
     @RequestMapping(value=_CREATE_URI + "/{executionYearId}", method=RequestMethod.GET)
-    private String create(final Model model, @PathVariable("executionYearId") final ExecutionYear executionYear) {
+    public String create(final Model model, @PathVariable("executionYearId") final ExecutionYear executionYear) {
         final ERPTuitionInfoTypeBean bean = new ERPTuitionInfoTypeBean(executionYear);
         bean.update();
 
@@ -102,7 +106,14 @@ public class ERPTuitionInfoTypeController extends AcademicTreasuryBaseController
         
         bean.removeTuitionProduct(product);
         
-        return _create(executionYear, bean, model);
+        bean.update();
+        
+        if(bean.isToUpdate()) {
+            return _update(executionYear, bean, model);
+        } else {
+            return _create(executionYear, bean, model);
+        }
+        
     }
     
     private static final String _ADD_TUITION_PRODUCT_URI = "/addtuitionproduct";
@@ -114,7 +125,13 @@ public class ERPTuitionInfoTypeController extends AcademicTreasuryBaseController
         
         bean.addTuitionProduct();
         
-        return _create(executionYear, bean, model);
+        bean.update();
+        
+        if(bean.isToUpdate()) {
+            return _update(executionYear, bean, model);
+        } else {
+            return _create(executionYear, bean, model);
+        }
     }
     
     private static final String _ADD_DEGREE_TYPE_URI = "/adddegreetype";
@@ -130,7 +147,11 @@ public class ERPTuitionInfoTypeController extends AcademicTreasuryBaseController
             addErrorMessage(e.getLocalizedMessage(), model);
         }
 
-        return _create(executionYear, bean, model);
+        if(bean.isToUpdate()) {
+            return _update(executionYear, bean, model);
+        } else {
+            return _create(executionYear, bean, model);
+        }
     }
     
     private static final String _ADD_DEGREES_URI = "/adddegrees";
@@ -146,7 +167,11 @@ public class ERPTuitionInfoTypeController extends AcademicTreasuryBaseController
             addErrorMessage(e.getLocalizedMessage(), model);
         }
         
-        return _create(executionYear, bean, model);
+        if(bean.isToUpdate()) {
+            return _update(executionYear, bean, model);
+        } else {
+            return _create(executionYear, bean, model);
+        }
     }
     
     private static final String _ADD_DEGREE_CURRICULAR_PLANS_URI = "/adddegreecurricularplans";
@@ -163,7 +188,11 @@ public class ERPTuitionInfoTypeController extends AcademicTreasuryBaseController
             addErrorMessage(e.getLocalizedMessage(), model);
         }
 
-        return _create(executionYear, bean, model);
+        if(bean.isToUpdate()) {
+            return _update(executionYear, bean, model);
+        } else {
+            return _create(executionYear, bean, model);
+        }
     }
     
     private static final String _CHOOSE_TUITION_PAYMENT_PLAN_GROUP_URI = "/choosetuitionpaymentplangroup";
@@ -183,7 +212,11 @@ public class ERPTuitionInfoTypeController extends AcademicTreasuryBaseController
         
         bean.setTuitionPaymentPlanGroup(tuitionPaymentPlanGroup);
 
-        return _create(executionYear, bean, model);
+        if(bean.isToUpdate()) {
+            return _update(executionYear, bean, model);
+        } else {
+            return _create(executionYear, bean, model);
+        }
     }
     
     private static final String _CHOOSE_DEGREE_TYPE_POSTBACK_URI = "/choosedegreetypepostback";
@@ -193,7 +226,11 @@ public class ERPTuitionInfoTypeController extends AcademicTreasuryBaseController
     public String choosedegreetypepostback(@PathVariable("executionYearId") final ExecutionYear executionYear, @RequestParam("bean") final ERPTuitionInfoTypeBean bean, final Model model) {
         bean.update();
         
-        return _create(executionYear, bean, model);
+        if(bean.isToUpdate()) {
+            return _update(executionYear, bean, model);
+        } else {
+            return _create(executionYear, bean, model);
+        }
     }
     
     private static final String _CHOOSE_DEGREE_INFORMATION_TO_ADD_URI = "/choosedegreeinformationtoadd";
@@ -210,7 +247,11 @@ public class ERPTuitionInfoTypeController extends AcademicTreasuryBaseController
         bean.setDegreeInfoSelectOption(option);
         bean.update();
         
-        return _create(executionYear, bean, model);
+        if(bean.isToUpdate()) {
+            return _update(executionYear, bean, model);
+        } else {
+            return _create(executionYear, bean, model);
+        }
     }
     
     private static final String _REMOVE_DEGREE_TYPE_URI = "/removedegreetype";
@@ -222,7 +263,13 @@ public class ERPTuitionInfoTypeController extends AcademicTreasuryBaseController
         
         bean.removeDegreeType(degreeType);
         
-        return _create(executionYear, bean, model);
+        bean.update();
+
+        if(bean.isToUpdate()) {
+            return _update(executionYear, bean, model);
+        } else {
+            return _create(executionYear, bean, model);
+        }
     }
     
     private static final String _REMOVE_DEGREE_URI = "/removedegree";
@@ -234,8 +281,13 @@ public class ERPTuitionInfoTypeController extends AcademicTreasuryBaseController
 
         bean.removeDegree(degree);
 
-        
-        return _create(executionYear, bean, model);
+        bean.update();
+
+        if(bean.isToUpdate()) {
+            return _update(executionYear, bean, model);
+        } else {
+            return _create(executionYear, bean, model);
+        }
     }
     
     private static final String _REMOVE_DEGREE_CURRICULAR_PLAN_URI = "/removedegreecurricularplan";
@@ -247,14 +299,99 @@ public class ERPTuitionInfoTypeController extends AcademicTreasuryBaseController
 
         bean.removeDegreeCurricularPlan(degreeCurricularPlan);
 
-        return _create(executionYear, bean, model);
+        bean.update();
+
+        if(bean.isToUpdate()) {
+            return _update(executionYear, bean, model);
+        } else {
+            return _create(executionYear, bean, model);
+        }
     }
     
-    private static final String _UPDATE_URI = "";
+    private static final String _UPDATE_URI = "/update";
     public static final String UPDATE_URL = CONTROLLER_URL + _UPDATE_URI;
     
-    private static final String _DELETE_URI = "";
+    @RequestMapping(value=_UPDATE_URI + "/{executionYearId}/{erpTuitionInfoTypeId}", method=GET)
+    public String update(@PathVariable("executionYearId") final ExecutionYear executionYear, @PathVariable("erpTuitionInfoTypeId") final ERPTuitionInfoType erpTuitionInfoType, final Model model) {
+        final ERPTuitionInfoTypeBean bean = new ERPTuitionInfoTypeBean(erpTuitionInfoType);
+        
+        return _update(executionYear, bean, model);
+    }
+    
+    
+    private String _update(final ExecutionYear executionYear, final ERPTuitionInfoTypeBean bean, final Model model) {
+        
+        model.addAttribute("bean", bean);
+        model.addAttribute("executionYear", executionYear);
+        model.addAttribute("beanJson", getBeanJson(bean));
+        
+        return jspPage(_UPDATE_URI);
+    }
+    
+    @RequestMapping(value=_UPDATE_URI + "/{executionYearId}", method=POST)
+    public String update(@PathVariable("executionYearId") final ExecutionYear executionYear, @RequestParam("bean") final ERPTuitionInfoTypeBean bean, final Model model, final RedirectAttributes redirectAttributes) {
+        try {
+            
+            bean.getErpTuitionInfoType().edit(bean);
+
+            return "redirect:" + SEARCH_URL + "/" + executionYear.getExternalId();
+        } catch(final DomainException e) {
+            addErrorMessage(e.getLocalizedMessage(), model);
+            
+            return _update(executionYear, bean, model);
+        }
+    }
+
+    private static final String _DELETE_URI = "/delete";
     public static final String DELETE_URL = CONTROLLER_URL + _DELETE_URI;
+    
+    @RequestMapping(value=_DELETE_URI + "/{executionYearId}/{erpTuitionInfoTypeId}", method=POST)
+    public String delete(@PathVariable("executionYearId") final ExecutionYear executionYear, @PathVariable("erpTuitionInfoTypeId") final ERPTuitionInfoType erpTuitionInfoType, 
+            final Model model, final RedirectAttributes redirectAttributes) {
+        try {
+            
+            erpTuitionInfoType.delete();
+            
+        } catch(final DomainException e) {
+            addErrorMessage(e.getLocalizedMessage(), model);
+        }
+        
+        return redirect(SEARCH_URL + "/" + executionYear.getExternalId(), model, redirectAttributes);
+    }
+    
+    private static final String _TOOGLE_ACTIVE_URI = "/toogleactive";
+    public static final String TOOGLE_ACTIVE_URL = CONTROLLER_URL + _TOOGLE_ACTIVE_URI;
+
+    @RequestMapping(value=_TOOGLE_ACTIVE_URI + "/{executionYearId}/{erpTuitionInfoTypeId}", method=POST)
+    public String toogleactive(@PathVariable("executionYearId") final ExecutionYear executionYear, @PathVariable("erpTuitionInfoTypeId") final ERPTuitionInfoType erpTuitionInfoType, 
+            final Model model, final RedirectAttributes redirectAttributes) {
+        
+        try {
+            
+            erpTuitionInfoType.toogleActive();
+            
+        } catch(final DomainException e) {
+            addErrorMessage(e.getLocalizedMessage(), model);
+        }
+        
+        return redirect(SEARCH_URL + "/" + executionYear.getExternalId(), model, redirectAttributes);
+    }
+    
+    private static final String _TOOGLE_EXPORTATION_ACTIVE_URI = "/toogleexportationactive";
+    public static final String TOOGLE_EXPORTATION_ACTIVE_URL = CONTROLLER_URL + _TOOGLE_EXPORTATION_ACTIVE_URI;
+
+    @RequestMapping(value=_TOOGLE_EXPORTATION_ACTIVE_URI + "/{executionYearId}", method=POST)
+    public String toogleexportationactive(@PathVariable("executionYearId") final ExecutionYear executionYear, final Model model, final RedirectAttributes redirectAttributes) {
+        try {
+            
+            ERPTuitionInfoSettings.getInstance().toogleExportationActive();
+            
+        } catch(final DomainException e) {
+            addErrorMessage(e.getLocalizedMessage(), model);
+        }
+
+        return redirect(SEARCH_URL + "/" + executionYear.getExternalId(), model, redirectAttributes);
+    }
     
     private String jspPage(final String page) {
         return JSP_PATH + page;

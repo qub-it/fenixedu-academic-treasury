@@ -53,10 +53,35 @@ public class ERPTuitionInfoTypeBean implements ITreasuryBean, Serializable {
     private String degreeInfoSelectOption;
     
     private TuitionPaymentPlanGroup tuitionPaymentPlanGroup;
+
+    private ERPTuitionInfoType erpTuitionInfoType;
     
     public ERPTuitionInfoTypeBean(final ExecutionYear executionYear) {
         this.executionYear = executionYear;
         this.degreeInfoSelectOption = DEGREE_TYPE_OPTION;
+    }
+    
+    public ERPTuitionInfoTypeBean(final ERPTuitionInfoType erpTuitionInfoType) {
+        this.erpTuitionInfoType = erpTuitionInfoType;
+        
+        this.erpTuitionInfoProduct = erpTuitionInfoType.getErpTuitionInfoProduct();
+        
+        this.executionYear = erpTuitionInfoType.getExecutionYear();
+
+        this.tuitionProducts.addAll(erpTuitionInfoType.getTuitionProductsSet());
+        this.degreeTypes.addAll(erpTuitionInfoType.getErpTuitionInfoTypeAcademicEntriesSet().stream().filter(e -> e.isDefinedForDegreeType()).map(e -> e.getDegreeType()).collect(Collectors.toSet()));
+        this.degrees.addAll(erpTuitionInfoType.getErpTuitionInfoTypeAcademicEntriesSet().stream().filter(e -> e.isDefinedForDegree()).map(e -> e.getDegree()).collect(Collectors.toSet()));
+        this.degreeCurricularPlans.addAll(erpTuitionInfoType.getErpTuitionInfoTypeAcademicEntriesSet().stream().filter(e -> e.isDefinedForDegreeCurricularPlan()).map(e -> e.getDegreeCurricularPlan()).collect(Collectors.toSet()));
+        
+        if(erpTuitionInfoType.getErpTuitionInfoTypeAcademicEntriesSet().iterator().next().isForRegistration()) {
+            this.tuitionPaymentPlanGroup = TuitionPaymentPlanGroup.findUniqueDefaultGroupForRegistration().get();
+        } else if(erpTuitionInfoType.getErpTuitionInfoTypeAcademicEntriesSet().iterator().next().isForStandalone()) {
+            this.tuitionPaymentPlanGroup = TuitionPaymentPlanGroup.findUniqueDefaultGroupForStandalone().get();
+        } else if(erpTuitionInfoType.getErpTuitionInfoTypeAcademicEntriesSet().iterator().next().isForExtracurricular()) {
+            this.tuitionPaymentPlanGroup = TuitionPaymentPlanGroup.findUniqueDefaultGroupForExtracurricular().get();
+        }
+        
+        update();
     }
     
     public void addTuitionProduct() {
@@ -231,6 +256,10 @@ public class ERPTuitionInfoTypeBean implements ITreasuryBean, Serializable {
                 dcp.getDegree().getCode(), dcp.getDegree().getPresentationNameI18N().getContent(), dcp.getName());
     }
     
+    public boolean isToUpdate() {
+        return getErpTuitionInfoType() != null;
+    }
+    
     public boolean isDegreeInformationDefined() {
         return !degreeTypes.isEmpty() || !degrees.isEmpty() || !degreeCurricularPlans.isEmpty();
     }
@@ -397,6 +426,14 @@ public class ERPTuitionInfoTypeBean implements ITreasuryBean, Serializable {
     
     public void setTuitionPaymentPlanGroupDataSource(List<TreasuryTupleDataSourceBean> tuitionPaymentPlanGroupDataSource) {
         this.tuitionPaymentPlanGroupDataSource = tuitionPaymentPlanGroupDataSource;
+    }
+    
+    public ERPTuitionInfoType getErpTuitionInfoType() {
+        return erpTuitionInfoType;
+    }
+    
+    public void setErpTuitionInfoType(ERPTuitionInfoType erpTuitionInfoType) {
+        this.erpTuitionInfoType = erpTuitionInfoType;
     }
     
 }
