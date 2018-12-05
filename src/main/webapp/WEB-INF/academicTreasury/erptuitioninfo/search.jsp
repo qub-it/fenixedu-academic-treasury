@@ -267,9 +267,9 @@ ${portal.toolkit()}
 					<%--!!!  Field names here --%>
 					<th><spring:message code="label.ERPTuitionInfo.creationDate" /></th>
 					<th><spring:message code="label.ERPTuitionInfo.documentNumber" /></th>
+					<th><spring:message code="label.ERPTuitionInfo.tuitionDeltaAmount" /></th>
 					<th><spring:message code="label.ERPTuitionInfo.data" /></th>
 					<th><spring:message code="label.ERPTuitionInfo.tuitionTotalAmount" /></th>
-					<th><spring:message code="label.ERPTuitionInfo.tuitionDeltaAmount" /></th>
 					<th><spring:message code="label.ERPTuitionInfo.integrationState" /></th>
 					<%-- Operations Column --%>
 					<th></th>
@@ -280,6 +280,7 @@ ${portal.toolkit()}
 					<tr>
 						<td><c:out value='${row.creationDate.toString("YYYY-MM-dd HH:mm:ss")}' /></td>
 						<td><c:out value='${row.uiDocumentNumber}' /></td>
+						<td><c:out value='${row.tuitionDeltaAmount}' /></td>
 						<td>
 							<table class="table table-bordered table-hover" style="background-color: transparent;">
 								<tr>
@@ -305,7 +306,6 @@ ${portal.toolkit()}
 							</table>
 						</td>
 						<td><c:out value='${row.tuitionTotalAmount}' /></td>
-						<td><c:out value='${row.tuitionDeltaAmount}' /></td>
 						<td>
 	                        <c:if test="${row.isPendingToExport()}">
 	                            <span class="label label-warning">
@@ -349,7 +349,7 @@ ${portal.toolkit()}
 					"paging": false,
 					//CHANGE_ME adjust the actions column width if needed
 					"columnDefs" : [],
-					"order": [[ 0, "desc" ]],
+					"order": [[ 0, "asc" ]],
 					"dom" : '<"col-sm-6"l><"col-sm-6"f>rtip', //FilterBox = YES && ExportOptions = NO
 					"tableTools" : {
 						"sSwfPath" : "${pageContext.request.contextPath}/webjars/datatables-tools/2.2.4/swf/copy_csv_xls_pdf.swf"
