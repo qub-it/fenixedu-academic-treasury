@@ -209,7 +209,9 @@ public class ERPTuitionInfoTypeBean implements ITreasuryBean, Serializable {
                 .sorted(Product.COMPARE_BY_NAME)
                 .map(l -> new TreasuryTupleDataSourceBean(l.getExternalId(), format("%s [%s]", l.getName().getContent(), l.getCode()))).collect(Collectors.toList());
 
-        this.degreeTypeDataSource = DegreeType.all().filter(d -> !degreeTypes.contains(d))
+        this.degreeTypeDataSource = DegreeType.all()
+                .filter(dt -> dt.getDegreeSet().stream().flatMap(d -> d.getExecutionDegrees(executionYear.getAcademicInterval()).stream()).count() > 0)
+                .filter(d -> !degreeTypes.contains(d))
                 .map(l -> new TreasuryTupleDataSourceBean(l.getExternalId(), l.getName().getContent()))
                 .sorted(TreasuryTupleDataSourceBean.COMPARE_BY_TEXT).collect(Collectors.toList());
         

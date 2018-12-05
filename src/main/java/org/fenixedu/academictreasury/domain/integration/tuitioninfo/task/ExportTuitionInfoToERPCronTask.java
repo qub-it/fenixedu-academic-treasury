@@ -11,6 +11,7 @@ public class ExportTuitionInfoToERPCronTask extends CronTask {
     @Override
     public void runTask() throws Exception {
         if(!ERPTuitionInfoSettings.getInstance().isExportationActive()) {
+            taskLog("Tuition info exportation is disabled.");
             return;
         }
         
