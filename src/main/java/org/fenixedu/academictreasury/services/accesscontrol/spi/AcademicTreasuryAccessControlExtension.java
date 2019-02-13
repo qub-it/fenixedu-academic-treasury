@@ -6,6 +6,7 @@ import org.fenixedu.academictreasury.services.AcademicTreasuryPlataformDependent
 import org.fenixedu.academictreasury.services.IAcademicTreasuryPlatformDependentServices;
 import org.fenixedu.treasury.domain.FinantialEntity;
 import org.fenixedu.treasury.domain.FinantialInstitution;
+import org.fenixedu.treasury.domain.document.SettlementNote;
 import org.fenixedu.treasury.services.accesscontrol.spi.ITreasuryAccessControlExtension;
 
 import com.google.common.collect.Sets;
@@ -65,6 +66,16 @@ public class AcademicTreasuryAccessControlExtension implements ITreasuryAccessCo
         return AcademicTreasuryPlataformDependentServicesFactory.implementation().isAllowToModifyInvoices(username, finantialEntity);
     }
 
+    @Override
+    public boolean isAllowToAnnulSettlementNote(final String username, final SettlementNote settlementNote) {
+        return false;
+    }
+
+    @Override
+    public boolean isAllowToAnnulSettlementNoteWithoutRestrictions(final String username, final SettlementNote settlementNote) {
+        return false;
+    }
+    
     @Override
     public Set<String> getFrontOfficeMemberUsernames() {
         final IAcademicTreasuryPlatformDependentServices services = AcademicTreasuryPlataformDependentServicesFactory.implementation();
