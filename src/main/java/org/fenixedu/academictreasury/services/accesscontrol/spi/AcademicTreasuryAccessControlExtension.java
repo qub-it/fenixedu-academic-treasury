@@ -67,12 +67,12 @@ public class AcademicTreasuryAccessControlExtension implements ITreasuryAccessCo
     }
 
     @Override
-    public boolean isAllowToAnnulSettlementNote(final String username, final SettlementNote settlementNote) {
+    public boolean isAllowToConditionallyAnnulSettlementNote(final String username, final SettlementNote settlementNote) {
         return false;
     }
 
     @Override
-    public boolean isAllowToAnnulSettlementNoteWithoutRestrictions(final String username, final SettlementNote settlementNote) {
+    public boolean isAllowToAnnulSettlementNoteWithoutAnyRestriction(final String username, final SettlementNote settlementNote) {
         return false;
     }
     
