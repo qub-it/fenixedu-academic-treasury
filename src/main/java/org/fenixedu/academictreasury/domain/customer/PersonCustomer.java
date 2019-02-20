@@ -181,65 +181,127 @@ public class PersonCustomer extends PersonCustomer_Base {
 
     @Override
     public String getAddress() {
-        if (getPhysicalAddress() == null) {
+        if(!isActive()) {
+            return super.getAddress();
+        }
+        
+        return address(getPhysicalAddress());
+    }
+    
+    protected static String address(final PhysicalAddress physicalAddress) {
+        if (physicalAddress == null) {
             return null;
         }
 
-        return getPhysicalAddress().getAddress();
+        return physicalAddress.getAddress();
     }
 
     @Override
     public String getDistrictSubdivision() {
-        if (getPhysicalAddress() == null) {
+        if(!isActive()) {
+            return super.getDistrictSubdivision();
+        }
+        
+        return districtSubdivision(getPhysicalAddress());
+    }
+    
+    protected static String districtSubdivision(final PhysicalAddress physicalAddress) {
+        if (physicalAddress == null) {
             return null;
         }
 
-        if (!Strings.isNullOrEmpty(getPhysicalAddress().getArea())) {
-            return getPhysicalAddress().getArea();
+        if (!Strings.isNullOrEmpty(physicalAddress.getDistrictSubdivisionOfResidence())) {
+            return physicalAddress.getDistrictSubdivisionOfResidence();
         }
 
-        if (!Strings.isNullOrEmpty(getPhysicalAddress().getDistrictSubdivisionOfResidence())) {
-            return getPhysicalAddress().getDistrictSubdivisionOfResidence();
+        if (!Strings.isNullOrEmpty(physicalAddress.getArea())) {
+            return physicalAddress.getArea();
         }
 
-        if (!Strings.isNullOrEmpty(getPhysicalAddress().getDistrictOfResidence())) {
-            return getPhysicalAddress().getDistrictOfResidence();
+        if (!Strings.isNullOrEmpty(physicalAddress.getDistrictOfResidence())) {
+            return physicalAddress.getDistrictOfResidence();
         }
 
         return null;
     }
 
     @Override
-    public String getDistrict() {
-        if (getPhysicalAddress() == null) {
-            return null;
-        }
-
-        return getPhysicalAddress().getDistrictOfResidence();
-    }
-
-    @Override
     public String getZipCode() {
-        if (getPhysicalAddress() == null) {
+        if(!isActive()) {
+            return super.getZipCode();
+        }
+        
+        return zipCode(getPhysicalAddress());
+    }
+    
+    protected static String zipCode(final PhysicalAddress physicalAddress) {
+        if (physicalAddress == null) {
             return null;
         }
 
-        return getPhysicalAddress().getAreaCode();
+        return physicalAddress.getAreaCode();
     }
 
     @Override
     public String getAddressCountryCode() {
-        if (getPhysicalAddress() == null) {
+        if(!isActive()) {
+            return super.getAddressCountryCode();
+        }
+        
+        return addressCountryCode(getPhysicalAddress());
+    }
+    
+    protected static String addressCountryCode(final PhysicalAddress physicalAddress) {
+        if (physicalAddress == null) {
             return null;
         }
 
-        if (getPhysicalAddress().getCountryOfResidence() == null) {
+        if (physicalAddress.getCountryOfResidence() == null) {
             return null;
         }
 
-        return getPhysicalAddress().getCountryOfResidence().getCode();
+        return physicalAddress.getCountryOfResidence().getCode();
     }
 
+    // @formatter:off
+    /* ****************************
+     * BEGIN OF SAFT ADDRESS FIELDS
+     * ****************************
+     */
+    // @formatter:on
+    
+    
+    public String getSaftBillingAddressCountry() {
+        return getAddressCountryCode();
+    }
+    
+    public String getSaftBillingAddressStreetName() {
+        return getAddress();
+    }
+    
+    public String getSaftBillingAddressDetail() {
+        return getAddress();
+    }
+    
+    public String getSaftBillingAddressCity() {
+        return getDistrictSubdivision();
+    }
+    
+    public String getSaftBillingAddressPostalCode() {
+        return getZipCode();
+    }
+    
+    public String getSaftBillingAddressRegion() {
+        return getDistrictSubdivision();
+    }
+
+    // @formatter:off
+    /* **************************
+     * END OF SAFT ADDRESS FIELDS
+     * **************************
+     */
+    // @formatter:on
+    
     public static String countryCode(final Person person) {
         return person.getFiscalCountry() != null ? person.getFiscalCountry().getCode() : null;
     }
@@ -326,6 +388,40 @@ public class PersonCustomer extends PersonCustomer_Base {
         }
 
         return activeCustomer.get();
+    }
+    
+    protected void inactivateCustomer() {
+        if(!isActive()) {
+            throw new AcademicTreasuryDomainException("error.Person.inactivateCustomer.customer.not.active");
+        }
+
+        // Copy address fields
+        copyAddressFields();
+        
+        final Person person = this.getAssociatedPerson();
+        setPerson(null);
+        setPersonForInactivePersonCustomer(person);
+        
+        this.checkRules();
+    }
+
+    private void copyAddressFields() {
+        super.setAddressCountryCode(getAddressCountryCode());
+        super.setAddress(getAddress());
+        super.setDistrictSubdivision(getDistrictSubdivision());
+        super.setZipCode(getZipCode());
+    }
+    
+    protected void activateCustomer() {
+        if(isActive()) {
+            throw new AcademicTreasuryDomainException("error.Person.activateCustomer.customer.active");
+        }
+        
+        final Person person = this.getAssociatedPerson();
+        setPerson(person);
+        setPersonForInactivePersonCustomer(null);
+        
+        this.checkRules();
     }
 
     @Override
@@ -457,7 +553,7 @@ public class PersonCustomer extends PersonCustomer_Base {
             throw new TreasuryDomainException("message.Customer.changeFiscalNumber.confirmation");
         }
 
-        final String countryCode = bean.getCountryCode();
+        final String countryCode = bean.getAddressCountryCode();
         final String fiscalNumber = bean.getFiscalNumber();
 
         if (Strings.isNullOrEmpty(countryCode)) {
@@ -577,6 +673,12 @@ public class PersonCustomer extends PersonCustomer_Base {
         return getAssociatedPerson().getIban();
     }
     
+    @Override
+    @Deprecated
+    public String getCountryCode() {
+        return super.getCountryCode();
+    }
+    
     // @formatter: off
     /************
      * SERVICES *
@@ -649,25 +751,23 @@ public class PersonCustomer extends PersonCustomer_Base {
         return new PersonCustomer(person, fiscalCountry, fiscalNumber);
     }
 
-    public static boolean switchCustomer(final Person person, final String fiscalCountryCode, final String fiscalNumber) {
-        PersonCustomer personCustomer = person.getPersonCustomer();
-        Optional<? extends PersonCustomer> newCustomer = PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber);
+    public static boolean switchCustomer(final Person person, final String fiscalAddressCountryCode, final String fiscalNumber) {
+        final PersonCustomer personCustomer = person.getPersonCustomer();
+        Optional<? extends PersonCustomer> newCustomer = PersonCustomer.findUnique(person, fiscalAddressCountryCode, fiscalNumber);
 
         if (newCustomer.isPresent() && newCustomer.get().isActive()) {
             return false;
         }
 
         if (personCustomer != null) {
-            personCustomer.setPerson(null);
-            personCustomer.setPersonForInactivePersonCustomer(person);
+            personCustomer.inactivateCustomer();
         }
 
         if (!newCustomer.isPresent()) {
-            PersonCustomer.create(person, fiscalCountryCode, fiscalNumber);
-            newCustomer = PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber);
+            PersonCustomer.create(person, fiscalAddressCountryCode, fiscalNumber);
+            newCustomer = PersonCustomer.findUnique(person, fiscalAddressCountryCode, fiscalNumber);
         } else {
-            newCustomer.get().setPerson(person);
-            newCustomer.get().setPersonForInactivePersonCustomer(null);
+            newCustomer.get().activateCustomer();
         }
 
         if (personCustomer != null) {
