@@ -548,4 +548,13 @@ public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
         return PersonCustomer.switchCustomer(person, fiscalCountryCode, fiscalNumber);
     }
 
+    @Override
+    public void saveFiscalAddressFieldsFromPersonInActiveCustomer(final Person person) {
+        if(person.getPersonCustomer() == null) {
+            return;
+        }
+        
+        person.getPersonCustomer().saveFiscalAddressFieldsFromPersonInCustomer();
+    }
+
 }

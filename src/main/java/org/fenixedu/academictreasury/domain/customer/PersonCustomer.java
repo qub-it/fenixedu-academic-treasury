@@ -102,8 +102,8 @@ public class PersonCustomer extends PersonCustomer_Base {
             throw new AcademicTreasuryDomainException("error.PersonCustomer.person.countryOfResidence.required");
         }
         
-        if(isActive() && TreasuryConstants.isSameCountryCode(getPerson().getFiscalAddress().getCountryOfResidence().getCode(), getAddressCountryCode())) {
-            throw new AcademicTreasuryDomainException("error.PersonCustomer.updateFiscalAddress.countryOfResidence.is.not.equal.of.customer");
+        if(isActive() && !TreasuryConstants.isSameCountryCode(getPerson().getFiscalAddress().getCountryOfResidence().getCode(), getAddressCountryCode())) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.countryOfResidence.is.not.equal.of.customer");
         }
 
         if (DEFAULT_FISCAL_NUMBER.equals(getFiscalNumber()) && !TreasuryConstants.isDefaultCountry(getFiscalCountry())) {
@@ -207,7 +207,7 @@ public class PersonCustomer extends PersonCustomer_Base {
             return super.getAddress();
         }
         
-        return address(getPhysicalAddress());
+        return address(getFiscalAddress());
     }
     
     public static String address(final PhysicalAddress physicalAddress) {
@@ -224,7 +224,7 @@ public class PersonCustomer extends PersonCustomer_Base {
             return super.getDistrictSubdivision();
         }
         
-        return districtSubdivision(getPhysicalAddress());
+        return districtSubdivision(getFiscalAddress());
     }
     
     public static String districtSubdivision(final PhysicalAddress physicalAddress) {
@@ -253,7 +253,7 @@ public class PersonCustomer extends PersonCustomer_Base {
             return super.getZipCode();
         }
         
-        return zipCode(getPhysicalAddress());
+        return zipCode(getFiscalAddress());
     }
     
     public static String zipCode(final PhysicalAddress physicalAddress) {
@@ -675,7 +675,7 @@ public class PersonCustomer extends PersonCustomer_Base {
         }
         
         if(!TreasuryConstants.isSameCountryCode(getAddressCountryCode(), fiscalAddress.getCountryOfResidence().getCode())) {
-            throw new AcademicTreasuryDomainException("error.PersonCustomer.updateFiscalAddress.countryOfResidence.is.not.equal.of.customer");
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.countryOfResidence.is.not.equal.of.customer");
         }
         
         super.setAddress(address(fiscalAddress));
