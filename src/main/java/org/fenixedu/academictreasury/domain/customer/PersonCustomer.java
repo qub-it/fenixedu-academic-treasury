@@ -662,7 +662,13 @@ public class PersonCustomer extends PersonCustomer_Base {
     }
     
     public void saveFiscalAddressFieldsFromPersonInCustomer() {
-        saveFiscalAddressFieldsInCustomer(fiscalAddress(getAssociatedPerson()));
+        PhysicalAddress fiscalAddress = fiscalAddress(getAssociatedPerson());
+        if(fiscalAddress == null) {
+            // No fiscal address assigned, return
+            return;
+        }
+        
+        saveFiscalAddressFieldsInCustomer(fiscalAddress);
     }
     
     public void saveFiscalAddressFieldsInCustomer(final PhysicalAddress fiscalAddress) {
