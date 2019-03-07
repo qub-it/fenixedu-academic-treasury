@@ -514,86 +514,91 @@ public class PersonCustomer extends PersonCustomer_Base {
         checkRules();
     }
 
-    @Override
     @Atomic
-    public void changeFiscalNumber(final AdhocCustomerBean bean) {
-        // TODO
-        throw new RuntimeException("implement later");
+    public void changeFiscalNumber(final AdhocCustomerBean bean, final PhysicalAddress fiscalAddress) {
+        if (!Strings.isNullOrEmpty(getErpCustomerId())) {
+            throw new TreasuryDomainException("warning.Customer.changeFiscalNumber.maybe.integrated.in.erp");
+        }
+
+        final String oldAddressFiscalCountry = getAddressCountryCode();
+        final String oldFiscalNumber = getFiscalNumber();
         
-//        if (!Strings.isNullOrEmpty(getErpCustomerId())) {
-//            throw new TreasuryDomainException("warning.Customer.changeFiscalNumber.maybe.integrated.in.erp");
-//        }
-//
-//        final String oldFiscalCountry = getFiscalCountry();
-//        final String oldFiscalNumber = getFiscalNumber();
-//        final boolean changeFiscalNumberConfirmed = bean.isChangeFiscalNumberConfirmed();
-//        final boolean withFinantialDocumentsIntegratedInERP = isWithFinantialDocumentsIntegratedInERP();
-//        final boolean customerInformationMaybeIntegratedWithSuccess = isCustomerInformationMaybeIntegratedWithSuccess();
-//        final boolean customerWithFinantialDocumentsIntegratedInPreviousERP =
-//                isCustomerWithFinantialDocumentsIntegratedInPreviousERP();
-//
-//        if (!bean.isChangeFiscalNumberConfirmed()) {
-//            throw new TreasuryDomainException("message.Customer.changeFiscalNumber.confirmation");
-//        }
-//
-//        final String countryCode = bean.getAddressCountryCode();
-//        final String fiscalNumber = bean.getFiscalNumber();
-//
-//        if (Strings.isNullOrEmpty(countryCode)) {
-//            throw new TreasuryDomainException("error.Customer.countryCode.required");
-//        }
-//
-//        if (Strings.isNullOrEmpty(fiscalNumber)) {
-//            throw new TreasuryDomainException("error.Customer.fiscalNumber.required");
-//        }
-//
-//        // Check if fiscal information is different from current information
-//        if (lowerCase(countryCode).equals(lowerCase(getCountryCode())) && fiscalNumber.equals(getFiscalNumber())) {
-//            throw new TreasuryDomainException("error.Customer.already.with.fiscal.information");
-//        }
-//
-//        if (isFiscalValidated() && isFiscalCodeValid()) {
-//            throw new TreasuryDomainException("error.Customer.changeFiscalNumber.already.valid");
-//        }
-//
-//        if (customerInformationMaybeIntegratedWithSuccess) {
-//            throw new TreasuryDomainException("warning.Customer.changeFiscalNumber.maybe.integrated.in.erp");
-//        }
-//
-//        if (withFinantialDocumentsIntegratedInERP) {
-//            throw new TreasuryDomainException("error.Customer.changeFiscalNumber.documents.integrated.erp");
-//        }
-//
-//        if (!FiscalCodeValidation.isValidFiscalNumber(countryCode, fiscalNumber)) {
-//            throw new TreasuryDomainException("error.Customer.fiscal.information.invalid");
-//        }
-//
-//        final Optional<? extends PersonCustomer> customerOptional = findUnique(getAssociatedPerson(), countryCode, fiscalNumber);
-//        if (isActive()) {
-//            // Check if this customer has customer with same fiscal information
-//            if (customerOptional.isPresent()) {
-//                throw new TreasuryDomainException("error.Customer.changeFiscalNumber.customer.exists.for.fiscal.number");
-//            }
-//
-//            setCountryCode(countryCode);
-//            setFiscalNumber(fiscalNumber);
-//            getPerson().editSocialSecurityNumber(Country.readByTwoLetterCode(countryCode), fiscalNumber);
-//        } else {
-//            // Check if this customer has customer with same fiscal information
-//            if (customerOptional.isPresent()) {
-//                // Mark as merged
-//                setFromPersonMerge(true);
-//            }
-//
-//            setCountryCode(countryCode);
-//            setFiscalNumber(fiscalNumber);
-//        }
-//
-//        checkRules();
-//
-//        FiscalDataUpdateLog.create(this, oldFiscalCountry, oldFiscalNumber, changeFiscalNumberConfirmed,
-//                withFinantialDocumentsIntegratedInERP, customerInformationMaybeIntegratedWithSuccess,
-//                customerWithFinantialDocumentsIntegratedInPreviousERP);
+        final boolean changeFiscalNumberConfirmed = bean.isChangeFiscalNumberConfirmed();
+        final boolean withFinantialDocumentsIntegratedInERP = isWithFinantialDocumentsIntegratedInERP();
+        final boolean customerInformationMaybeIntegratedWithSuccess = isCustomerInformationMaybeIntegratedWithSuccess();
+        final boolean customerWithFinantialDocumentsIntegratedInPreviousERP =
+                isCustomerWithFinantialDocumentsIntegratedInPreviousERP();
+
+        if (!bean.isChangeFiscalNumberConfirmed()) {
+            throw new TreasuryDomainException("message.Customer.changeFiscalNumber.confirmation");
+        }
+
+        final String addressCountryCode = fiscalAddress.getCountryOfResidence().getCode();
+        final String fiscalNumber = bean.getFiscalNumber();
+
+        if (Strings.isNullOrEmpty(addressCountryCode)) {
+            throw new TreasuryDomainException("error.Customer.countryCode.required");
+        }
+
+        if (Strings.isNullOrEmpty(fiscalNumber)) {
+            throw new TreasuryDomainException("error.Customer.fiscalNumber.required");
+        }
+
+        // Check if fiscal information is different from current information
+        if (lowerCase(addressCountryCode).equals(lowerCase(getAddressCountryCode())) && fiscalNumber.equals(getFiscalNumber())) {
+            throw new TreasuryDomainException("error.Customer.already.with.fiscal.information");
+        }
+
+        if (isFiscalValidated() && isFiscalCodeValid()) {
+            throw new TreasuryDomainException("error.Customer.changeFiscalNumber.already.valid");
+        }
+
+        if (customerInformationMaybeIntegratedWithSuccess) {
+            throw new TreasuryDomainException("warning.Customer.changeFiscalNumber.maybe.integrated.in.erp");
+        }
+
+        if (withFinantialDocumentsIntegratedInERP) {
+            throw new TreasuryDomainException("error.Customer.changeFiscalNumber.documents.integrated.erp");
+        }
+
+        if (!FiscalCodeValidation.isValidFiscalNumber(addressCountryCode, fiscalNumber)) {
+            throw new TreasuryDomainException("error.Customer.fiscal.information.invalid");
+        }
+
+        final Optional<? extends PersonCustomer> customerOptional = findUnique(getAssociatedPerson(), addressCountryCode, fiscalNumber);
+        if (isActive()) {
+            // Check if this customer has customer with same fiscal information
+            if (customerOptional.isPresent()) {
+                throw new TreasuryDomainException("error.Customer.changeFiscalNumber.customer.exists.for.fiscal.number");
+            }
+
+            setAddressCountryCode(addressCountryCode);
+            setCountryCode(addressCountryCode);
+            setFiscalNumber(fiscalNumber);
+            if(getPerson().getFiscalAddress() != null) {
+                getPerson().getFiscalAddress().setFiscalAddress(false);
+            }
+            
+            getPerson().editSocialSecurityNumber(fiscalNumber, fiscalAddress);
+        } else {
+            // Check if this customer has customer with same fiscal information
+            if (customerOptional.isPresent()) {
+                // Mark as merged
+                setFromPersonMerge(true);
+            }
+
+            setAddressCountryCode(addressCountryCode);
+            setCountryCode(addressCountryCode);
+            setFiscalNumber(fiscalNumber);
+            
+            saveFiscalAddressFieldsInCustomer(fiscalAddress);
+        }
+
+        checkRules();
+
+        FiscalDataUpdateLog.create(this, oldAddressFiscalCountry, oldFiscalNumber, changeFiscalNumberConfirmed,
+                withFinantialDocumentsIntegratedInERP, customerInformationMaybeIntegratedWithSuccess,
+                customerWithFinantialDocumentsIntegratedInPreviousERP);
     }
 
     @Override
