@@ -264,6 +264,13 @@ public class PersonCustomer extends PersonCustomer_Base {
         return physicalAddress.getAreaCode();
     }
 
+    public static String addressCountryCode(final Person person) {
+        final PhysicalAddress fiscalAddress = person.getFiscalAddress();
+        
+        return addressCountryCode(fiscalAddress);
+    }
+
+    
     public static String addressCountryCode(final PhysicalAddress physicalAddress) {
         if (physicalAddress == null) {
             return null;
@@ -315,6 +322,7 @@ public class PersonCustomer extends PersonCustomer_Base {
      */
     // @formatter:on
     
+    @Deprecated
     public static String countryCode(final Person person) {
         return person.getFiscalCountry() != null ? person.getFiscalCountry().getCode() : null;
     }
