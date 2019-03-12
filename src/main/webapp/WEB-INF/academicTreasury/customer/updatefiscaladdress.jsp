@@ -146,16 +146,16 @@ ${portal.angularToolkit()}
 
                 <div class="col-sm-10">
                 	<select name="fiscalAddressId" class="form-control">
-                		<c:forEach items="${person.getValidAddressesForFiscalData()}" var="fiscalAddress">
+                		<c:forEach items="${fiscalAddresses}" var="fiscalAddress">
                 			<c:choose>
                 				<c:when test="${params.fiscalAddressId == fiscalAddress.externalId}">
 			                		<option value="${fiscalAddress.externalId}" selected="selected">
-			                			<c:out value="${fiscalAddress.address} ${fiscalAddress.areaCode} ${fiscalAddress.countryOfResidence.name}" />
+			                			<c:out value="${fiscalAddress.uiFiscalPresentationValue}" />
 			                		</option>
                 				</c:when>
                 				<c:otherwise>
 			                		<option value="${fiscalAddress.externalId}">
-			                			<c:out value="${fiscalAddress.address} ${fiscalAddress.areaCode} ${fiscalAddress.countryOfResidence.name}" />
+			                			<c:out value="${fiscalAddress.uiFiscalPresentationValue}" />
 			                		</option>
                 				</c:otherwise>
                 			</c:choose>
