@@ -248,6 +248,35 @@ public class PersonCustomer extends PersonCustomer_Base {
     }
 
     @Override
+    public String getRegion() {
+        if(!isActive()) {
+            return super.getRegion();
+        }
+        
+        return region(getFiscalAddress());
+    }
+    
+    public static String region(final PhysicalAddress physicalAddress) {
+        if (physicalAddress == null) {
+            return null;
+        }
+
+        if (!Strings.isNullOrEmpty(physicalAddress.getDistrictOfResidence())) {
+            return physicalAddress.getDistrictOfResidence();
+        }
+
+        if (!Strings.isNullOrEmpty(physicalAddress.getDistrictSubdivisionOfResidence())) {
+            return physicalAddress.getDistrictSubdivisionOfResidence();
+        }
+
+        if (!Strings.isNullOrEmpty(physicalAddress.getArea())) {
+            return physicalAddress.getArea();
+        }
+
+        return null;
+    }
+
+    @Override
     public String getZipCode() {
         if(!isActive()) {
             return super.getZipCode();
@@ -283,45 +312,6 @@ public class PersonCustomer extends PersonCustomer_Base {
         return physicalAddress.getCountryOfResidence().getCode();
     }
 
-    // @formatter:off
-    /* ****************************
-     * BEGIN OF SAFT ADDRESS FIELDS
-     * ****************************
-     */
-    // @formatter:on
-    
-    
-    public String getSaftBillingAddressCountry() {
-        return getAddressCountryCode();
-    }
-    
-    public String getSaftBillingAddressStreetName() {
-        return getAddress();
-    }
-    
-    public String getSaftBillingAddressDetail() {
-        return getAddress();
-    }
-    
-    public String getSaftBillingAddressCity() {
-        return getDistrictSubdivision();
-    }
-    
-    public String getSaftBillingAddressPostalCode() {
-        return getZipCode();
-    }
-    
-    public String getSaftBillingAddressRegion() {
-        return getDistrictSubdivision();
-    }
-
-    // @formatter:off
-    /* **************************
-     * END OF SAFT ADDRESS FIELDS
-     * **************************
-     */
-    // @formatter:on
-    
     @Deprecated
     public static String countryCode(final Person person) {
         return person.getFiscalCountry() != null ? person.getFiscalCountry().getCode() : null;
@@ -340,7 +330,7 @@ public class PersonCustomer extends PersonCustomer_Base {
     }
 
     public static boolean isValidFiscalNumber(final Person person) {
-        return FiscalCodeValidation.isValidFiscalNumber(countryCode(person), fiscalNumber(person));
+        return person.getFiscalAddress() != null && FiscalCodeValidation.isValidFiscalNumber(addressCountryCode(person), fiscalNumber(person));
     }
 
     @Override
@@ -502,6 +492,7 @@ public class PersonCustomer extends PersonCustomer_Base {
 
         if (person.getPersonCustomer() != null) {
             final PersonCustomer personCustomer = person.getPersonCustomer();
+            personCustomer.saveFiscalAddressFieldsFromPersonInCustomer();
             personCustomer.setPersonForInactivePersonCustomer(getPerson());
             personCustomer.setPerson(null);
             personCustomer.setFromPersonMerge(true);
@@ -518,7 +509,7 @@ public class PersonCustomer extends PersonCustomer_Base {
         for (final AcademicTreasuryEvent e : Sets.newHashSet(person.getAcademicTreasuryEventSet())) {
             e.setPerson(thisPerson);
         }
-
+        
         checkRules();
     }
 
