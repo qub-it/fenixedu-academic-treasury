@@ -690,6 +690,7 @@ public class PersonCustomer extends PersonCustomer_Base {
         
         super.setAddress(address(fiscalAddress));
         super.setDistrictSubdivision(districtSubdivision(fiscalAddress));
+        super.setRegion(region(fiscalAddress));
         super.setZipCode(zipCode(fiscalAddress));
     }
     
