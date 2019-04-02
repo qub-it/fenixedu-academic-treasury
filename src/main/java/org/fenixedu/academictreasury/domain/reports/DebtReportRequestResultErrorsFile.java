@@ -24,6 +24,8 @@ public class DebtReportRequestResultErrorsFile extends DebtReportRequestResultEr
 
         init(filename, filename, content);
         checkRules();
+        
+        DebtReportRequestResultErrorsFileDomainObject.createFromDebtReportRequestResultErrorsFile(this);
     }
 
     private void checkRules() {

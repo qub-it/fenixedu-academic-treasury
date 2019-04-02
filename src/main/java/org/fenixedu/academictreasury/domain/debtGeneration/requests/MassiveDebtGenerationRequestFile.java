@@ -9,6 +9,7 @@ import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainExc
 import org.fenixedu.academictreasury.domain.tuition.TuitionPaymentPlanGroup;
 import org.fenixedu.bennu.core.domain.Bennu;
 import org.fenixedu.bennu.core.domain.User;
+import org.fenixedu.bennu.io.domain.IGenericFile;
 import org.fenixedu.treasury.services.accesscontrol.TreasuryAccessControlAPI;
 import org.fenixedu.treasury.services.integration.TreasuryPlataformDependentServicesFactory;
 import org.joda.time.LocalDate;
@@ -62,6 +63,8 @@ public class MassiveDebtGenerationRequestFile extends MassiveDebtGenerationReque
         setFinantialInstitution(bean.getFinantialInstitution());
 
         checkRules();
+        
+        MassiveDebtGenerationRequestFileDomainObject.createFromMassiveDebtGenerationRequestFile(this);
     }
 
     private void checkRules() {

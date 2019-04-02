@@ -25,6 +25,8 @@ public class TreasuryImportFile extends TreasuryImportFile_Base {
 
         setTreasuryImportType(type);
         checkRules();
+        
+        TreasuryImportFileDomainObject.createFromTreasuryImportFile(this);
     }
 
     private void checkRules() {

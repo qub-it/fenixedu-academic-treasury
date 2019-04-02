@@ -27,6 +27,8 @@ public class DebtReportRequestResultFile extends DebtReportRequestResultFile_Bas
 
         init(filename, filename, content);
         checkRules();
+        
+        DebtReportRequestResultFileDomainObject.createFromDebtReportRequestResultFile(this);
     }
 
     private void checkRules() {

@@ -1,10 +1,7 @@
 package org.fenixedu.academictreasury.domain.integration;
 
-import pt.ist.fenixframework.FenixFramework;
-
 import org.fenixedu.bennu.core.domain.Bennu;
 import org.fenixedu.bennu.core.domain.User;
-import org.fenixedu.treasury.domain.accesscontrol.TreasuryAccessControl;
 import org.fenixedu.treasury.services.accesscontrol.TreasuryAccessControlAPI;
 
 import pt.ist.fenixframework.Atomic;
@@ -20,6 +17,8 @@ public class ERPTuitionInfoCreationReportFile extends ERPTuitionInfoCreationRepo
         this();
         
         init(displayName, filename, content);
+        
+        ERPTuitionInfoCreationReportFileDomainObject.createFromERPTuitionInfoCreationReportFile(this);
     }
 
     @Override

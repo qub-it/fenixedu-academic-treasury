@@ -1,0 +1,278 @@
+package org.fenixedu.academictreasury.domain;
+
+external class .org.fenixedu.treasury.domain.TreasuryFile;
+
+/* --- DebtReportRequestResultFile --- */
+
+class reports.DebtReportRequestResultFile extends .org.fenixedu.treasury.domain.TreasuryFile {
+}
+
+	relation DebtReportRequestResultFileBennu {
+	
+		.org.fenixedu.bennu.core.domain.Bennu playsRole bennu {
+			multiplicity 1..1;
+		}
+	
+		reports.DebtReportRequestResultFile playsRole DebtReportRequestResultFiles {
+			multiplicity *;
+		}
+	}
+	
+	relation DebtReportRequestResultFileDebtReportRequest {
+
+		reports.DebtReportRequest playsRole debtReportRequest {
+			multiplicity 1..1;
+		}
+	
+		reports.DebtReportRequestResultFile playsRole debtReportRequestResultFiles {
+			multiplicity *;
+		}
+		
+	}
+	
+
+/* --- DebtReportRequestResultFileDomainObject --- */
+
+	relation DebtReportRequestResultFileDomainObjectTreasuryFile {
+		.org.fenixedu.treasury.domain.TreasuryFile playsRole treasuryFile {
+			multiplicity 1..1;
+		}
+		
+		reports.DebtReportRequestResultFileDomainObject playsRole {
+			multiplicity *;
+		}
+	}
+	
+	
+/* --- DebtReportRequestResultErrorsFile --- */
+
+class reports.DebtReportRequestResultErrorsFile extends .org.fenixedu.treasury.domain.TreasuryFile {
+}
+ 
+	relation DebtReportRequestResultErrorsFileBennu {
+	
+		.org.fenixedu.bennu.core.domain.Bennu playsRole bennu {
+			multiplicity 1..1;
+		}
+	
+		reports.DebtReportRequestResultErrorsFile playsRole debtReportRequestResultErrorsFiles {
+			multiplicity *;
+		}
+	}
+	
+	relation DebtReportRequestResultErrorsFileDebtReportRequest {
+
+		reports.DebtReportRequest playsRole debtReportRequest {
+			multiplicity 1..1;
+		}
+		
+		reports.DebtReportRequestResultErrorsFile playsRole debtReportRequestResultErrorsFiles {
+			multiplicity *;
+		}
+	}
+	
+
+/* --- DebtReportRequestResultErrorsFileDomainObject --- */
+	
+	relation DebtReportRequestResultErrorsFileDomainObjectTreasuryFile {
+		.org.fenixedu.treasury.domain.TreasuryFile playsRole treasuryFile {
+			multiplicity 1..1;
+		}
+		
+		reports.DebtReportRequestResultErrorsFileDomainObject playsRole {
+			multiplicity *;
+		}
+	}
+	
+/* --- MassiveDebtGenerationRequestFile --- */
+
+class debtGeneration.requests.MassiveDebtGenerationRequestFile extends .org.fenixedu.treasury.domain.TreasuryFile {
+	LocalDate debtDate;
+	DateTime whenProcessed;
+	String reason;
+}
+
+	relation MassiveDebtGenerationRequestBennu {
+		.org.fenixedu.bennu.core.domain.Bennu playsRole bennu {
+			multiplicity 1..1;
+		}
+		
+		debtGeneration.requests.MassiveDebtGenerationRequestFile playsRole massiveDebtGenerationRequestFiles {
+			multiplicity *;
+		}
+	}
+
+	relation MassiveDebtGenerationRequestMassiveDebtGenerationType {
+
+		debtGeneration.requests.MassiveDebtGenerationType playsRole massiveDebtGenerationType {
+			multiplicity 1..1;
+		}
+
+		debtGeneration.requests.MassiveDebtGenerationRequestFile playsRole massiveDebtGenerationRequestFiles {
+			multiplicity *;
+		}
+	}
+
+	relation MassiveDebtGenerationRequestExecutionYear {
+		.org.fenixedu.academic.domain.ExecutionYear playsRole executionYear {
+			multiplicity 0..1;
+		}
+
+		debtGeneration.requests.MassiveDebtGenerationRequestFile playsRole massiveDebtGenerationRequestFiles {
+			multiplicity *;
+		}
+	}
+
+	relation MassiveDebtGenerationRequestTuitionPaymentPlanGroup {
+		tuition.TuitionPaymentPlanGroup playsRole tuitionPaymentPlanGroup {
+			multiplicity 0..1;
+		}
+
+		debtGeneration.requests.MassiveDebtGenerationRequestFile playsRole massiveDebtGenerationRequestFiles {
+			multiplicity *;
+		}
+	}
+
+	relation MassiveDebtGenerationRequestAcademicTax {	
+		emoluments.AcademicTax playsRole academicTax {
+			multiplicity 0..1;
+		}
+		
+		debtGeneration.requests.MassiveDebtGenerationRequestFile playsRole massiveDebtGenerationRequestFiles {
+			multiplicity *;
+		}
+	 }
+	 
+	relation MassiveDebtGenerationRequestFileFinantialInstitution {	
+		.org.fenixedu.treasury.domain.FinantialInstitution playsRole finantialInstitution {
+			multiplicity 0..1;
+		}
+		
+		debtGeneration.requests.MassiveDebtGenerationRequestFile playsRole massiveDebtGenerationRequestFiles {
+			multiplicity *;
+		}
+	 }
+	
+/* --- MassiveDebtGenerationRequestFileDomainObject --- */	
+	
+	relation MassiveDebtGenerationRequestFileDomainObjectTreasuryFile {
+	
+		.org.fenixedu.treasury.domain.TreasuryFile playsRole treasuryFile {
+			multiplicity 1..1;
+		}
+		
+		debtGeneration.requests.MassiveDebtGenerationRequestFileDomainObject playsRole {
+			multiplicity *;
+		}
+	}
+	
+
+/* --- ExemptionsGenerationRequestFile ---*/
+
+class exemptions.requests.ExemptionsGenerationRequestFile extends .org.fenixedu.treasury.domain.TreasuryFile {
+	LocalDate debtDate;
+	DateTime whenProcessed;
+}
+
+	relation ExemptionsGenerationRequestFileBennu {
+		.org.fenixedu.bennu.core.domain.Bennu playsRole bennu {
+			multiplicity 1..1;
+		}
+		
+		exemptions.requests.ExemptionsGenerationRequestFile playsRole exemptionsGenerationRequestFile {
+			multiplicity *;
+		}
+	}
+	
+	relation ExemptionsGenerationRequestFileTreasuryExemptionType {
+		.org.fenixedu.treasury.domain.exemption.TreasuryExemptionType playsRole treasuryExemptionType {
+			multiplicity 1..1;
+		}
+
+		exemptions.requests.ExemptionsGenerationRequestFile playsRole exemptionsGenerationRequestFile {
+			multiplicity *;
+		}
+	}
+
+
+/* --- ExemptionsGenerationRequestFileDomainObject --- */
+
+	relation ExemptionsGenerationRequestFileDomainObjectTreasuryFile {
+	
+		.org.fenixedu.treasury.domain.TreasuryFile playsRole treasuryFile {
+			multiplicity 1..1;
+		}
+		
+		exemptions.requests.ExemptionsGenerationRequestFileDomainObject playsRole {
+			multiplicity *;
+		}
+	}
+	
+
+/* --- TreasuryImportFile ---*/
+
+class importation.TreasuryImportFile extends .org.fenixedu.treasury.domain.TreasuryFile {
+	DateTime whenProcessed;
+}
+
+	relation TreasuryImportFileBennu {
+		.org.fenixedu.bennu.core.domain.Bennu playsRole bennu {
+			multiplicity 1..1;
+		}
+		
+		importation.TreasuryImportFile playsRole treasuryImportFiles {
+			multiplicity *;
+		}
+	}
+	
+	relation TreasuryImportFileTreasuryImportType {
+		importation.TreasuryImportType playsRole treasuryImportType {
+			multiplicity 1..1;
+		}
+		
+		importation.TreasuryImportFile playsRole treasuryImportFiles {
+			multiplicity *;
+		}
+		
+	}
+
+/* --- TreasuryImportFileDomainObject ---*/
+
+	relation TreasuryImportFileDomainObjectTreasuryFile {
+		
+		.org.fenixedu.treasury.domain.TreasuryFile playsRole treasuryFile {
+			multiplicity 1..1;
+		}
+		
+		importation.TreasuryImportFileDomainObject playsRole treasuryImportFileDomainObjects {
+			multiplicity *;
+		}
+	}
+	
+/* ERPTuitionInfoCreationReportFile */
+
+class integration.ERPTuitionInfoCreationReportFile extends .org.fenixedu.treasury.domain.TreasuryFile {
+}
+
+	relation ERPTuitionInfoCreationReportFileBennu {
+		.org.fenixedu.bennu.core.domain.Bennu playsRole bennu {
+			multiplicity 1..1;
+		}
+		
+		integration.ERPTuitionInfoCreationReportFile playsRole erpTuitionInfoCreationReportFiles {
+			multiplicity *;
+		}
+	}
+
+/* ERPTuitionInfoCreationReportFileDomainObject */
+
+	relation ERPTuitionInfoCreationReportFileTreasuryFile {
+		.org.fenixedu.treasury.domain.TreasuryFile playsRole treasuryFile {
+			multiplicity 1..1;
+		}
+		
+		integration.ERPTuitionInfoCreationReportFileDomainObject playsRole erpTuitionInfoCreationReportFileDomainObjects {
+			multiplicity *;
+		}
+	}
+
