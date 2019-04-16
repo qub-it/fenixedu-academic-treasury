@@ -1,5 +1,8 @@
 package org.fenixedu.academictreasury.domain.integration;
 
+import java.util.Optional;
+import java.util.stream.Stream;
+
 import org.fenixedu.bennu.io.domain.IGenericFile;
 import org.fenixedu.treasury.services.accesscontrol.TreasuryAccessControlAPI;
 import org.fenixedu.treasury.services.integration.ITreasuryPlatformDependentServices;
@@ -20,13 +23,13 @@ public class ERPTuitionInfoCreationReportFileDomainObject extends ERPTuitionInfo
         setCreationDate(new DateTime());
     }
 
-    public ERPTuitionInfoCreationReportFileDomainObject(final String displayName, final String filename, final byte[] content) {
-        this();
-
-        final ITreasuryPlatformDependentServices services = TreasuryPlataformDependentServicesFactory.implementation();
-
-        services.createFile(this, filename, CONTENT_TYPE, content);
-    }
+//    public ERPTuitionInfoCreationReportFileDomainObject(final String displayName, final String filename, final byte[] content) {
+//        this();
+//
+//        final ITreasuryPlatformDependentServices services = TreasuryPlataformDependentServicesFactory.implementation();
+//
+//        services.createFile(this, filename, CONTENT_TYPE, content);
+//    }
 
     @Override
     public boolean isAccessible(final String username) {
@@ -51,11 +54,11 @@ public class ERPTuitionInfoCreationReportFileDomainObject extends ERPTuitionInfo
      */
     // @formatter:on
 
-    @Atomic
-    public static final ERPTuitionInfoCreationReportFileDomainObject create(final String displayName, final String filename,
-            final byte[] content) {
-        return new ERPTuitionInfoCreationReportFileDomainObject(displayName, filename, content);
-    }
+//    @Atomic
+//    public static final ERPTuitionInfoCreationReportFileDomainObject create(final String displayName, final String filename,
+//            final byte[] content) {
+//        return new ERPTuitionInfoCreationReportFileDomainObject(displayName, filename, content);
+//    }
     
     public static final ERPTuitionInfoCreationReportFileDomainObject createFromERPTuitionInfoCreationReportFile(final ERPTuitionInfoCreationReportFile file) {
         final ITreasuryPlatformDependentServices services = TreasuryPlataformDependentServicesFactory.implementation();
@@ -69,5 +72,13 @@ public class ERPTuitionInfoCreationReportFileDomainObject extends ERPTuitionInfo
         
         return result;
     }
-
+    
+    public static Stream<ERPTuitionInfoCreationReportFileDomainObject> findAll() {
+        return FenixFramework.getDomainRoot().getErpTuitionInfoCreationReportFileDomainObjectsSet().stream();
+    }
+    
+    public static Optional<ERPTuitionInfoCreationReportFileDomainObject> findUniqueByERPTuitionInfoCreationReportFile(final ERPTuitionInfoCreationReportFile file) {
+        return findAll().filter(f -> f.getTreasuryFile() == file).findFirst();
+    }
+    
 }

@@ -1,5 +1,7 @@
 package org.fenixedu.academictreasury.domain.integration;
 
+import java.util.stream.Stream;
+
 import org.fenixedu.bennu.core.domain.Bennu;
 import org.fenixedu.bennu.core.domain.User;
 import org.fenixedu.treasury.services.accesscontrol.TreasuryAccessControlAPI;
@@ -40,6 +42,10 @@ public class ERPTuitionInfoCreationReportFile extends ERPTuitionInfoCreationRepo
     @Atomic
     public static final ERPTuitionInfoCreationReportFile create(final String displayName, final String filename, final byte[] content) {
         return new ERPTuitionInfoCreationReportFile(displayName, filename, content);
+    }
+
+    public static Stream<ERPTuitionInfoCreationReportFile> findAll() {
+        return Bennu.getInstance().getErpTuitionInfoCreationReportFilesSet().stream();
     }
     
 }

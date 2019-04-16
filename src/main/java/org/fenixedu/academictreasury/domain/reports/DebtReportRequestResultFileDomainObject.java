@@ -4,6 +4,8 @@ import static org.fenixedu.academictreasury.util.Constants.academicTreasuryBundl
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainException;
 import org.fenixedu.bennu.core.domain.Bennu;
@@ -69,8 +71,16 @@ public class DebtReportRequestResultFileDomainObject extends DebtReportRequestRe
         super.deleteDomainObject();
     }
 
-//    public static DebtReportRequestResultFile create(final DebtReportRequest request, final byte[] content) {
-//        return new DebtReportRequestResultFile(request, content);
+    // @formatter:off
+    /* ********
+     * SERVICES
+     * ********
+     */
+    // @formatter:on
+    
+    
+//    public static DebtReportRequestResultFileDomainObject create(final DebtReportRequest request, final byte[] content) {
+//        return new DebtReportRequestResultFileDomainObject(request, content);
 //    }
     
 
@@ -85,6 +95,14 @@ public class DebtReportRequestResultFileDomainObject extends DebtReportRequestRe
         result.setFileId(file.getExternalId());
         
         return result;
+    }
+    
+    public static Stream<DebtReportRequestResultFileDomainObject> findAll() {
+        return FenixFramework.getDomainRoot().getDebtReportRequestResultFileDomainObjectsSet().stream();
+    }
+    
+    public static Optional<DebtReportRequestResultFileDomainObject> findUniqueByDebtReportRequestResultFile(DebtReportRequestResultFile file) {
+        return findAll().filter(o -> o.getTreasuryFile() == file).findFirst();
     }
     
 }

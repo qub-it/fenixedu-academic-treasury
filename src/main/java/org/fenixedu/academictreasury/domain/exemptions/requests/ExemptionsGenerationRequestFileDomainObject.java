@@ -73,17 +73,17 @@ public class ExemptionsGenerationRequestFileDomainObject extends ExemptionsGener
         setCreationDate(new DateTime());
     }
 
-    protected ExemptionsGenerationRequestFileDomainObject(final TreasuryExemptionType treasuryExemptionType, final String filename,
-            final byte[] content) {
-        this();
-        setTreasuryExemptionType(treasuryExemptionType);
-
-        ITreasuryPlatformDependentServices services = TreasuryPlataformDependentServicesFactory.implementation();
-        
-        services.createFile(this, filename, CONTENT_TYPE, content);
-
-        checkRules();
-    }
+//    protected ExemptionsGenerationRequestFileDomainObject(final TreasuryExemptionType treasuryExemptionType, final String filename,
+//            final byte[] content) {
+//        this();
+//        setTreasuryExemptionType(treasuryExemptionType);
+//
+//        ITreasuryPlatformDependentServices services = TreasuryPlataformDependentServicesFactory.implementation();
+//        
+//        services.createFile(this, filename, CONTENT_TYPE, content);
+//
+//        checkRules();
+//    }
 
     private void checkRules() {
         if (getDomainRoot() == null) {
@@ -136,7 +136,7 @@ public class ExemptionsGenerationRequestFileDomainObject extends ExemptionsGener
         setDomainRoot(null);
         setTreasuryExemptionType(null);
         
-        services.deleteFile(this);
+//        services.deleteFile(this);
         
         super.deleteDomainObject();
     }
@@ -156,11 +156,11 @@ public class ExemptionsGenerationRequestFileDomainObject extends ExemptionsGener
         return findAll().filter(o -> o.getTreasuryFile() == file).findFirst();
     }
 
-    @Atomic
-    public static ExemptionsGenerationRequestFileDomainObject create(final TreasuryExemptionType treasuryExemptionType, final String filename,
-            final byte[] content) {
-        return new ExemptionsGenerationRequestFileDomainObject(treasuryExemptionType, filename, content);
-    }
+//    @Atomic
+//    public static ExemptionsGenerationRequestFileDomainObject create(final TreasuryExemptionType treasuryExemptionType, final String filename,
+//            final byte[] content) {
+//        return new ExemptionsGenerationRequestFileDomainObject(treasuryExemptionType, filename, content);
+//    }
     
     public static ExemptionsGenerationRequestFileDomainObject createFromExemptionsGenerationRequestFile(final ExemptionsGenerationRequestFile file) {
         final ExemptionsGenerationRequestFileDomainObject result = new ExemptionsGenerationRequestFileDomainObject();
