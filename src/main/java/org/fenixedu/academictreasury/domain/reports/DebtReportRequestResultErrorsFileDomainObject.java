@@ -1,6 +1,7 @@
 package org.fenixedu.academictreasury.domain.reports;
 
-import static org.fenixedu.academictreasury.util.Constants.academicTreasuryBundle;
+
+import static org.fenixedu.academictreasury.util.AcademicTreasuryConstants.academicTreasuryBundle;
 
 import java.util.Optional;
 import java.util.stream.Stream;
