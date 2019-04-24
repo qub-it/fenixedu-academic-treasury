@@ -1,5 +1,8 @@
 package org.fenixedu.academictreasury.domain.debtGeneration.strategies;
 
+import static org.fenixedu.academictreasury.domain.debtGeneration.IAcademicDebtGenerationRuleStrategy.findActiveDebitEntries;
+
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -7,6 +10,7 @@ import org.fenixedu.academic.domain.DegreeCurricularPlan;
 import org.fenixedu.academic.domain.ExecutionYear;
 import org.fenixedu.academic.domain.student.Registration;
 import org.fenixedu.academictreasury.domain.customer.PersonCustomer;
+import org.fenixedu.academictreasury.domain.debtGeneration.AcademicDebtGenerationProcessingResult;
 import org.fenixedu.academictreasury.domain.debtGeneration.AcademicDebtGenerationRule;
 import org.fenixedu.academictreasury.domain.debtGeneration.AcademicDebtGenerationRuleEntry;
 import org.fenixedu.academictreasury.domain.debtGeneration.IAcademicDebtGenerationRuleStrategy;
@@ -24,12 +28,11 @@ import org.joda.time.LocalDate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import pt.ist.fenixframework.Atomic;
 import pt.ist.fenixframework.Atomic.TxMode;
-
-import static org.fenixedu.academictreasury.domain.debtGeneration.IAcademicDebtGenerationRuleStrategy.findActiveDebitEntries;
 
 public class CloseDebtsStrategy implements IAcademicDebtGenerationRuleStrategy {
 
@@ -82,12 +85,13 @@ public class CloseDebtsStrategy implements IAcademicDebtGenerationRuleStrategy {
 
     @Override
     @Atomic(mode = TxMode.READ)
-    public void process(final AcademicDebtGenerationRule rule) {
+    public List<AcademicDebtGenerationProcessingResult> process(final AcademicDebtGenerationRule rule) {
 
         if (!rule.isActive()) {
             throw new AcademicTreasuryDomainException("error.AcademicDebtGenerationRule.not.active.to.process");
         }
 
+        final List<AcademicDebtGenerationProcessingResult> resultList = Lists.newArrayList();
         for (final DegreeCurricularPlan degreeCurricularPlan : rule.getDegreeCurricularPlansSet()) {
             for (final Registration registration : degreeCurricularPlan.getRegistrations()) {
 
@@ -96,36 +100,55 @@ public class CloseDebtsStrategy implements IAcademicDebtGenerationRuleStrategy {
                     continue;
                 }
 
+                final AcademicDebtGenerationProcessingResult result = new AcademicDebtGenerationProcessingResult(rule, registration);
+                resultList.add(result);
+
                 try {
                     processDebtsForRegistration(rule, registration);
+                    result.markProcessingEndDateTime();
                 } catch (final AcademicTreasuryDomainException e) {
+                    result.markException(e);
                     logger.debug(e.getMessage());
                 } catch (final Exception e) {
+                    result.markException(e);
                     e.printStackTrace();
                 }
             }
         }
+        
+        return resultList;
     }
 
     @Override
     @Atomic(mode = TxMode.READ)
-    public void process(final AcademicDebtGenerationRule rule, final Registration registration) {
+    public List<AcademicDebtGenerationProcessingResult> process(final AcademicDebtGenerationRule rule, final Registration registration) {
         if (!rule.isActive()) {
             throw new AcademicTreasuryDomainException("error.AcademicDebtGenerationRule.not.active.to.process");
         }
 
         if (rule.getDebtGenerationRuleRestriction() != null
                 && !rule.getDebtGenerationRuleRestriction().strategyImplementation().isToApply(rule, registration)) {
-            return;
+            return Lists.newArrayList();
         }
 
+        final AcademicDebtGenerationProcessingResult result = new AcademicDebtGenerationProcessingResult(rule, registration);
         try {
+            if (rule.getDebtGenerationRuleRestriction() != null
+                    && !rule.getDebtGenerationRuleRestriction().strategyImplementation().isToApply(rule, registration)) {
+                return Lists.newArrayList();
+            }
+
             processDebtsForRegistration(rule, registration);
+            result.markProcessingEndDateTime();
         } catch (final AcademicTreasuryDomainException e) {
+            result.markException(e);
             logger.debug(e.getMessage());
         } catch (final Exception e) {
+            result.markException(e);
             e.printStackTrace();
         }
+
+        return Lists.newArrayList(result);
     }
 
     @Atomic(mode = TxMode.WRITE)

@@ -7,6 +7,7 @@ import org.fenixedu.academictreasury.domain.reports.DebtReportRequest;
 import org.fenixedu.academictreasury.domain.reports.ErrorsLog;
 import org.fenixedu.academictreasury.util.AcademicTreasuryConstants;
 import org.fenixedu.treasury.domain.exemption.TreasuryExemption;
+import org.fenixedu.treasury.services.integration.ITreasuryPlatformDependentServices;
 import org.fenixedu.treasury.services.integration.TreasuryPlataformDependentServicesFactory;
 import org.fenixedu.treasury.util.streaming.spreadsheet.IErrorsLog;
 import org.joda.time.DateTime;
@@ -41,14 +42,16 @@ public class TreasuryExemptionReportEntryBean extends AbstractReportEntryBean {
     boolean completed = false;
 
     public TreasuryExemptionReportEntryBean(final TreasuryExemption treasuryExemption, final DebtReportRequest request, final ErrorsLog errorsLog) {
+        final ITreasuryPlatformDependentServices treasuryServices = TreasuryPlataformDependentServicesFactory.implementation();
+
         final String decimalSeparator = request.getDecimalSeparator();
         
         try {
             this.treasuryExemption = treasuryExemption;
 
             this.identification = treasuryExemption.getExternalId();
-            this.versioningCreator = TreasuryPlataformDependentServicesFactory.implementation().versioningCreatorUsername(treasuryExemption);
-            this.creationDate = TreasuryPlataformDependentServicesFactory.implementation().versioningCreationDate(treasuryExemption);
+            this.versioningCreator = treasuryServices.versioningCreatorUsername(treasuryExemption);
+            this.creationDate = treasuryServices.versioningCreationDate(treasuryExemption);
             this.customerId = treasuryExemption.getDebitEntry().getDebtAccount().getCustomer().getExternalId();
             this.customerName = treasuryExemption.getDebitEntry().getDebtAccount().getCustomer().getName();
             this.debtAccountId = treasuryExemption.getDebitEntry().getDebtAccount().getExternalId();

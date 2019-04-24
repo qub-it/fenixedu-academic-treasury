@@ -1,5 +1,6 @@
 package org.fenixedu.academictreasury.dto.reports;
 
+
 import static org.fenixedu.academictreasury.util.AcademicTreasuryConstants.academicTreasuryBundle;
 
 import java.math.BigDecimal;
@@ -15,12 +16,14 @@ import org.fenixedu.treasury.domain.document.Invoice;
 import org.fenixedu.treasury.domain.document.ReimbursementEntry;
 import org.fenixedu.treasury.domain.document.SettlementEntry;
 import org.fenixedu.treasury.domain.document.SettlementNote;
+import org.fenixedu.treasury.services.integration.ITreasuryPlatformDependentServices;
 import org.fenixedu.treasury.services.integration.TreasuryPlataformDependentServicesFactory;
 import org.fenixedu.treasury.util.streaming.spreadsheet.IErrorsLog;
 import org.fenixedu.treasury.util.streaming.spreadsheet.SpreadsheetRow;
 import org.joda.time.DateTime;
 import org.joda.time.LocalDate;
-import org.springframework.util.StringUtils;
+
+import com.google.common.base.Strings;
 
 public class ReimbursementReportEntryBean implements SpreadsheetRow {
 
@@ -60,7 +63,7 @@ public class ReimbursementReportEntryBean implements SpreadsheetRow {
     private String customerId;
     private String debtAccountId;
     private String name;
-    private LocalizedString identificationType;
+    private String identificationType;
     private String identificationNumber;
     private String vatNumber;
     private String email;
@@ -79,6 +82,7 @@ public class ReimbursementReportEntryBean implements SpreadsheetRow {
     private String decimalSeparator;
     
     public ReimbursementReportEntryBean(final ReimbursementEntry entry, final DebtReportRequest request, final ErrorsLog errorsLog) {
+        final ITreasuryPlatformDependentServices treasuryServices = TreasuryPlataformDependentServicesFactory.implementation();
         this.decimalSeparator = request != null ? request.getDecimalSeparator() : DebtReportRequest.DOT;
         
         paymentEntry = entry;
@@ -87,8 +91,8 @@ public class ReimbursementReportEntryBean implements SpreadsheetRow {
             final SettlementNote settlementNote = entry.getSettlementNote();
 
             this.identification = entry.getExternalId();
-            this.creationDate = TreasuryPlataformDependentServicesFactory.implementation().versioningCreationDate(entry);
-            this.responsible = TreasuryPlataformDependentServicesFactory.implementation().versioningCreatorUsername(entry);
+            this.creationDate = treasuryServices.versioningCreationDate(entry);
+            this.responsible = treasuryServices.versioningCreatorUsername(entry);
             this.settlementNoteNumber = settlementNote.getUiDocumentNumber();
             this.settlementNoteDocumentDate = settlementNote.getDocumentDate();
             this.paymentDate = settlementNote.getPaymentDate();
@@ -141,34 +145,22 @@ public class ReimbursementReportEntryBean implements SpreadsheetRow {
         this.name = customer.getName();
 
         if (customer.isPersonCustomer() 
-                && ((PersonCustomer) customer).getPerson() != null
-                && ((PersonCustomer) customer).getPerson().getIdDocumentType() != null) {
-            this.identificationType = ((PersonCustomer) customer).getPerson().getIdDocumentType().getLocalizedNameI18N();
-        } else if (customer.isPersonCustomer() 
-                && ((PersonCustomer) customer).getPersonForInactivePersonCustomer() != null
-                && ((PersonCustomer) customer).getPersonForInactivePersonCustomer().getIdDocumentType() != null) {
-            this.identificationType =
-                    ((PersonCustomer) customer).getPersonForInactivePersonCustomer().getIdDocumentType().getLocalizedNameI18N();
+                && ((PersonCustomer) customer).getAssociatedPerson() != null
+                && ((PersonCustomer) customer).getAssociatedPerson().getIdDocumentType() != null) {
+            this.identificationType = ((PersonCustomer) customer).getAssociatedPerson().getIdDocumentType().getLocalizedName();
         }
 
         this.identificationNumber = customer.getIdentificationNumber();
         this.vatNumber = customer.getUiFiscalNumber();
 
-        if (customer.isPersonCustomer() && ((PersonCustomer) customer).getPerson() != null) {
-            this.email = ((PersonCustomer) customer).getPerson().getInstitutionalOrDefaultEmailAddressValue();
-        } else if (customer.isPersonCustomer() && ((PersonCustomer) customer).getPersonForInactivePersonCustomer() != null) {
-            this.email =
-                    ((PersonCustomer) customer).getPersonForInactivePersonCustomer().getInstitutionalOrDefaultEmailAddressValue();
+        if (customer.isPersonCustomer() && ((PersonCustomer) customer).getAssociatedPerson() != null) {
+            this.email = ((PersonCustomer) customer).getAssociatedPerson().getInstitutionalOrDefaultEmailAddressValue();
         }
 
         this.address = customer.getAddress();
 
-        if (customer.isPersonCustomer() && ((PersonCustomer) customer).getPerson() != null && ((PersonCustomer) customer).getPerson().getStudent() != null) {
-            this.studentNumber = ((PersonCustomer) customer).getPerson().getStudent().getNumber();
-        } else if(customer.isPersonCustomer() 
-                && ((PersonCustomer) customer).getPersonForInactivePersonCustomer() != null 
-                && ((PersonCustomer) customer).getPersonForInactivePersonCustomer().getStudent() != null) {
-            this.studentNumber = ((PersonCustomer) customer).getPersonForInactivePersonCustomer().getStudent().getNumber();
+        if (customer.isPersonCustomer() && ((PersonCustomer) customer).getAssociatedPerson() != null && ((PersonCustomer) customer).getAssociatedPerson().getStudent() != null) {
+            this.studentNumber = ((PersonCustomer) customer).getAssociatedPerson().getStudent().getNumber();
         }
     }
 
@@ -249,7 +241,7 @@ public class ReimbursementReportEntryBean implements SpreadsheetRow {
             return "";
         }
 
-        if (StringUtils.isEmpty(value.getContent())) {
+        if (Strings.isNullOrEmpty(value.getContent())) {
             return "";
         }
 
@@ -257,7 +249,7 @@ public class ReimbursementReportEntryBean implements SpreadsheetRow {
     }
 
     private String valueOrEmpty(final String value) {
-        if (!StringUtils.isEmpty(value)) {
+        if (!Strings.isNullOrEmpty(value)) {
             return value;
         }
 
@@ -391,11 +383,11 @@ public class ReimbursementReportEntryBean implements SpreadsheetRow {
         this.name = name;
     }
 
-    public LocalizedString getIdentificationType() {
+    public String getIdentificationType() {
         return identificationType;
     }
 
-    public void setIdentificationType(LocalizedString identificationType) {
+    public void setIdentificationType(String identificationType) {
         this.identificationType = identificationType;
     }
 
@@ -495,5 +487,4 @@ public class ReimbursementReportEntryBean implements SpreadsheetRow {
         this.decimalSeparator = decimalSeparator;
     }
 
-    
 }

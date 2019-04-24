@@ -86,7 +86,7 @@ public class TuitionDebtCreationBean implements Serializable, ITreasuryBean {
         getImprovementEnrolmentEvaluationsDataSource();
 
         if (registration != null && executionYear != null && isRegistrationTuition()
-                && !TuitionServices.normalEnrolments(registration, executionYear).isEmpty()) {
+                && !TuitionServices.normalEnrolmentsIncludingAnnuled(registration, executionYear).isEmpty()) {
             debtDate = TuitionServices.enrolmentDate(registration, executionYear, false);
         } else {
             debtDate = new LocalDate();
@@ -101,7 +101,7 @@ public class TuitionDebtCreationBean implements Serializable, ITreasuryBean {
             String text = executionYear.getQualifiedName();
 
             if(isRegistrationTuition() && registration != null) {
-                final Set<Enrolment> normalEnrolments = TuitionServices.normalEnrolments(registration, executionYear);
+                final Set<Enrolment> normalEnrolments = TuitionServices.normalEnrolmentsIncludingAnnuled(registration, executionYear);
                 
                 if(normalEnrolments.size() == 1) {
                     text += " " + academicTreasuryBundle("label.TuitionDebtCreationBean.enrolments.one");
@@ -133,7 +133,7 @@ public class TuitionDebtCreationBean implements Serializable, ITreasuryBean {
                 ((PersonCustomer) debtAccount.getCustomer()).getPerson().getStudent().getRegistrationsSet().stream()
                         .map(r -> new TreasuryTupleDataSourceBean(r.getExternalId(),
                                 String.format("[%s] %s", r.getDegree().getCode(), 
-                                        r.getDegree().getPresentationNameI18N(getExecutionYear()).getContent())))
+                                        r.getDegree().getPresentationName(getExecutionYear()))))
                 .collect(Collectors.toList());
 
         return registrationDataSource;
@@ -190,7 +190,7 @@ public class TuitionDebtCreationBean implements Serializable, ITreasuryBean {
             return standaloneEnrolmentsDataSource;
         }
 
-        standaloneEnrolmentsDataSource = TuitionServices.standaloneEnrolments(getRegistration(), getExecutionYear()).stream()
+        standaloneEnrolmentsDataSource = TuitionServices.standaloneEnrolmentsIncludingAnnuled(getRegistration(), getExecutionYear()).stream()
                 .sorted(Enrolment.COMPARATOR_BY_NAME_AND_ID).collect(Collectors.toList()).stream()
                 .map(l -> new TreasuryTupleDataSourceBean(l.getExternalId(), l.getName().getContent())).collect(Collectors.toList());
 
@@ -208,7 +208,7 @@ public class TuitionDebtCreationBean implements Serializable, ITreasuryBean {
             return extracurricularEnrolmentsDataSource;
         }
 
-        extracurricularEnrolmentsDataSource = TuitionServices.extracurricularEnrolments(getRegistration(), getExecutionYear())
+        extracurricularEnrolmentsDataSource = TuitionServices.extracurricularEnrolmentsIncludingAnnuled(getRegistration(), getExecutionYear())
                 .stream().sorted(Enrolment.COMPARATOR_BY_NAME_AND_ID).collect(Collectors.toList()).stream()
                 .map(l -> new TreasuryTupleDataSourceBean(l.getExternalId(), l.getName().getContent())).collect(Collectors.toList());
 

@@ -11,7 +11,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.fenixedu.academic.domain.CurricularYear;
 import org.fenixedu.academic.domain.DegreeCurricularPlan;
 import org.fenixedu.academic.domain.Enrolment;
 import org.fenixedu.academic.domain.ExecutionYear;
@@ -19,17 +18,16 @@ import org.fenixedu.academic.domain.StudentCurricularPlan;
 import org.fenixedu.academic.domain.candidacy.IngressionType;
 import org.fenixedu.academic.domain.student.Registration;
 import org.fenixedu.academic.domain.student.RegistrationProtocol;
-import org.fenixedu.academic.domain.student.RegistrationRegimeType;
 import org.fenixedu.academic.domain.student.StatuteType;
 import org.fenixedu.academictreasury.domain.event.AcademicTreasuryEvent;
 import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainException;
 import org.fenixedu.academictreasury.domain.settings.AcademicTreasurySettings;
 import org.fenixedu.academictreasury.dto.tariff.AcademicTariffBean;
 import org.fenixedu.academictreasury.dto.tariff.TuitionPaymentPlanBean;
+import org.fenixedu.academictreasury.services.AcademicTreasuryPlataformDependentServicesFactory;
+import org.fenixedu.academictreasury.services.IAcademicTreasuryPlatformDependentServices;
 import org.fenixedu.academictreasury.util.AcademicTreasuryConstants;
 import org.fenixedu.academictreasury.util.LocalizedStringUtil;
-import pt.ist.fenixframework.FenixFramework;
-import org.fenixedu.bennu.core.i18n.BundleUtil;
 import org.fenixedu.bennu.core.util.CoreConfiguration;
 import org.fenixedu.commons.i18n.LocalizedString;
 import org.fenixedu.treasury.domain.FinantialEntity;
@@ -38,6 +36,8 @@ import org.fenixedu.treasury.domain.document.DebitEntry;
 import org.fenixedu.treasury.domain.document.DebitNote;
 import org.fenixedu.treasury.domain.document.DocumentNumberSeries;
 import org.fenixedu.treasury.domain.document.FinantialDocumentType;
+import org.fenixedu.treasury.services.integration.ITreasuryPlatformDependentServices;
+import org.fenixedu.treasury.services.integration.TreasuryPlataformDependentServicesFactory;
 import org.joda.time.DateTime;
 import org.joda.time.LocalDate;
 
@@ -45,6 +45,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import pt.ist.fenixframework.Atomic;
+import pt.ist.fenixframework.FenixFramework;
 
 public class TuitionPaymentPlan extends TuitionPaymentPlan_Base {
 
@@ -81,8 +82,13 @@ public class TuitionPaymentPlan extends TuitionPaymentPlan_Base {
                 .getSemester() : null);
         setFirstTimeStudent(tuitionPaymentPlanBean.isFirstTimeStudent());
         setCustomized(tuitionPaymentPlanBean.isCustomized());
-        setCustomizedName(
-                new LocalizedString(CoreConfiguration.supportedLocales().iterator().next(), tuitionPaymentPlanBean.getName()));
+        
+        LocalizedString mls = new LocalizedString();
+        for (final Locale locale : TreasuryPlataformDependentServicesFactory.implementation().availableLocales()) {
+            mls = mls.with(locale, tuitionPaymentPlanBean.getName());
+        }
+        
+        setCustomizedName(mls);
 
         setWithLaboratorialClasses(tuitionPaymentPlanBean.isWithLaboratorialClasses());
         setPaymentPlanOrder((int) find(getTuitionPaymentPlanGroup(), getDegreeCurricularPlan(), getExecutionYear())
@@ -187,9 +193,11 @@ public class TuitionPaymentPlan extends TuitionPaymentPlan_Base {
     }
 
     public LocalizedString getName() {
+        final ITreasuryPlatformDependentServices treasuryServices = TreasuryPlataformDependentServicesFactory.implementation();
+
         LocalizedString result = new LocalizedString();
 
-        for (final Locale locale : CoreConfiguration.supportedLocales()) {
+        for (final Locale locale : treasuryServices.availableLocales()) {
             final String paymentPlanLabel =
                     isCustomized() ? "label.TuitionPaymentPlan.paymentPlanName.customized" : "label.TuitionPaymentPlan.paymentPlanName";
 
@@ -206,8 +214,12 @@ public class TuitionPaymentPlan extends TuitionPaymentPlan_Base {
     }
 
     public LocalizedString getConditionsDescription() {
+        final ITreasuryPlatformDependentServices treasuryServices = TreasuryPlataformDependentServicesFactory.implementation();
+        final IAcademicTreasuryPlatformDependentServices academicTreasuryServices = AcademicTreasuryPlataformDependentServicesFactory.implementation();
+        
         LocalizedString result = new LocalizedString();
-        for (final Locale locale : CoreConfiguration.supportedLocales()) {
+
+        for (final Locale locale : treasuryServices.availableLocales()) {
             StringBuilder description = new StringBuilder();
 
             if (isDefaultPaymentPlan()) {
@@ -251,7 +263,7 @@ public class TuitionPaymentPlan extends TuitionPaymentPlan_Base {
             }
 
             if (getStatuteType() != null) {
-                description.append(getStatuteType().getName().getContent()).append(CONDITIONS_DESCRIPTION_SEPARATOR);
+                description.append(academicTreasuryServices.localizedNameOfStatuteType(getStatuteType())).append(CONDITIONS_DESCRIPTION_SEPARATOR);
             }
 
             if (isFirstTimeStudent()) {
@@ -303,6 +315,7 @@ public class TuitionPaymentPlan extends TuitionPaymentPlan_Base {
     }
 
     public LocalizedString installmentName(final TuitionInstallmentTariff installmentTariff) {
+        final ITreasuryPlatformDependentServices treasuryServices = TreasuryPlataformDependentServicesFactory.implementation();
         String label = "label.TuitionInstallmentTariff.debitEntry.name.";
 
         if (getTuitionPaymentPlanGroup().isForRegistration()) {
@@ -314,10 +327,10 @@ public class TuitionPaymentPlan extends TuitionPaymentPlan_Base {
         }
 
         LocalizedString result = new LocalizedString();
-        for (final Locale locale : CoreConfiguration.supportedLocales()) {
+        for (final Locale locale : treasuryServices.availableLocales()) {
             final String installmentName =
                     academicTreasuryBundle(locale, label, String.valueOf(installmentTariff.getInstallmentOrder()),
-                            getDegreeCurricularPlan().getDegree().getPresentationNameI18N().getContent(locale),
+                            getDegreeCurricularPlan().getDegree().getPresentationName(getExecutionYear(), locale),
                             getExecutionYear().getQualifiedName());
 
             result = result.with(locale, installmentName);
@@ -703,6 +716,7 @@ public class TuitionPaymentPlan extends TuitionPaymentPlan_Base {
 
     public static TuitionPaymentPlan inferTuitionPaymentPlanForStandaloneEnrolment(final Registration registration,
             final ExecutionYear executionYear, final Enrolment enrolment) {
+        final IAcademicTreasuryPlatformDependentServices academicTreasuryServices = AcademicTreasuryPlataformDependentServicesFactory.implementation();
 
         if (!enrolment.isStandalone()) {
             throw new AcademicTreasuryDomainException("error.TuitionPaymentPlan.enrolment.is.not.standalone");
@@ -711,22 +725,35 @@ public class TuitionPaymentPlan extends TuitionPaymentPlan_Base {
         final DegreeCurricularPlan degreeCurricularPlan = enrolment.getCurricularCourse().getDegreeCurricularPlan();
         final RegistrationProtocol registrationProtocol = registration.getRegistrationProtocol();
         final IngressionType ingression = registration.getIngressionType();
-        boolean laboratorial = laboratorial(enrolment);
-
+        final boolean laboratorial = laboratorial(enrolment);
+        final Set<StatuteType> statutes = academicTreasuryServices.statutesTypesValidOnAnyExecutionSemesterFor(registration.getStudent(), executionYear);
+        
         final Stream<TuitionPaymentPlan> stream = TuitionPaymentPlan.findSortedByPaymentPlanOrder(
                 TuitionPaymentPlanGroup.findUniqueDefaultGroupForStandalone().get(), degreeCurricularPlan, executionYear);
 
         final List<TuitionPaymentPlan> l = stream.collect(Collectors.toList());
 
-        return Lists.newArrayList(l).stream()
+        List<TuitionPaymentPlan> plans = Lists.newArrayList(l).stream()
                 .filter(t -> (t.getRegistrationProtocol() == null || t.getRegistrationProtocol() == registrationProtocol)
                         && (t.getIngression() == null || t.getIngression() == ingression)
                         && (!t.isWithLaboratorialClasses() || t.isWithLaboratorialClasses() == laboratorial) && !t.isCustomized())
-                .findFirst().orElse(null);
+                .collect(Collectors.toList());
+        
+        final List<TuitionPaymentPlan> filtered = Lists.newArrayList();
+        for (final TuitionPaymentPlan t : plans) {
+            if (t.getStatuteType() != null && !statutes.contains(t.getStatuteType())) {
+                continue;
+            }
+
+            filtered.add(t);
+        }
+
+        return filtered.stream().findFirst().orElse(null);
     }
 
     public static TuitionPaymentPlan inferTuitionPaymentPlanForExtracurricularEnrolment(final Registration registration,
             final ExecutionYear executionYear, final Enrolment enrolment) {
+        final IAcademicTreasuryPlatformDependentServices academicTreasuryServices = AcademicTreasuryPlataformDependentServicesFactory.implementation();
 
         if (!enrolment.isExtraCurricular()) {
             throw new AcademicTreasuryDomainException("error.TuitionPaymentPlan.enrolment.is.not.extracurricular");
@@ -735,18 +762,30 @@ public class TuitionPaymentPlan extends TuitionPaymentPlan_Base {
         final DegreeCurricularPlan degreeCurricularPlan = enrolment.getCurricularCourse().getDegreeCurricularPlan();
         final RegistrationProtocol registrationProtocol = registration.getRegistrationProtocol();
         final IngressionType ingression = registration.getIngressionType();
-        boolean laboratorial = laboratorial(enrolment);
+        final boolean laboratorial = laboratorial(enrolment);
+        final Set<StatuteType> statutes = academicTreasuryServices.statutesTypesValidOnAnyExecutionSemesterFor(registration.getStudent(), executionYear);
 
         final Stream<TuitionPaymentPlan> stream = TuitionPaymentPlan.findSortedByPaymentPlanOrder(
                 TuitionPaymentPlanGroup.findUniqueDefaultGroupForExtracurricular().get(), degreeCurricularPlan, executionYear);
 
         final List<TuitionPaymentPlan> l = stream.collect(Collectors.toList());
 
-        return Lists.newArrayList(l).stream()
+        List<TuitionPaymentPlan> plans = Lists.newArrayList(l).stream()
                 .filter(t -> (t.getRegistrationProtocol() == null || t.getRegistrationProtocol() == registrationProtocol)
                         && (t.getIngression() == null || t.getIngression() == ingression)
                         && (!t.isWithLaboratorialClasses() || t.isWithLaboratorialClasses() == laboratorial) && !t.isCustomized())
-                .findFirst().orElse(null);
+                .collect(Collectors.toList());
+        
+        final List<TuitionPaymentPlan> filtered = Lists.newArrayList();
+        for (final TuitionPaymentPlan t : plans) {
+            if (t.getStatuteType() != null && !statutes.contains(t.getStatuteType())) {
+                continue;
+            }
+
+            filtered.add(t);
+        }
+
+        return filtered.stream().findFirst().orElse(null);
     }
 
     private static boolean laboratorial(final Enrolment enrolment) {

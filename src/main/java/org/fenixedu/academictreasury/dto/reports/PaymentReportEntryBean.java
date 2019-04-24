@@ -1,5 +1,6 @@
 package org.fenixedu.academictreasury.dto.reports;
 
+
 import static org.fenixedu.academictreasury.dto.reports.DebtReportEntryBean.personalEmail;
 import static org.fenixedu.academictreasury.util.AcademicTreasuryConstants.academicTreasuryBundle;
 
@@ -7,7 +8,6 @@ import java.math.BigDecimal;
 
 import org.apache.poi.ss.usermodel.Row;
 import org.fenixedu.academic.domain.Person;
-import org.fenixedu.academic.domain.contacts.EmailAddress;
 import org.fenixedu.academictreasury.domain.customer.PersonCustomer;
 import org.fenixedu.academictreasury.domain.reports.DebtReportRequest;
 import org.fenixedu.academictreasury.domain.reports.ErrorsLog;
@@ -18,12 +18,14 @@ import org.fenixedu.treasury.domain.document.Invoice;
 import org.fenixedu.treasury.domain.document.PaymentEntry;
 import org.fenixedu.treasury.domain.document.SettlementEntry;
 import org.fenixedu.treasury.domain.document.SettlementNote;
+import org.fenixedu.treasury.services.integration.ITreasuryPlatformDependentServices;
 import org.fenixedu.treasury.services.integration.TreasuryPlataformDependentServicesFactory;
 import org.fenixedu.treasury.util.streaming.spreadsheet.IErrorsLog;
 import org.fenixedu.treasury.util.streaming.spreadsheet.SpreadsheetRow;
 import org.joda.time.DateTime;
 import org.joda.time.LocalDate;
-import org.springframework.util.StringUtils;
+
+import com.google.common.base.Strings;
 
 public class PaymentReportEntryBean implements SpreadsheetRow {
 
@@ -67,7 +69,7 @@ public class PaymentReportEntryBean implements SpreadsheetRow {
     private String customerId;
     private String debtAccountId;
     private String name;
-    private LocalizedString identificationType;
+    private String identificationType;
     private String identificationNumber;
     private String vatNumber;
     private String institutionalOrDefaultEmail;
@@ -88,6 +90,8 @@ public class PaymentReportEntryBean implements SpreadsheetRow {
     private String decimalSeparator;
     
     public PaymentReportEntryBean(final PaymentEntry entry, final DebtReportRequest request, final ErrorsLog errorsLog) {
+        final ITreasuryPlatformDependentServices treasuryServices = TreasuryPlataformDependentServicesFactory.implementation();
+
         this.decimalSeparator = request != null ? request.getDecimalSeparator() : DebtReportRequest.COMMA;
         
         paymentEntry = entry;
@@ -96,8 +100,8 @@ public class PaymentReportEntryBean implements SpreadsheetRow {
             final SettlementNote settlementNote = entry.getSettlementNote();
 
             this.identification = entry.getExternalId();
-            this.creationDate = TreasuryPlataformDependentServicesFactory.implementation().versioningCreationDate(entry);
-            this.responsible = TreasuryPlataformDependentServicesFactory.implementation().versioningCreatorUsername(entry);
+            this.creationDate = treasuryServices.versioningCreationDate(entry);
+            this.responsible = treasuryServices.versioningCreatorUsername(entry);
             this.settlementNoteNumber = settlementNote.getUiDocumentNumber();
             this.settlementNoteDocumentDate = settlementNote.getDocumentDate();
             this.paymentDate = settlementNote.getPaymentDate();
@@ -149,7 +153,7 @@ public class PaymentReportEntryBean implements SpreadsheetRow {
         this.name = customer.getName();
 
         if (customer.isPersonCustomer() && ((PersonCustomer) customer).getAssociatedPerson() != null && ((PersonCustomer) customer).getAssociatedPerson().getIdDocumentType() != null) {
-            this.identificationType = ((PersonCustomer) customer).getAssociatedPerson().getIdDocumentType().getLocalizedNameI18N();
+            this.identificationType = ((PersonCustomer) customer).getAssociatedPerson().getIdDocumentType().getLocalizedName();
         }
 
         this.identificationNumber = customer.getIdentificationNumber();
@@ -233,7 +237,7 @@ public class PaymentReportEntryBean implements SpreadsheetRow {
             return "";
         }
 
-        return academicTreasuryBundle(value ? "label.true" : "label.false");
+        return academicTreasuryBundle(value ? "label.yes" : "label.no");
     }
 
     private String valueOrEmpty(final Integer value) {
@@ -249,7 +253,7 @@ public class PaymentReportEntryBean implements SpreadsheetRow {
             return "";
         }
 
-        if (StringUtils.isEmpty(value.getContent())) {
+        if (Strings.isNullOrEmpty(value.getContent())) {
             return "";
         }
 
@@ -257,7 +261,7 @@ public class PaymentReportEntryBean implements SpreadsheetRow {
     }
 
     private String valueOrEmpty(final String value) {
-        if (!StringUtils.isEmpty(value)) {
+        if (!Strings.isNullOrEmpty(value)) {
             return value;
         }
 
@@ -391,11 +395,11 @@ public class PaymentReportEntryBean implements SpreadsheetRow {
         this.name = name;
     }
 
-    public LocalizedString getIdentificationType() {
+    public String getIdentificationType() {
         return identificationType;
     }
 
-    public void setIdentificationType(LocalizedString identificationType) {
+    public void setIdentificationType(String identificationType) {
         this.identificationType = identificationType;
     }
 

@@ -27,6 +27,8 @@
 		
 package org.fenixedu.academictreasury.dto.reports;
 
+import org.fenixedu.academic.domain.ExecutionYear;
+import org.fenixedu.academic.domain.degree.DegreeType;
 import org.fenixedu.academictreasury.domain.reports.DebtReportRequestType;
 import org.fenixedu.treasury.dto.ITreasuryBean;
 import org.joda.time.LocalDate;
@@ -39,6 +41,14 @@ public class DebtReportRequestBean implements ITreasuryBean {
 	private org.joda.time.LocalDate endDate;
 	private String decimalSeparator;
 	private boolean includeAnnuledEntries;
+
+    private boolean includeExtraAcademicInfo;
+    private boolean includeErpIntegrationInfo;
+    private boolean includeSibsInfo;
+    private boolean includeProductsInfo;
+    
+    private DegreeType degreeType;
+    private ExecutionYear executionYear;
 	
 	public DebtReportRequestBean(){
 	    this.type = DebtReportRequestType.INVOICE_ENTRIES;
@@ -46,6 +56,14 @@ public class DebtReportRequestBean implements ITreasuryBean {
 	    this.endDate = new LocalDate();
 	    this.decimalSeparator = ",";
 	    this.includeAnnuledEntries = true;
+        
+        this.includeExtraAcademicInfo = true;
+        this.includeErpIntegrationInfo = true;
+        this.includeSibsInfo = true;
+        this.includeProductsInfo = true;
+        
+        this.degreeType = null;
+        this.executionYear = null;
 	}
 
     /* GETTERS & SETTERS */
@@ -89,4 +107,53 @@ public class DebtReportRequestBean implements ITreasuryBean {
     public void setIncludeAnnuledEntries(boolean includeAnnuledEntries) {
         this.includeAnnuledEntries = includeAnnuledEntries;
     }
+
+    public boolean isIncludeExtraAcademicInfo() {
+        return includeExtraAcademicInfo;
+    }
+    
+    public void setIncludeExtraAcademicInfo(boolean includeExtraAcademicInfo) {
+        this.includeExtraAcademicInfo = includeExtraAcademicInfo;
+    }
+
+    public boolean isIncludeErpIntegrationInfo() {
+        return includeErpIntegrationInfo;
+    }
+    
+    public void setIncludeErpIntegrationInfo(boolean includeErpIntegrationInfo) {
+        this.includeErpIntegrationInfo = includeErpIntegrationInfo;
+    }
+
+    public boolean isIncludeSibsInfo() {
+        return includeSibsInfo;
+    }
+    
+    public void setIncludeSibsInfo(boolean includeSibsInfo) {
+        this.includeSibsInfo = includeSibsInfo;
+    }
+
+    public boolean isIncludeProductsInfo() {
+        return includeProductsInfo;
+    }
+    
+    public void setIncludeProductsInfo(boolean includeProductsInfo) {
+        this.includeProductsInfo = includeProductsInfo;
+    }
+    
+    public DegreeType getDegreeType() {
+        return degreeType;
+    }
+    
+    public void setDegreeType(DegreeType degreeType) {
+        this.degreeType = degreeType;
+    }
+    
+    public ExecutionYear getExecutionYear() {
+        return executionYear;
+    }
+    
+    public void setExecutionYear(ExecutionYear executionYear) {
+        this.executionYear = executionYear;
+    }
+    
 }

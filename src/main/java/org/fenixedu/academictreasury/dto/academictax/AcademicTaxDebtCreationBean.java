@@ -14,11 +14,13 @@ import org.fenixedu.academic.domain.student.RegistrationDataByExecutionYear;
 import org.fenixedu.academictreasury.domain.customer.PersonCustomer;
 import org.fenixedu.academictreasury.domain.emoluments.AcademicTax;
 import org.fenixedu.academictreasury.services.AcademicTaxServices;
+import org.fenixedu.academictreasury.services.AcademicTreasuryPlataformDependentServicesFactory;
+import org.fenixedu.academictreasury.services.IAcademicTreasuryPlatformDependentServices;
 import org.fenixedu.academictreasury.services.TuitionServices;
-import org.fenixedu.academictreasury.util.AcademicTreasuryConstants;
+import org.fenixedu.treasury.domain.FinantialEntity;
+import org.fenixedu.treasury.domain.debt.DebtAccount;
 import org.fenixedu.treasury.dto.ITreasuryBean;
 import org.fenixedu.treasury.dto.TreasuryTupleDataSourceBean;
-import org.fenixedu.treasury.domain.debt.DebtAccount;
 import org.joda.time.LocalDate;
 
 import com.google.common.collect.Lists;
@@ -33,6 +35,7 @@ public class AcademicTaxDebtCreationBean implements Serializable, ITreasuryBean 
     private LocalDate debtDate;
     private ExecutionYear executionYear;
     private Registration registration;
+    private FinantialEntity finantialEntity;
     private EnrolmentEvaluation improvementEvaluation;
 
     private DebtAccount debtAccount;
@@ -68,14 +71,12 @@ public class AcademicTaxDebtCreationBean implements Serializable, ITreasuryBean 
 
         isImprovementTaxSelected();
 
+        IAcademicTreasuryPlatformDependentServices academicTreasuryServices = AcademicTreasuryPlataformDependentServicesFactory.implementation();
+
         if (registration != null && executionYear != null) {
-            debtDate = RegistrationDataByExecutionYear.getOrCreateRegistrationDataByYear(registration, executionYear)
-                    .getEnrolmentDate();
+            final RegistrationDataByExecutionYear findRegistrationDataByExecutionYear = academicTreasuryServices.findRegistrationDataByExecutionYear(registration, executionYear);
 
-            if (debtDate == null) {
-                debtDate = new LocalDate();
-            }
-
+            debtDate = findRegistrationDataByExecutionYear != null ? findRegistrationDataByExecutionYear.getEnrolmentDate() : new LocalDate();
         } else {
             debtDate = new LocalDate();
         }
@@ -92,7 +93,7 @@ public class AcademicTaxDebtCreationBean implements Serializable, ITreasuryBean 
 
             if (registration != null) {
                 final Set<?> enrolments = isImprovementTax() ? TuitionServices.improvementEnrolments(registration,
-                        executionYear) : TuitionServices.normalEnrolments(registration, executionYear);
+                        executionYear) : TuitionServices.normalEnrolmentsIncludingAnnuled(registration, executionYear);
 
                 if (enrolments.size() == 1) {
                     text += " " + academicTreasuryBundle("label.AcademicTaxDebtCreationBean.enrolments.one");
@@ -125,7 +126,7 @@ public class AcademicTaxDebtCreationBean implements Serializable, ITreasuryBean 
         registrationDataSource =
                 ((PersonCustomer) debtAccount.getCustomer()).getPerson().getStudent().getRegistrationsSet().stream()
                         .map(r -> new TreasuryTupleDataSourceBean(r.getExternalId(),
-                                r.getDegree().getPresentationNameI18N(getExecutionYear()).getContent()))
+                                r.getDegree().getPresentationName(getExecutionYear())))
                 .collect(Collectors.toList());
 
         return registrationDataSource;
@@ -256,6 +257,14 @@ public class AcademicTaxDebtCreationBean implements Serializable, ITreasuryBean 
 
     public void setRegistration(Registration registration) {
         this.registration = registration;
+    }
+
+    public FinantialEntity getFinantialEntity() {
+        return finantialEntity;
+    }
+
+    public void setFinantialEntity(FinantialEntity finantialEntity) {
+        this.finantialEntity = finantialEntity;
     }
 
     public AcademicTax getAcademicTax() {

@@ -24,6 +24,8 @@ import org.fenixedu.academic.domain.treasury.IAcademicTreasuryTarget;
 import org.fenixedu.academic.domain.treasury.IImprovementTreasuryEvent;
 import org.fenixedu.academic.domain.treasury.IPaymentCodePool;
 import org.fenixedu.academic.domain.treasury.ITreasuryBridgeAPI;
+import org.fenixedu.academic.domain.treasury.ITreasuryCustomer;
+import org.fenixedu.academic.domain.treasury.ITreasuryDebtAccount;
 import org.fenixedu.academic.domain.treasury.ITreasuryEntity;
 import org.fenixedu.academic.domain.treasury.ITreasuryProduct;
 import org.fenixedu.academic.domain.treasury.ITuitionTreasuryEvent;
@@ -31,9 +33,12 @@ import org.fenixedu.academictreasury.domain.academicalAct.AcademicActBlockingSus
 import org.fenixedu.academictreasury.domain.customer.PersonCustomer;
 import org.fenixedu.academictreasury.domain.debtGeneration.AcademicDebtGenerationRule;
 import org.fenixedu.academictreasury.domain.event.AcademicTreasuryEvent;
+import org.fenixedu.academictreasury.domain.event.TreasuryEventDefaultMethods;
 import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainException;
 import org.fenixedu.academictreasury.domain.tariff.AcademicTariff;
 import org.fenixedu.academictreasury.services.AcademicTaxServices;
+import org.fenixedu.academictreasury.services.AcademicTreasuryPlataformDependentServicesFactory;
+import org.fenixedu.academictreasury.services.IAcademicTreasuryPlatformDependentServices;
 import org.fenixedu.academictreasury.services.PersonServices;
 import org.fenixedu.academictreasury.services.TuitionServices;
 import org.fenixedu.bennu.core.signals.DomainObjectEvent;
@@ -157,7 +162,52 @@ public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
                     && ((PaymentCodePoolImpl) obj).paymentCodePool == this.paymentCodePool;
         }
     }
+    
+    private static class TreasuryCustomer implements ITreasuryCustomer {
+        
+        private PersonCustomer personCustomer;
+        
+        public TreasuryCustomer(final PersonCustomer personCustomer) {
+            this.personCustomer = personCustomer;
+        }
+        
+        @Override
+        public String getExternalId() {
+            return personCustomer.getExternalId();
+        }
+        
+        @Override
+        @Deprecated
+        public String getFiscalCountry() {
+            return personCustomer.getFiscalCountry();
+        }
+        
+        @Override
+        public String getFiscalNumber() {
+            return personCustomer.getFiscalNumber();
+        }
+        
+        @Override
+        public String getUiFiscalNumber() {
+            return personCustomer.getUiFiscalNumber();
+        }
+    }
+    
+    private static class TreasuryDebtAccount implements ITreasuryDebtAccount {
 
+        private DebtAccount debtAccount;
+        
+        public TreasuryDebtAccount(final DebtAccount debtAccount) {
+            this.debtAccount = debtAccount;
+        }
+        
+        @Override
+        public String getExternalId() {
+            return debtAccount.getExternalId();
+        }
+        
+    }
+    
     // @formatter:off
     /* ---------------------------------
      * TREASURY INSTITUTION AND PRODUCTS
@@ -320,16 +370,15 @@ public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
             final IAcademicTreasuryTarget target, final LocalDate when, final boolean createPaymentCode,
             final IPaymentCodePool paymentCodePool, final int numberOfUnits, final int numberOfPages) {
 
-        final FinantialInstitution finantialInstitution =
-                ((TreasuryEntity) treasuryEntity).finantialEntity.getFinantialInstitution();
+        final FinantialEntity finantialEntity = ((TreasuryEntity) treasuryEntity).finantialEntity;
+        final FinantialInstitution finantialInstitution = finantialEntity.getFinantialInstitution();
         final DocumentNumberSeries documentNumberSeries =
                 DocumentNumberSeries.findUniqueDefault(FinantialDocumentType.findForDebitNote(), finantialInstitution).get();
         final DateTime now = new DateTime();
         final Product product = ((AcademicProduct) treasuryProduct).product;
         final Vat vat =
                 Vat.findActiveUnique(((Product) product).getVatType(), finantialInstitution, when.toDateTimeAtStartOfDay()).get();
-        final AdministrativeOffice administrativeOffice =
-                ((TreasuryEntity) treasuryEntity).finantialEntity.getAdministrativeOffice();
+        final AdministrativeOffice administrativeOffice = finantialEntity.getAdministrativeOffice();
         final PaymentCodePool pool = ((PaymentCodePoolImpl) paymentCodePool).paymentCodePool;
         final Person person = target.getAcademicTreasuryTargetPerson();
 
@@ -356,9 +405,9 @@ public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
         AcademicTariff academicTariff = null;
         if (target.getAcademicTreasuryTargetDegree() != null) {
             academicTariff =
-                    AcademicTariff.findMatch(product, target.getAcademicTreasuryTargetDegree(), when.toDateTimeAtStartOfDay());
+                    AcademicTariff.findMatch(finantialEntity, product, target.getAcademicTreasuryTargetDegree(), when.toDateTimeAtStartOfDay());
         } else {
-            academicTariff = AcademicTariff.findMatch(product, administrativeOffice, when.toDateTimeAtStartOfDay());
+            academicTariff = AcademicTariff.findMatch(finantialEntity, product, administrativeOffice, when.toDateTimeAtStartOfDay());
         }
 
         final LocalDate dueDate = academicTariff.dueDate(when);
@@ -467,7 +516,9 @@ public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
     public String getPersonAccountTreasuryManagementURL(final Person person) {
         final String countryCode = PersonCustomer.countryCode(person);
         final String fiscalNumber = PersonCustomer.fiscalNumber(person);
-        return CustomerController.READ_URL + PersonCustomer.findUnique(person, countryCode, fiscalNumber).get().getExternalId();
+        // return CustomerController.READ_URL 
+        return TreasuryEventDefaultMethods.CUSTOMER_CONTROLLER_READ_URL
+                + PersonCustomer.findUnique(person, countryCode, fiscalNumber).get().getExternalId();
     }
 
     @Override
@@ -493,7 +544,9 @@ public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
 
         final DebtAccount account = customer.getDebtAccountFor(inst);
         if (account != null) {
-            return DebtAccountController.READ_URL + customer.getDebtAccountFor(inst).getExternalId();
+            // return DebtAccountController.READ_URL
+            return TreasuryEventDefaultMethods.DEBT_ACCOUNT_CONTROLLER_READ_URL
+                    + customer.getDebtAccountFor(inst).getExternalId();
         } else {
             return getPersonAccountTreasuryManagementURL(person);
         }
@@ -587,6 +640,58 @@ public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
         
         return physicalAddress;
         
+    }
+    
+    // @formatter:off
+    /* ----------------------
+     * TREASURY CUSTOMER INFO
+     * ----------------------
+     */
+    // @formatter:on
+
+    
+    // TODO DECLARE IN INTERFACE ITreasuryBridgeAPI
+    // @Override
+    public ITreasuryCustomer getActiveCustomer(final Person person) {
+        PersonCustomer customer = PersonCustomer.findUnique(person, PersonCustomer.countryCode(person), PersonCustomer.fiscalNumber(person)).orElse(null);
+        
+        if(customer == null) {
+            return null;
+        }
+        
+        return new TreasuryCustomer(customer);
+    }
+
+    // TODO DECLARE IN INTERFACE ITreasuryBridgeAPI
+    // @Override
+    public List<ITreasuryCustomer> getCustomersForFiscalNumber(final Person person, final String fiscalCountry, final String fiscalNumber) {
+        return PersonCustomer.find(person, fiscalCountry, fiscalNumber).map(pc -> new TreasuryCustomer(pc)).collect(Collectors.toList());
+    }
+
+    // TODO DECLARE IN INTERFACE ITreasuryBridgeAPI
+    // @Override
+    public ITreasuryDebtAccount getActiveDebtAccountForRegistration(final Registration registration) {
+        final IAcademicTreasuryPlatformDependentServices academicTreasuryServices = AcademicTreasuryPlataformDependentServicesFactory.implementation();
+        final Person person = registration.getPerson();
+        
+        String countryCode = PersonCustomer.countryCode(person);
+        String fiscalNumber = PersonCustomer.fiscalNumber(person);
+        PersonCustomer customer = PersonCustomer.findUnique(person, countryCode, fiscalNumber).orElse(null);
+        
+        if(customer == null) {
+            return null;
+        }
+        
+        final FinantialEntity finantialEntity = academicTreasuryServices.finantialEntityOfDegree(registration.getDegree(), new LocalDate());
+        final FinantialInstitution finantialInstitution = finantialEntity.getFinantialInstitution();
+        
+        DebtAccount debtAccount = DebtAccount.findUnique(finantialInstitution, customer).orElse(null);
+        
+        if(debtAccount == null) {
+            return null;
+        }
+        
+        return new TreasuryDebtAccount(debtAccount);
     }
     
 }

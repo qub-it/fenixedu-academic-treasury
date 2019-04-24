@@ -83,6 +83,9 @@ public class AcademicTariffBean implements ITreasuryBean, Serializable {
     private List<TreasuryTupleDataSourceBean> dueDateCalculationTypeDataSource = null;
     private List<TreasuryTupleDataSourceBean> tuitionInstallmentProductDataSource = null;
 
+    /* Signal bean information is filled */
+    public boolean beanInfoFilled;
+    
     public AcademicTariffBean() {
         setBeginDate(new LocalDate());
         setEndDate(new LocalDate().plusYears(1));
@@ -262,6 +265,8 @@ public class AcademicTariffBean implements ITreasuryBean, Serializable {
                 || getDueDateCalculationType().isBestOfFixedDateAndDaysAfterCreation()) && getFixedDueDate() == null) {
             setFixedDueDate(new LocalDate());
         }
+        
+        this.setBeanInfoFilled(false);
     }
 
     public BigDecimal getAmountPerEctsOrUnit() {
@@ -296,9 +301,11 @@ public class AcademicTariffBean implements ITreasuryBean, Serializable {
         return AcademicTreasuryConstants.isPositive(getBaseAmount());
     }
 
+    // @formatter:off
     /*
      * GETTERS & SETTERS
      */
+    // @formatter:on
 
     public LocalDate getBeginDate() {
         return beginDate;
@@ -619,4 +626,13 @@ public class AcademicTariffBean implements ITreasuryBean, Serializable {
     public void setSheetName(String sheetName) {
         this.sheetName = sheetName;
     }
+    
+    public boolean isBeanInfoFilled() {
+        return beanInfoFilled;
+    }
+    
+    public void setBeanInfoFilled(boolean beanInfoFilled) {
+        this.beanInfoFilled = beanInfoFilled;
+    }
+    
 }

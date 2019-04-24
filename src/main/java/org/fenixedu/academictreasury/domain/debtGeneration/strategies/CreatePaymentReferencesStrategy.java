@@ -12,6 +12,7 @@ import org.fenixedu.academic.domain.DegreeCurricularPlan;
 import org.fenixedu.academic.domain.ExecutionYear;
 import org.fenixedu.academic.domain.student.Registration;
 import org.fenixedu.academictreasury.domain.customer.PersonCustomer;
+import org.fenixedu.academictreasury.domain.debtGeneration.AcademicDebtGenerationProcessingResult;
 import org.fenixedu.academictreasury.domain.debtGeneration.AcademicDebtGenerationRule;
 import org.fenixedu.academictreasury.domain.debtGeneration.AcademicDebtGenerationRuleEntry;
 import org.fenixedu.academictreasury.domain.debtGeneration.IAcademicDebtGenerationRuleStrategy;
@@ -95,12 +96,13 @@ public class CreatePaymentReferencesStrategy implements IAcademicDebtGenerationR
 
     @Override
     @Atomic(mode = TxMode.READ)
-    public void process(final AcademicDebtGenerationRule rule) {
+    public List<AcademicDebtGenerationProcessingResult> process(final AcademicDebtGenerationRule rule) {
 
         if (!rule.isActive()) {
             throw new AcademicTreasuryDomainException("error.AcademicDebtGenerationRule.not.active.to.process");
         }
 
+        final List<AcademicDebtGenerationProcessingResult> resultList = Lists.newArrayList();
         for (final DegreeCurricularPlan degreeCurricularPlan : rule.getDegreeCurricularPlansSet()) {
             for (final Registration registration : degreeCurricularPlan.getRegistrations()) {
 
@@ -113,42 +115,70 @@ public class CreatePaymentReferencesStrategy implements IAcademicDebtGenerationR
                     continue;
                 }
 
+                final AcademicDebtGenerationProcessingResult result =
+                        new AcademicDebtGenerationProcessingResult(rule, registration);
+                resultList.add(result);
+
                 try {
                     processDebtsForRegistration(rule, registration);
+                    result.markProcessingEndDateTime();
                 } catch (final AcademicTreasuryDomainException e) {
+                    result.markException(e);
                     if (!MESSAGES_TO_IGNORE.contains(e.getMessage())) {
                         logger.debug(e.getMessage());
                     }
                 } catch (final TreasuryDomainException e) {
+                    result.markException(e);
                     logger.debug(e.getMessage());
                 } catch (final Exception e) {
+                    result.markException(e);
                     e.printStackTrace();
                 }
             }
         }
+
+        return resultList;
     }
 
     @Atomic(mode = TxMode.READ)
-    public void process(final AcademicDebtGenerationRule rule, final Registration registration) {
+    public List<AcademicDebtGenerationProcessingResult> process(final AcademicDebtGenerationRule rule,
+            final Registration registration) {
         if (!rule.isActive()) {
             throw new AcademicTreasuryDomainException("error.AcademicDebtGenerationRule.not.active.to.process");
         }
 
-        if (rule.getDebtGenerationRuleRestriction() != null
-                && !rule.getDebtGenerationRuleRestriction().strategyImplementation().isToApply(rule, registration)) {
-            return;
+        final AcademicDebtGenerationProcessingResult result = new AcademicDebtGenerationProcessingResult(rule, registration);
+        try {
+            if (rule.getDebtGenerationRuleRestriction() != null
+                    && !rule.getDebtGenerationRuleRestriction().strategyImplementation().isToApply(rule, registration)) {
+                return Lists.newArrayList();
+            }
+
+            if (registration.getStudentCurricularPlan(rule.getExecutionYear()) == null) {
+                return Lists.newArrayList();
+            }
+
+            if (!rule.getDegreeCurricularPlansSet()
+                    .contains(registration.getStudentCurricularPlan(rule.getExecutionYear()).getDegreeCurricularPlan())) {
+                return Lists.newArrayList();
+            }
+
+            processDebtsForRegistration(rule, registration);
+            result.markProcessingEndDateTime();
+        } catch (final AcademicTreasuryDomainException e) {
+            result.markException(e);
+            if (!MESSAGES_TO_IGNORE.contains(e.getMessage())) {
+                logger.info(e.getMessage());
+            }
+        } catch (final TreasuryDomainException e) {
+            result.markException(e);
+            logger.info(e.getMessage());
+        } catch (final Exception e) {
+            result.markException(e);
+            e.printStackTrace();
         }
 
-        if (registration.getStudentCurricularPlan(rule.getExecutionYear()) == null) {
-            return;
-        }
-
-        if (!rule.getDegreeCurricularPlansSet()
-                .contains(registration.getStudentCurricularPlan(rule.getExecutionYear()).getDegreeCurricularPlan())) {
-            return;
-        }
-
-        processDebtsForRegistration(rule, registration);
+        return Lists.newArrayList(result);
     }
 
     @Atomic(mode = TxMode.WRITE)

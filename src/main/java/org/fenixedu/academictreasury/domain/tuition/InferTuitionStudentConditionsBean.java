@@ -12,6 +12,8 @@ import org.fenixedu.academic.domain.student.Registration;
 import org.fenixedu.academic.domain.student.RegistrationProtocol;
 import org.fenixedu.academic.domain.student.RegistrationRegimeType;
 import org.fenixedu.academic.domain.student.StatuteType;
+import org.fenixedu.academictreasury.services.AcademicTreasuryPlataformDependentServicesFactory;
+import org.fenixedu.academictreasury.services.IAcademicTreasuryPlatformDependentServices;
 
 import com.google.common.collect.Sets;
 
@@ -29,15 +31,18 @@ public class InferTuitionStudentConditionsBean {
     }
 
     public static InferTuitionStudentConditionsBean build(final Registration registration, final ExecutionYear executionYear) {
+        final IAcademicTreasuryPlatformDependentServices academicTreasuryServices = AcademicTreasuryPlataformDependentServicesFactory.implementation();
+
+        
         final InferTuitionStudentConditionsBean bean = new InferTuitionStudentConditionsBean();
 
-        bean.setRegimeType(registration.getRegimeType(executionYear));
+        bean.setRegimeType(academicTreasuryServices.registrationRegimeType(registration, executionYear));
         bean.setRegistrationProtocol(registration.getRegistrationProtocol());
-        bean.setIngression(registration.getIngressionType());
+        bean.setIngression(academicTreasuryServices.ingression(registration));
         bean.setSemestersWithEnrolments(semestersWithEnrolments(registration, executionYear));
         bean.setCurricularYear(readByYear(TuitionPaymentPlan.curricularYear(registration, executionYear)));
         bean.setFirstTimeStudent(TuitionPaymentPlan.firstTimeStudent(registration, executionYear));
-        bean.setStatutes(Sets.newHashSet(registration.getStudent().getStatutesTypesValidOnAnyExecutionSemesterFor(executionYear)));
+        bean.setStatutes(academicTreasuryServices.statutesTypesValidOnAnyExecutionSemesterFor(registration.getStudent(), executionYear));
 
         return bean;
     }

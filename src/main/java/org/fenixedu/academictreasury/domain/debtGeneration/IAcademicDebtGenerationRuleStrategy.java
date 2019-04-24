@@ -1,5 +1,6 @@
 package org.fenixedu.academictreasury.domain.debtGeneration;
 
+import java.util.List;
 import java.util.stream.Stream;
 
 import org.fenixedu.academic.domain.student.Registration;
@@ -28,9 +29,9 @@ public interface IAcademicDebtGenerationRuleStrategy {
 
     public boolean isToAlignAcademicTaxesDueDate();
 
-    public void process(final AcademicDebtGenerationRule rule);
+    public List<AcademicDebtGenerationProcessingResult> process(final AcademicDebtGenerationRule rule);
 
-    public void process(final AcademicDebtGenerationRule rule, final Registration registration);
+    public List<AcademicDebtGenerationProcessingResult> process(final AcademicDebtGenerationRule rule, final Registration registration);
 
     public static Stream<? extends DebitEntry> findActiveDebitEntries(final PersonCustomer customer, final TreasuryEvent treasuryEvent) {
         return DebitEntry.findActive(treasuryEvent).filter(d -> d.getDebtAccount().getCustomer() == customer);

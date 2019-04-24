@@ -2,6 +2,7 @@ package org.fenixedu.academictreasury.domain.debtGeneration.strategies;
 
 import static org.fenixedu.academictreasury.domain.debtGeneration.IAcademicDebtGenerationRuleStrategy.findActiveDebitEntries;
 
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -10,6 +11,7 @@ import org.fenixedu.academic.domain.ExecutionYear;
 import org.fenixedu.academic.domain.StudentCurricularPlan;
 import org.fenixedu.academic.domain.student.Registration;
 import org.fenixedu.academictreasury.domain.customer.PersonCustomer;
+import org.fenixedu.academictreasury.domain.debtGeneration.AcademicDebtGenerationProcessingResult;
 import org.fenixedu.academictreasury.domain.debtGeneration.AcademicDebtGenerationRule;
 import org.fenixedu.academictreasury.domain.debtGeneration.AcademicDebtGenerationRuleEntry;
 import org.fenixedu.academictreasury.domain.debtGeneration.IAcademicDebtGenerationRuleStrategy;
@@ -31,6 +33,7 @@ import org.joda.time.LocalDate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import pt.ist.fenixframework.Atomic;
@@ -87,12 +90,13 @@ public class CreateDebtsStrategy implements IAcademicDebtGenerationRuleStrategy 
 
     @Override
     @Atomic(mode = TxMode.READ)
-    public void process(final AcademicDebtGenerationRule rule) {
+    public List<AcademicDebtGenerationProcessingResult> process(final AcademicDebtGenerationRule rule) {
 
         if (!rule.isActive()) {
             throw new AcademicTreasuryDomainException("error.AcademicDebtGenerationRule.not.active.to.process");
         }
 
+        final List<AcademicDebtGenerationProcessingResult> resultList = Lists.newArrayList();
         for (final DegreeCurricularPlan degreeCurricularPlan : rule.getDegreeCurricularPlansSet()) {
             for (final Registration registration : degreeCurricularPlan.getRegistrations()) {
 
@@ -100,30 +104,53 @@ public class CreateDebtsStrategy implements IAcademicDebtGenerationRuleStrategy 
                     continue;
                 }
 
+                final AcademicDebtGenerationProcessingResult result =
+                        new AcademicDebtGenerationProcessingResult(rule, registration);
+                resultList.add(result);
                 try {
                     processDebtsForRegistration(rule, registration);
+                    result.markProcessingEndDateTime();
                 } catch (final AcademicTreasuryDomainException e) {
+                    result.markException(e);
                     logger.debug(e.getMessage());
                 } catch (final Exception e) {
+                    result.markException(e);
                     e.printStackTrace();
                 }
             }
         }
+
+        return resultList;
     }
 
     @Override
     @Atomic(mode = TxMode.READ)
-    public void process(final AcademicDebtGenerationRule rule, final Registration registration) {
+    public List<AcademicDebtGenerationProcessingResult> process(final AcademicDebtGenerationRule rule,
+            final Registration registration) {
         if (!rule.isActive()) {
             throw new AcademicTreasuryDomainException("error.AcademicDebtGenerationRule.not.active.to.process");
         }
 
-        if (isToDiscard(rule, registration)) {
-            return;
+        final AcademicDebtGenerationProcessingResult result = new AcademicDebtGenerationProcessingResult(rule, registration);
+        try {
+
+            if (isToDiscard(rule, registration)) {
+                return Lists.newArrayList();
+            }
+
+            // TODO legidio, should the same try/catch as above be applied?
+            processDebtsForRegistration(rule, registration);
+            result.markProcessingEndDateTime();
+        } catch (final AcademicTreasuryDomainException e) {
+            result.markException(e);
+            logger.debug(e.getMessage());
+        } catch (final Exception e) {
+            result.markException(e);
+            e.printStackTrace();
         }
 
-        // TODO legidio, should the same try/catch as above be applied?
-        processDebtsForRegistration(rule, registration);
+        return Lists.newArrayList(result);
+
     }
 
     static private boolean isToDiscard(final AcademicDebtGenerationRule rule, final Registration registration) {
@@ -276,9 +303,10 @@ public class CreateDebtsStrategy implements IAcademicDebtGenerationRuleStrategy 
                 }
 
                 /* HACK: For now limit forcing for first time students only */
-                boolean forceCreation = entry.isCreateDebt() && entry.isForceCreation() && registration.isFirstTime(rule.getExecutionYear());
+                boolean forceCreation =
+                        entry.isCreateDebt() && entry.isForceCreation() && registration.isFirstTime(rule.getExecutionYear());
 
-                AcademicTaxServices.createAcademicTax(registration, executionYear, academicTax, forceCreation);
+                AcademicTaxServices.createAcademicTaxForCurrentDateAndDefaultFinantialEntity(registration, executionYear, academicTax, forceCreation);
             }
         }
 

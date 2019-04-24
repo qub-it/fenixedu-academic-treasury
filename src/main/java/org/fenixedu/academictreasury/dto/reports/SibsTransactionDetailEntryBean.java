@@ -1,5 +1,6 @@
 package org.fenixedu.academictreasury.dto.reports;
 
+
 import static org.fenixedu.academictreasury.util.AcademicTreasuryConstants.academicTreasuryBundle;
 
 import java.math.BigDecimal;
@@ -9,6 +10,7 @@ import org.fenixedu.academictreasury.domain.reports.DebtReportRequest;
 import org.fenixedu.academictreasury.domain.reports.ErrorsLog;
 import org.fenixedu.academictreasury.util.AcademicTreasuryConstants;
 import org.fenixedu.treasury.domain.paymentcodes.SibsTransactionDetail;
+import org.fenixedu.treasury.services.integration.ITreasuryPlatformDependentServices;
 import org.fenixedu.treasury.services.integration.TreasuryPlataformDependentServicesFactory;
 import org.fenixedu.treasury.util.streaming.spreadsheet.IErrorsLog;
 import org.joda.time.DateTime;
@@ -56,14 +58,16 @@ public class SibsTransactionDetailEntryBean extends AbstractReportEntryBean {
     boolean completed = false;
 
     public SibsTransactionDetailEntryBean(final SibsTransactionDetail detail, final DebtReportRequest request, final ErrorsLog errorsLog) {
+        final ITreasuryPlatformDependentServices treasuryServices = TreasuryPlataformDependentServicesFactory.implementation();
+
         final String decimalSeparator = request.getDecimalSeparator();
         
         try {
             this.sibsTransactionDetail = detail;
             
             this.identification = detail.getExternalId();
-            this.versioningCreator = TreasuryPlataformDependentServicesFactory.implementation().versioningCreatorUsername(detail);
-            this.creationDate = TreasuryPlataformDependentServicesFactory.implementation().versioningCreationDate(detail);
+            this.versioningCreator = treasuryServices.versioningCreatorUsername(detail);
+            this.creationDate = treasuryServices.versioningCreationDate(detail);
             this.whenProcessed = detail.getWhenProcessed();
             this.whenRegistered = detail.getWhenRegistered();
             this.amountPayed = detail.getAmountPayed() != null ? detail.getAmountPayed().toString() : "";

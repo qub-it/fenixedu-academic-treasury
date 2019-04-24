@@ -9,6 +9,7 @@ import org.fenixedu.academictreasury.domain.customer.PersonCustomer;
 import org.fenixedu.academictreasury.domain.reports.ErrorsLog;
 import org.fenixedu.academictreasury.util.AcademicTreasuryConstants;
 import org.fenixedu.commons.i18n.LocalizedString;
+import org.fenixedu.treasury.services.integration.ITreasuryPlatformDependentServices;
 import org.fenixedu.treasury.services.integration.TreasuryPlataformDependentServicesFactory;
 import org.fenixedu.treasury.util.streaming.spreadsheet.IErrorsLog;
 import org.joda.time.DateTime;
@@ -38,7 +39,7 @@ public class AcademicActBlockingSuspensionReportEntryBean extends AbstractReport
     private String versioningCreator;
     private DateTime creationDate;
     private String name;
-    private LocalizedString identificationType;
+    private String identificationType;
     private String identificationNumber;
     private String vatNumber;
     private String email;
@@ -55,19 +56,21 @@ public class AcademicActBlockingSuspensionReportEntryBean extends AbstractReport
 
     public AcademicActBlockingSuspensionReportEntryBean(final AcademicActBlockingSuspension academicActBlockingSuspension,
             final ErrorsLog errorsLog) {
+        final ITreasuryPlatformDependentServices treasuryServices = TreasuryPlataformDependentServicesFactory.implementation();
+        
         this.academicActBlockingSuspension = academicActBlockingSuspension;
 
         try {
             this.identification = academicActBlockingSuspension.getExternalId();
-            this.versioningCreator = TreasuryPlataformDependentServicesFactory.implementation().versioningCreatorUsername(academicActBlockingSuspension);
-            this.creationDate = TreasuryPlataformDependentServicesFactory.implementation().versioningCreationDate(academicActBlockingSuspension);
+            this.versioningCreator = treasuryServices.versioningCreatorUsername(academicActBlockingSuspension);
+            this.creationDate = treasuryServices.versioningCreationDate(academicActBlockingSuspension);
 
             final Person person = academicActBlockingSuspension.getPerson();
 
             this.name = person.getName();
 
             if (academicActBlockingSuspension.getPerson().getIdDocumentType() != null) {
-                this.identificationType = academicActBlockingSuspension.getPerson().getIdDocumentType().getLocalizedNameI18N();
+                this.identificationType = academicActBlockingSuspension.getPerson().getIdDocumentType().getLocalizedName();
             }
 
             this.identificationNumber = PersonCustomer.identificationNumber(person);

@@ -53,6 +53,14 @@ public class DebtReportRequest extends DebtReportRequest_Base {
         this.setDecimalSeparator(bean.getDecimalSeparator());
         this.setIncludeAnnuledEntries(bean.isIncludeAnnuledEntries());
 
+        this.setIncludeExtraAcademicInfo(bean.isIncludeExtraAcademicInfo());
+        this.setIncludeErpIntegrationInfo(bean.isIncludeErpIntegrationInfo());
+        this.setIncludeSibsInfo(bean.isIncludeSibsInfo());
+        this.setIncludeProductsInfo(bean.isIncludeProductsInfo());
+
+        this.setDegreeType(bean.getDegreeType());
+        this.setExecutionYear(bean.getExecutionYear());
+        
         checkRules();
     }
 
@@ -83,6 +91,22 @@ public class DebtReportRequest extends DebtReportRequest_Base {
 
     public boolean isIncludeAnnuledEntries() {
         return super.getIncludeAnnuledEntries();
+    }
+    
+    public boolean isIncludeExtraAcademicInfo() {
+        return getIncludeExtraAcademicInfo();
+    }
+    
+    public boolean isIncludeErpIntegrationInfo() {
+        return getIncludeErpIntegrationInfo();
+    }
+    
+    public boolean isIncludeSibsInfo() {
+        return getIncludeSibsInfo();
+    }
+    
+    public boolean isIncludeProductsInfo() {
+        return getIncludeProductsInfo();
     }
 
     @Atomic(mode = TxMode.READ)

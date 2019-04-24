@@ -9,13 +9,13 @@ import org.apache.poi.ss.usermodel.Row;
 import org.fenixedu.academictreasury.domain.customer.PersonCustomer;
 import org.fenixedu.academictreasury.domain.reports.DebtReportRequest;
 import org.fenixedu.academictreasury.domain.reports.ErrorsLog;
-import org.fenixedu.academictreasury.util.AcademicTreasuryConstants;
 import org.fenixedu.commons.i18n.LocalizedString;
 import org.fenixedu.treasury.domain.Currency;
 import org.fenixedu.treasury.domain.debt.DebtAccount;
 import org.fenixedu.treasury.domain.paymentcodes.FinantialDocumentPaymentCode;
 import org.fenixedu.treasury.domain.paymentcodes.MultipleEntriesPaymentCode;
 import org.fenixedu.treasury.domain.paymentcodes.PaymentReferenceCode;
+import org.fenixedu.treasury.services.integration.ITreasuryPlatformDependentServices;
 import org.fenixedu.treasury.services.integration.TreasuryPlataformDependentServicesFactory;
 import org.fenixedu.treasury.util.streaming.spreadsheet.IErrorsLog;
 import org.joda.time.DateTime;
@@ -54,7 +54,7 @@ public class PaymentReferenceCodeEntryBean extends AbstractReportEntryBean {
     private String customerId;
     private String debtAccountId;
     private String name;
-    private LocalizedString identificationType;
+    private String identificationType;
     private String identificationNumber;
     private String vatNumber;
     private String email;
@@ -77,6 +77,8 @@ public class PaymentReferenceCodeEntryBean extends AbstractReportEntryBean {
 
     public PaymentReferenceCodeEntryBean(final PaymentReferenceCode paymentReferenceCode, final DebtReportRequest request,
             final ErrorsLog errorsLog) {
+        final ITreasuryPlatformDependentServices treasuryServices = TreasuryPlataformDependentServicesFactory.implementation();
+        
         this.decimalSeparator = request != null ? request.getDecimalSeparator() : DebtReportRequest.DOT;
         final Currency currency = paymentReferenceCode.getPaymentCodePool().getFinantialInstitution().getCurrency();
 
@@ -84,8 +86,8 @@ public class PaymentReferenceCodeEntryBean extends AbstractReportEntryBean {
             this.paymentReferenceCode = paymentReferenceCode;
 
             this.identification = paymentReferenceCode.getExternalId();
-            this.versioningCreator = TreasuryPlataformDependentServicesFactory.implementation().versioningCreatorUsername(paymentReferenceCode);
-            this.creationDate = TreasuryPlataformDependentServicesFactory.implementation().versioningCreationDate(paymentReferenceCode);
+            this.versioningCreator = treasuryServices.versioningCreatorUsername(paymentReferenceCode);
+            this.creationDate = treasuryServices.versioningCreationDate(paymentReferenceCode);
 
             if (paymentReferenceCode.getTargetPayment() != null) {
                 DebtAccount referenceDebtAccount = paymentReferenceCode.getTargetPayment().getDebtAccount();
@@ -97,13 +99,13 @@ public class PaymentReferenceCodeEntryBean extends AbstractReportEntryBean {
                         && ((PersonCustomer) referenceDebtAccount.getCustomer()).getPerson() != null
                         && ((PersonCustomer) referenceDebtAccount.getCustomer()).getPerson().getIdDocumentType() != null) {
                     this.identificationType = ((PersonCustomer) referenceDebtAccount.getCustomer()).getPerson()
-                            .getIdDocumentType().getLocalizedNameI18N();
+                            .getIdDocumentType().getLocalizedName();
                 } else if (referenceDebtAccount.getCustomer().isPersonCustomer()
                         && ((PersonCustomer) referenceDebtAccount.getCustomer()).getPersonForInactivePersonCustomer() != null
                         && ((PersonCustomer) referenceDebtAccount.getCustomer()).getPersonForInactivePersonCustomer()
                                 .getIdDocumentType() != null) {
                     this.identificationType = ((PersonCustomer) referenceDebtAccount.getCustomer())
-                            .getPersonForInactivePersonCustomer().getIdDocumentType().getLocalizedNameI18N();
+                            .getPersonForInactivePersonCustomer().getIdDocumentType().getLocalizedName();
                 }
 
                 this.identificationNumber = referenceDebtAccount.getCustomer().getIdentificationNumber();
@@ -288,11 +290,11 @@ public class PaymentReferenceCodeEntryBean extends AbstractReportEntryBean {
         this.name = name;
     }
 
-    public LocalizedString getIdentificationType() {
+    public String getIdentificationType() {
         return identificationType;
     }
 
-    public void setIdentificationType(LocalizedString identificationType) {
+    public void setIdentificationType(String identificationType) {
         this.identificationType = identificationType;
     }
 

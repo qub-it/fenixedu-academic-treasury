@@ -250,7 +250,7 @@ public class ExemptionsGenerationRequestFile extends ExemptionsGenerationRequest
                 if (registration == null) {
                     throw new AcademicTreasuryDomainException("error.ExemptionsGenerationRequestFile.registration.not.found",
                             String.valueOf(rowNum), studentNumberValue, degreeCodeValue,
-                            degree.getPresentationNameI18N().getContent());
+                            degree.getPresentationName());
                 }
 
                 if (!registration.getStudent().getName().trim().equals(studentNameValue)) {

@@ -73,6 +73,8 @@ public class TreasuryImportFile extends TreasuryImportFile_Base implements IGene
     
     @Atomic
     public static TreasuryImportFile create(final TreasuryImportType type, final String filename, final byte[] content) {
+        type.implementation().readExcel(content);
+        
         return new TreasuryImportFile(type, filename, content);
     }
 

@@ -16,12 +16,14 @@ import org.fenixedu.academictreasury.domain.debtGeneration.DebtGenerationRuleRes
 import org.fenixedu.academictreasury.domain.debtGeneration.IAcademicDebtGenerationRuleStrategy;
 import org.fenixedu.academictreasury.domain.emoluments.AcademicTax;
 import org.fenixedu.academictreasury.domain.settings.AcademicTreasurySettings;
+import org.fenixedu.academictreasury.services.AcademicTreasuryPlataformDependentServicesFactory;
+import org.fenixedu.academictreasury.services.IAcademicTreasuryPlatformDependentServices;
 import org.fenixedu.academictreasury.util.AcademicTreasuryConstants;
-import org.fenixedu.treasury.dto.ITreasuryBean;
-import org.fenixedu.treasury.dto.TreasuryTupleDataSourceBean;
 import org.fenixedu.treasury.domain.Product;
 import org.fenixedu.treasury.domain.paymentcodes.pool.PaymentCodePool;
 import org.fenixedu.treasury.domain.settings.TreasurySettings;
+import org.fenixedu.treasury.dto.ITreasuryBean;
+import org.fenixedu.treasury.dto.TreasuryTupleDataSourceBean;
 
 import com.google.common.collect.Lists;
 
@@ -134,13 +136,15 @@ public class AcademicDebtGenerationRuleBean implements Serializable, ITreasuryBe
             availableProducts.add(TreasurySettings.getInstance().getInterestProduct());
         }
 
+        IAcademicTreasuryPlatformDependentServices academicTreasuryServices = AcademicTreasuryPlataformDependentServicesFactory.implementation();
+        
         productDataSource = availableProducts.stream().sorted(Product.COMPARE_BY_NAME)
                 .map(l -> new TreasuryTupleDataSourceBean(l.getExternalId(), String.format("%s [%s]", l.getName().getContent(), l.getCode()))).collect(Collectors.toList());
 
         paymentCodePoolDataSource = PaymentCodePool.findAll().filter(PaymentCodePool::getActive)
                 .map(l -> new TreasuryTupleDataSourceBean(l.getExternalId(), l.getName())).collect(Collectors.toList());
 
-        degreeTypeDataSource = DegreeType.all().map(l -> new TreasuryTupleDataSourceBean(l.getExternalId(), l.getName().getContent()))
+        degreeTypeDataSource = DegreeType.all().map(l -> new TreasuryTupleDataSourceBean(l.getExternalId(), academicTreasuryServices.localizedNameOfDegreeType(l)))
                 .sorted(TreasuryTupleDataSourceBean.COMPARE_BY_TEXT).collect(Collectors.toList());
 
         academicTaxDueDateAlignmentTypeDataSource = Lists.newArrayList(AcademicTaxDueDateAlignmentType.values()).stream()

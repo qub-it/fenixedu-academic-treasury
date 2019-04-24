@@ -14,6 +14,27 @@ valueType java.math.BigDecimal as BigDecimalAT
 	}
 } 
 
+external class .org.fenixedu.academic.domain.administrativeOffice.AdministrativeOffice;
+external class .org.fenixedu.academic.domain.candidacy.IngressionType;
+external class .org.fenixedu.academic.domain.CompetenceCourse;
+external class .org.fenixedu.academic.domain.CurricularCourse;
+external class .org.fenixedu.academic.domain.CurricularSemester;
+external class .org.fenixedu.academic.domain.CurricularYear;
+external class .org.fenixedu.academic.domain.Degree;
+external class .org.fenixedu.academic.domain.DegreeCurricularPlan;
+external class .org.fenixedu.academic.domain.degree.DegreeType;
+external class .org.fenixedu.academic.domain.EvaluationSeason;
+external class .org.fenixedu.academic.domain.ExecutionSemester;
+external class .org.fenixedu.academic.domain.ExecutionYear;
+external class .org.fenixedu.academic.domain.Person;
+external class .org.fenixedu.academic.domain.serviceRequests.AcademicServiceRequest;
+external class .org.fenixedu.academic.domain.serviceRequests.ServiceRequestType;
+external class .org.fenixedu.academic.domain.student.Registration;
+external class .org.fenixedu.academic.domain.student.RegistrationProtocol;
+external class .org.fenixedu.academic.domain.student.StatuteType;
+external class .org.fenixedu.academic.domain.organizationalStructure.Unit;
+
+
 /************
  * ENTITIES *
  ************/
@@ -30,6 +51,16 @@ valueType java.math.BigDecimal as BigDecimalAT
 		}
 		
 		.org.fenixedu.academic.domain.administrativeOffice.AdministrativeOffice playsRole administrativeOffice {
+			multiplicity 0..1;
+		}
+	}
+
+	relation FinantialEntityUnit {
+		.org.fenixedu.treasury.domain.FinantialEntity playsRole finantialEntity {
+			multiplicity 0..1;
+		}
+		
+		.org.fenixedu.academic.domain.organizationalStructure.Unit playsRole unit {
 			multiplicity 0..1;
 		}
 	}
@@ -86,7 +117,7 @@ class tariff.AcademicTariff extends .org.fenixedu.treasury.domain.tariff.Tariff 
 	relation AcademicTariffAdministrativeOffice {
 		
 		.org.fenixedu.academic.domain.administrativeOffice.AdministrativeOffice playsRole administrativeOffice {
-			multiplicity 1..1;
+			multiplicity 0..1;
 		}
 		
 		tariff.AcademicTariff playsRole academicTariffs {
@@ -430,6 +461,11 @@ class event.AcademicTreasuryEvent extends .org.fenixedu.treasury.domain.event.Tr
 	BigDecimalAT maximumAmount; 
 	BigDecimalAT amountForLanguageTranslationRate;
 	BigDecimalAT amountForUrgencyRate;
+	boolean customAcademicDebt;
+	LocalDate customAcademicDebtEventDate;
+	int customAcademicDebtNumberOfUnits;
+	int customAcademicDebtNumberOfPages;
+	boolean customAcademicDebtUrgent;
 }
 	
 	relation AcademicTreasuryEventPerson {
@@ -848,6 +884,10 @@ class reports.DebtReportRequest {
 	LocalDate endDate;
 	String decimalSeparator;
 	boolean includeAnnuledEntries;
+	boolean includeExtraAcademicInfo;
+	boolean includeErpIntegrationInfo;
+	boolean includeSibsInfo;
+	boolean includeProductsInfo;
 }
 
  	relation DebtReportRequestBennu {
@@ -927,7 +967,28 @@ class reports.DebtReportRequestResultErrorsFile /* implements IGenericFile */ {
 			multiplicity *;
 		}
 	}
-
+	
+	relation DebtReportRequestDegreeType {
+	
+		.org.fenixedu.academic.domain.degree.DegreeType playsRole degreeType {
+			multiplicity 0..1;
+		}
+	
+		reports.DebtReportRequest playsRole debtReportRequest {
+			multiplicity *;
+		}
+	}
+	
+	relation DebtReportRequestExecutionYear {
+	
+		.org.fenixedu.academic.domain.ExecutionYear playsRole executionYear {
+			multiplicity 0..1;
+		}
+	
+		reports.DebtReportRequest playsRole debtReportRequest {
+			multiplicity *;
+		}
+	}
 	
 /* ***********************
  * DEBT GENERATION REQUEST

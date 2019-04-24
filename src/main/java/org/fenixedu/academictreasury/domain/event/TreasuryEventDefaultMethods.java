@@ -87,9 +87,12 @@ public class TreasuryEventDefaultMethods {
         return FinantialInstitution.findAll().iterator().next().getCurrency().getValueFor(moneyValue);
     }
 
+    public static final String CUSTOMER_CONTROLLER_READ_URL = null;
+    public static final String DEBT_ACCOUNT_CONTROLLER_READ_URL = null;
+    
     public static String getDebtAccountURL(final TreasuryEvent treasuryEvent) {
         if (DebitEntry.findActive(treasuryEvent).findFirst().isPresent()) {
-            return DebtAccountController.READ_URL
+            return DEBT_ACCOUNT_CONTROLLER_READ_URL
                     + DebitEntry.findActive(treasuryEvent).findFirst().get().getDebtAccount().getExternalId();
         }
 
