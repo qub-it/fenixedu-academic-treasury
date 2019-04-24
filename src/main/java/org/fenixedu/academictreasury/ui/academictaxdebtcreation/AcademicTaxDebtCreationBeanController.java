@@ -144,7 +144,7 @@ public class AcademicTaxDebtCreationBeanController extends AcademicTreasuryBaseC
             }
 
             if (bean.isImprovementTax()
-                    && AcademicTaxServices.findAcademicTariff(bean.getImprovementEvaluation(), bean.getDebtDate()) == null) {
+                    && AcademicTaxServices.findAcademicTariffForDefaultFinantialEntity(bean.getImprovementEvaluation(), bean.getDebtDate()) == null) {
                 addErrorMessage(academicTreasuryBundle("error.AcademicTaxDebtCreation.tariff.not.found"), model);
                 return _createFirstPage(debtAccount, bean, model);
             } else if (AcademicTaxServices.findAcademicTariff(bean.getAcademicTax(), bean.getRegistration(),
@@ -196,9 +196,9 @@ public class AcademicTaxDebtCreationBeanController extends AcademicTreasuryBaseC
 
             if (bean.isImprovementTax()) {
                 model.addAttribute("debt",
-                        AcademicTaxServices.calculateImprovementTax(bean.getImprovementEvaluation(), bean.getDebtDate()));
+                        AcademicTaxServices.calculateImprovementTaxForDefaultEntity(bean.getImprovementEvaluation(), bean.getDebtDate()));
             } else {
-                model.addAttribute("debt", AcademicTaxServices.calculateAcademicTax(bean.getRegistration(),
+                model.addAttribute("debt", AcademicTaxServices.calculateAcademicTaxForDefaultFinantialEntity(bean.getRegistration(),
                         bean.getExecutionYear(), bean.getAcademicTax(), bean.getDebtDate(), true));
             }
 
@@ -221,9 +221,9 @@ public class AcademicTaxDebtCreationBeanController extends AcademicTreasuryBaseC
         try {
 
             if (bean.isImprovementTax()) {
-                AcademicTaxServices.createImprovementTax(bean.getImprovementEvaluation(), bean.getDebtDate());
+                AcademicTaxServices.createImprovementTaxForDefaultFinantialEntity(bean.getImprovementEvaluation(), bean.getDebtDate());
             } else {
-                AcademicTaxServices.createAcademicTax(bean.getRegistration(), bean.getExecutionYear(), bean.getAcademicTax(),
+                AcademicTaxServices.createAcademicTaxForDefaultFinantialEntity(bean.getRegistration(), bean.getExecutionYear(), bean.getAcademicTax(),
                         bean.getDebtDate(), true);
             }
 

@@ -82,7 +82,7 @@ public class TuitionAcademicTaxGenerationStrategy implements IMassiveDebtGenerat
                     }
                 } else if (file.getAcademicTax() != null) {
                     boolean createdAcademicTax =
-                            AcademicTaxServices.createAcademicTax(row.getStudentCurricularPlan().getRegistration(),
+                            AcademicTaxServices.createAcademicTaxForDefaultFinantialEntity(row.getStudentCurricularPlan().getRegistration(),
                                     file.getExecutionYear(), file.getAcademicTax(), file.getDebtDate(), true);
 
                     if (!createdAcademicTax) {

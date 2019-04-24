@@ -1,5 +1,6 @@
 package org.fenixedu.academictreasury.dto.reports;
 
+
 import static org.fenixedu.academictreasury.util.AcademicTreasuryConstants.academicTreasuryBundle;
 
 import org.fenixedu.academictreasury.util.AcademicTreasuryConstants;
@@ -7,7 +8,8 @@ import org.fenixedu.commons.i18n.LocalizedString;
 import org.fenixedu.treasury.util.streaming.spreadsheet.SpreadsheetRow;
 import org.joda.time.DateTime;
 import org.joda.time.LocalDate;
-import org.springframework.util.StringUtils;
+
+import com.google.common.base.Strings;
 
 public abstract class AbstractReportEntryBean implements SpreadsheetRow {
 
@@ -32,7 +34,7 @@ public abstract class AbstractReportEntryBean implements SpreadsheetRow {
             return "";
         }
 
-        return academicTreasuryBundle(value ? "label.true" : "label.false");
+        return academicTreasuryBundle(value ? "label.yes" : "label.no");
     }
 
     protected String valueOrEmpty(final Integer value) {
@@ -44,11 +46,7 @@ public abstract class AbstractReportEntryBean implements SpreadsheetRow {
     }
 
     protected String valueOrEmpty(final LocalizedString value) {
-        if (value == null) {
-            return "";
-        }
-
-        if (StringUtils.isEmpty(value.getContent())) {
+        if (Strings.isNullOrEmpty(value.getContent())) {
             return "";
         }
 
@@ -56,7 +54,7 @@ public abstract class AbstractReportEntryBean implements SpreadsheetRow {
     }
 
     protected String valueOrEmpty(final String value) {
-        if (!StringUtils.isEmpty(value)) {
+        if (!Strings.isNullOrEmpty(value)) {
             return value;
         }
 

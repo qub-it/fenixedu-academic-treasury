@@ -1,11 +1,13 @@
 package org.fenixedu.academictreasury.services;
 
+
 import static org.fenixedu.academictreasury.util.AcademicTreasuryConstants.academicTreasuryBundle;
 
 import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.fenixedu.academic.domain.Enrolment;
@@ -17,6 +19,9 @@ import org.fenixedu.academic.domain.StudentCurricularPlan;
 import org.fenixedu.academic.domain.student.Registration;
 import org.fenixedu.academic.domain.student.RegistrationDataByExecutionYear;
 import org.fenixedu.academic.domain.student.registrationStates.RegistrationState;
+import org.fenixedu.academic.domain.studentCurriculum.CurriculumGroup;
+import org.fenixedu.academic.domain.studentCurriculum.CurriculumLine;
+import org.fenixedu.academic.domain.studentCurriculum.RootCurriculumGroup;
 import org.fenixedu.academictreasury.domain.customer.PersonCustomer;
 import org.fenixedu.academictreasury.domain.event.AcademicTreasuryEvent;
 import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainException;
@@ -117,7 +122,7 @@ public class TuitionServices {
         }
 
         if (!forceCreationIfNotEnrolled && tuitionPaymentPlan.isStudentMustBeEnrolled()
-                && normalEnrolments(registration, executionYear).isEmpty()) {
+                && normalEnrolmentsIncludingAnnuled(registration, executionYear).isEmpty()) {
             return false;
         }
 
@@ -812,7 +817,8 @@ public class TuitionServices {
         return result.stream().sorted(ExecutionYear.REVERSE_COMPARATOR_BY_YEAR).collect(Collectors.toList());
     }
 
-    public static Set<Enrolment> normalEnrolments(final Registration registration, final ExecutionYear executionYear) {
+    // The result includes annuled enrolments
+    public static Set<Enrolment> normalEnrolmentsIncludingAnnuled(final Registration registration, final ExecutionYear executionYear) {
         final StudentCurricularPlan studentCurricularPlan = registration.getStudentCurricularPlan(executionYear);
 
         if (studentCurricularPlan == null) {
@@ -821,19 +827,21 @@ public class TuitionServices {
 
         final Set<Enrolment> result = Sets.newHashSet(registration.getEnrolments(executionYear));
 
-        result.removeAll(studentCurricularPlan.getStandaloneCurriculumLines().stream()
-                .filter(l -> l.getExecutionYear() == executionYear && l.isEnrolment()).collect(Collectors.toList()));
+        result.removeAll(standaloneEnrolmentsIncludingAnnuled(registration, executionYear));
 
-        result.removeAll(studentCurricularPlan.getExtraCurricularCurriculumLines().stream()
-                .filter(l -> l.getExecutionYear() == executionYear && l.isEnrolment()).collect(Collectors.toList()));
+        result.removeAll(extracurricularEnrolmentsIncludingAnnuled(registration, executionYear));
 
         result.removeAll(studentCurricularPlan.getPropaedeuticCurriculumLines().stream()
-                .filter(l -> l.getExecutionYear() == executionYear && l.isEnrolment()).collect(Collectors.toList()));
+                .filter(enrolmentInExecutionYearTest(executionYear)).collect(Collectors.toList()));
 
         return result;
     }
 
-    public static Set<Enrolment> standaloneEnrolments(final Registration registration, final ExecutionYear executionYear) {
+    public static Set<Enrolment> normalEnrolmentsWithoutAnnuled(final Registration registration, final ExecutionYear executionYear) {
+        return normalEnrolmentsIncludingAnnuled(registration, executionYear).stream().filter(e -> !e.isAnnulled()).collect(Collectors.toSet());
+    }
+        
+    public static Set<Enrolment> standaloneEnrolmentsIncludingAnnuled(final Registration registration, final ExecutionYear executionYear) {
         final StudentCurricularPlan studentCurricularPlan = registration.getStudentCurricularPlan(executionYear);
 
         if (studentCurricularPlan == null) {
@@ -845,7 +853,11 @@ public class TuitionServices {
                 .collect(Collectors.<Enrolment> toSet());
     }
 
-    public static Set<Enrolment> extracurricularEnrolments(final Registration registration, final ExecutionYear executionYear) {
+    public static Set<Enrolment> standaloneEnrolmentsWithoutAnnuled(final Registration registration, final ExecutionYear executionYear) {
+        return standaloneEnrolmentsIncludingAnnuled(registration, executionYear).stream().filter(e -> !e.isAnnulled()).collect(Collectors.toSet());
+    }    
+    
+    public static Set<Enrolment> extracurricularEnrolmentsIncludingAnnuled(final Registration registration, final ExecutionYear executionYear) {
         final StudentCurricularPlan studentCurricularPlan = registration.getStudentCurricularPlan(executionYear);
 
         if (studentCurricularPlan == null) {
@@ -855,6 +867,14 @@ public class TuitionServices {
         return studentCurricularPlan.getExtraCurricularCurriculumLines().stream()
                 .filter(l -> l.getExecutionYear() == executionYear && l.isEnrolment()).map(l -> (Enrolment) l)
                 .collect(Collectors.<Enrolment> toSet());
+    }
+
+    public static Set<Enrolment> extracurricularEnrolmentsWithoutAnnuled(final Registration registration, final ExecutionYear executionYear) {
+        return extracurricularEnrolmentsIncludingAnnuled(registration, executionYear).stream().filter(e -> !e.isAnnulled()).collect(Collectors.toSet());
+    }
+    
+    private static Predicate<? super CurriculumLine> enrolmentInExecutionYearTest(final ExecutionYear executionYear) {
+        return l -> l.getExecutionYear() == executionYear && l.isEnrolment();
     }
 
     public static Set<EnrolmentEvaluation> improvementEnrolments(final Registration registration,

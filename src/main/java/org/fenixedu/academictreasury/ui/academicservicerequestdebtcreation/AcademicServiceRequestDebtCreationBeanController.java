@@ -38,6 +38,7 @@ import org.fenixedu.academictreasury.util.AcademicTreasuryConstants;
 import org.fenixedu.bennu.core.domain.exceptions.DomainException;
 import org.fenixedu.bennu.core.i18n.BundleUtil;
 import org.fenixedu.bennu.spring.portal.BennuSpringController;
+import org.fenixedu.treasury.domain.FinantialEntity;
 import org.fenixedu.treasury.domain.debt.DebtAccount;
 import org.fenixedu.treasury.ui.accounting.managecustomer.CustomerController;
 import org.fenixedu.treasury.ui.accounting.managecustomer.DebtAccountController;
@@ -142,7 +143,7 @@ public class AcademicServiceRequestDebtCreationBeanController extends AcademicTr
             }
 
             ITreasuryServiceRequest iTreasuryServiceRequest = (ITreasuryServiceRequest) bean.getAcademicServiceRequest();
-            if (EmolumentServices.findTariffForAcademicServiceRequest(iTreasuryServiceRequest, bean.getDebtDate()) == null) {
+            if (EmolumentServices.findTariffForAcademicServiceRequestForDefaultFinantialEntity(iTreasuryServiceRequest, bean.getDebtDate()) == null) {
                 addErrorMessage(
                         academicTreasuryBundle("error.AcademicServiceRequestDebtCreation.tariff.not.found"),
                         model);
@@ -164,7 +165,7 @@ public class AcademicServiceRequestDebtCreationBeanController extends AcademicTr
             model.addAttribute("academicServiceRequestDebtCreationBeanJson", getBeanJson(bean));
 
             model.addAttribute("debt",
-                    EmolumentServices.calculateForAcademicServiceRequest(iTreasuryServiceRequest, bean.getDebtDate()));
+                    EmolumentServices.calculateForAcademicServiceRequestForDefaultFinantialEntity(iTreasuryServiceRequest, bean.getDebtDate()));
 
             return jspPage("confirmacademicservicerequestdebtcreation");
         } catch (final DomainException e) {
@@ -185,7 +186,7 @@ public class AcademicServiceRequestDebtCreationBeanController extends AcademicTr
 
         try {
 
-            EmolumentServices.createAcademicServiceRequestEmolument((ITreasuryServiceRequest) bean.getAcademicServiceRequest(),
+            EmolumentServices.createAcademicServiceRequestEmolumentForDefaultFinantialEntity((ITreasuryServiceRequest) bean.getAcademicServiceRequest(),
                     bean.getDebtDate());
 
             addInfoMessage(academicTreasuryBundle("label.AcademicServiceRequest.debit.entries.created.success"),

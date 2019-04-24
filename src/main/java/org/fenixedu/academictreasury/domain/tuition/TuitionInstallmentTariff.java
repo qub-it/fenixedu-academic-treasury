@@ -9,11 +9,15 @@ import java.util.stream.Stream;
 
 import org.fenixedu.academic.domain.DomainObjectUtil;
 import org.fenixedu.academic.domain.Enrolment;
+import org.fenixedu.academic.domain.ExecutionYear;
+import org.fenixedu.academic.domain.student.Registration;
 import org.fenixedu.academictreasury.domain.coursefunctioncost.CourseFunctionCost;
 import org.fenixedu.academictreasury.domain.event.AcademicTreasuryEvent;
 import org.fenixedu.academictreasury.domain.event.AcademicTreasuryEvent.AcademicTreasuryEventKeys;
 import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainException;
 import org.fenixedu.academictreasury.dto.tariff.AcademicTariffBean;
+import org.fenixedu.academictreasury.services.AcademicTreasuryPlataformDependentServicesFactory;
+import org.fenixedu.academictreasury.services.IAcademicTreasuryPlatformDependentServices;
 import org.fenixedu.academictreasury.util.AcademicTreasuryConstants;
 import pt.ist.fenixframework.FenixFramework;
 import org.fenixedu.bennu.core.i18n.BundleUtil;
@@ -28,6 +32,8 @@ import org.fenixedu.treasury.domain.document.DebitNote;
 import org.fenixedu.treasury.domain.tariff.DueDateCalculationType;
 import org.fenixedu.treasury.domain.tariff.InterestRate;
 import org.fenixedu.treasury.domain.tariff.InterestType;
+import org.fenixedu.treasury.services.integration.ITreasuryPlatformDependentServices;
+import org.fenixedu.treasury.services.integration.TreasuryPlataformDependentServicesFactory;
 import org.joda.time.DateTime;
 import org.joda.time.LocalDate;
 
@@ -433,11 +439,14 @@ if (!TuitionPaymentPlan.isDefaultPaymentPlanDefined(getTuitionPaymentPlan().getD
             throw new RuntimeException("wrong call");
         }
 
+        final ITreasuryPlatformDependentServices treasuryServices = TreasuryPlataformDependentServicesFactory.implementation();
+        final IAcademicTreasuryPlatformDependentServices academicTreasuryServices = AcademicTreasuryPlataformDependentServicesFactory.implementation();
+        
         LocalizedString result = new LocalizedString();
-        for (final Locale locale : CoreConfiguration.supportedLocales()) {
+        for (final Locale locale : treasuryServices.availableLocales()) {
             result = result.with(locale,
                     AcademicTreasuryConstants.academicTreasuryBundle(locale, "label.TuitionPaymentPlan.standalone.debit.entry.name",
-                            standaloneEnrolment.getName().getContent(locale),
+                            academicTreasuryServices.localizedNameOfEnrolment(standaloneEnrolment, locale),
                             standaloneEnrolment.getExecutionPeriod().getQualifiedName(),
                             new BigDecimal(standaloneEnrolment.getCurricularCourse().getEctsCredits()).toString()));
         }
@@ -446,16 +455,18 @@ if (!TuitionPaymentPlan.isDefaultPaymentPlanDefined(getTuitionPaymentPlan().getD
     }
 
     public LocalizedString extracurricularDebitEntryName(final Enrolment extracurricularEnrolment) {
-
         if (!extracurricularEnrolment.isExtraCurricular()) {
             throw new RuntimeException("wrong call");
         }
 
+        final ITreasuryPlatformDependentServices treasuryServices = TreasuryPlataformDependentServicesFactory.implementation();
+        final IAcademicTreasuryPlatformDependentServices academicTreasuryServices = AcademicTreasuryPlataformDependentServicesFactory.implementation();
+        
         LocalizedString result = new LocalizedString();
-        for (final Locale locale : CoreConfiguration.supportedLocales()) {
+        for (final Locale locale : treasuryServices.availableLocales()) {
             result = result.with(locale,
                     AcademicTreasuryConstants.academicTreasuryBundle(locale, "label.TuitionPaymentPlan.extracurricular.debit.entry.name",
-                            extracurricularEnrolment.getName().getContent(locale),
+                            academicTreasuryServices.localizedNameOfEnrolment(extracurricularEnrolment, locale),
                             extracurricularEnrolment.getExecutionPeriod().getQualifiedName(),
                             new BigDecimal(extracurricularEnrolment.getCurricularCourse().getEctsCredits()).toString()));
         }
@@ -476,16 +487,18 @@ if (!TuitionPaymentPlan.isDefaultPaymentPlanDefined(getTuitionPaymentPlan().getD
             throw new RuntimeException("wrong call");
         }
 
+        IAcademicTreasuryPlatformDependentServices academicTreasuryServices = AcademicTreasuryPlataformDependentServicesFactory.implementation();
+        
         final Map<String, String> propertiesMap = Maps.newHashMap();
 
         propertiesMap.put(AcademicTreasuryEvent.AcademicTreasuryEventKeys.ENROLMENT.getDescriptionI18N().getContent(),
-                enrolment.getName().getContent());
+                academicTreasuryServices.localizedNameOfEnrolment(enrolment));
 
         propertiesMap.put(
                 AcademicTreasuryEvent.AcademicTreasuryEventKeys.DEGREE_CURRICULAR_PLAN.getDescriptionI18N().getContent(),
                 enrolment.getCurricularCourse().getDegreeCurricularPlan().getName());
         propertiesMap.put(AcademicTreasuryEvent.AcademicTreasuryEventKeys.DEGREE.getDescriptionI18N().getContent(),
-                enrolment.getCurricularCourse().getDegree().getPresentationNameI18N().getContent());
+                enrolment.getCurricularCourse().getDegree().getPresentationName());
         propertiesMap.put(AcademicTreasuryEvent.AcademicTreasuryEventKeys.DEGREE_CODE.getDescriptionI18N().getContent(),
                 enrolment.getCurricularCourse().getDegree().getCode());
 
@@ -570,7 +583,7 @@ if (!TuitionPaymentPlan.isDefaultPaymentPlanDefined(getTuitionPaymentPlan().getD
         return propertiesMap;
     }
 
-    private Map<String, String> fillPricePropertiesForRegistration(final AcademicTreasuryEvent academicTreasuryEvent,
+    private Map<String, String> fillPricePropertiesForRegistration(final AcademicTreasuryEvent event,
             final LocalDate dueDate, final LocalDate usedDate) {
 
         if (!getTuitionPaymentPlan().getTuitionPaymentPlanGroup().isForRegistration()) {
@@ -593,24 +606,28 @@ if (!TuitionPaymentPlan.isDefaultPaymentPlanDefined(getTuitionPaymentPlan().getD
                     getTuitionPaymentPlan().getPayorDebtAccount().getCustomer().getUiFiscalNumber());
         }
         
+        final TuitionPaymentPlanGroup tuitionPaymentPlanGroup = event.getTuitionPaymentPlanGroup();
+        final Registration registration = event.getRegistration();
+        final ExecutionYear executionYear = event.getExecutionYear();
+        
         if (getTuitionCalculationType().isFixedAmount()) {
             propertiesMap.put(AcademicTreasuryEvent.AcademicTreasuryEventKeys.FIXED_AMOUNT.getDescriptionI18N().getContent(),
                     getFinantialEntity().getFinantialInstitution().getCurrency().getValueFor(getFixedAmount()));
         } else if (getTuitionCalculationType().isEcts()) {
             propertiesMap.put(AcademicTreasuryEvent.AcademicTreasuryEventKeys.ECTS_CREDITS.getDescriptionI18N().getContent(),
-                    academicTreasuryEvent.getEnrolledEctsUnits().toString());
+                    AcademicTreasuryEvent.getEnrolledEctsUnits(tuitionPaymentPlanGroup, registration, executionYear).toString());
             propertiesMap.put(AcademicTreasuryEvent.AcademicTreasuryEventKeys.AMOUNT_PER_ECTS.getDescriptionI18N().getContent(),
                     getFinantialEntity().getFinantialInstitution().getCurrency().getValueFor(getAmountPerEctsOrUnit(), 3));
             propertiesMap.put(AcademicTreasuryEvent.AcademicTreasuryEventKeys.FINAL_AMOUNT.getDescriptionI18N().getContent(),
-                    getFinantialEntity().getFinantialInstitution().getCurrency().getValueFor(amountToPay(academicTreasuryEvent)));
+                    getFinantialEntity().getFinantialInstitution().getCurrency().getValueFor(amountToPay(event)));
 
         } else if (getTuitionCalculationType().isUnits()) {
             propertiesMap.put(AcademicTreasuryEvent.AcademicTreasuryEventKeys.ENROLLED_COURSES.getDescriptionI18N().getContent(),
-                    academicTreasuryEvent.getEnrolledCoursesCount().toString());
+                    AcademicTreasuryEvent.getEnrolledCoursesCount(tuitionPaymentPlanGroup, registration, executionYear).toString());
             propertiesMap.put(AcademicTreasuryEvent.AcademicTreasuryEventKeys.AMOUNT_PER_COURSE.getDescriptionI18N().getContent(),
                     getFinantialEntity().getFinantialInstitution().getCurrency().getValueFor(getAmountPerEctsOrUnit(), 3));
             propertiesMap.put(AcademicTreasuryEvent.AcademicTreasuryEventKeys.FINAL_AMOUNT.getDescriptionI18N().getContent(),
-                    getFinantialEntity().getFinantialInstitution().getCurrency().getValueFor(amountToPay(academicTreasuryEvent)));
+                    getFinantialEntity().getFinantialInstitution().getCurrency().getValueFor(amountToPay(event)));
         }
 
         if (isTuitionCalculationByEctsOrUnits() && getEctsCalculationType().isDefaultPaymentPlanIndexed()) {
@@ -627,11 +644,11 @@ if (!TuitionPaymentPlan.isDefaultPaymentPlanDefined(getTuitionPaymentPlan().getD
                 dueDate.toString(AcademicTreasuryConstants.DATE_FORMAT));
 
         propertiesMap.put(AcademicTreasuryEventKeys.DEGREE_CODE.getDescriptionI18N().getContent(),
-                academicTreasuryEvent.getRegistration().getDegree().getCode());
-        propertiesMap.put(AcademicTreasuryEventKeys.DEGREE.getDescriptionI18N().getContent(), academicTreasuryEvent
-                .getRegistration().getDegree().getPresentationNameI18N(academicTreasuryEvent.getExecutionYear()).getContent());
+                event.getRegistration().getDegree().getCode());
+        propertiesMap.put(AcademicTreasuryEventKeys.DEGREE.getDescriptionI18N().getContent(), event
+                .getRegistration().getDegree().getPresentationNameI18N(event.getExecutionYear()).getContent());
         propertiesMap.put(AcademicTreasuryEventKeys.DEGREE_CURRICULAR_PLAN.getDescriptionI18N().getContent(),
-                academicTreasuryEvent.getRegistration().getDegreeCurricularPlanName());
+                event.getRegistration().getDegreeCurricularPlanName());
 
         if (isApplyMaximumAmount()) {
             propertiesMap.put(AcademicTreasuryEventKeys.MAXIMUM_AMOUNT.getDescriptionI18N().getContent(),

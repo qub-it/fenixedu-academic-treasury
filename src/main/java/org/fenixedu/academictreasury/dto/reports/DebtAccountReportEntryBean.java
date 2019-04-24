@@ -9,12 +9,14 @@ import org.fenixedu.academictreasury.domain.reports.ErrorsLog;
 import org.fenixedu.academictreasury.util.AcademicTreasuryConstants;
 import org.fenixedu.commons.i18n.LocalizedString;
 import org.fenixedu.treasury.domain.debt.DebtAccount;
+import org.fenixedu.treasury.services.integration.ITreasuryPlatformDependentServices;
 import org.fenixedu.treasury.services.integration.TreasuryPlataformDependentServicesFactory;
 import org.fenixedu.treasury.util.FiscalCodeValidation;
 import org.fenixedu.treasury.util.streaming.spreadsheet.IErrorsLog;
 import org.fenixedu.treasury.util.streaming.spreadsheet.SpreadsheetRow;
 import org.joda.time.DateTime;
-import org.springframework.util.StringUtils;
+
+import com.google.common.base.Strings;
 
 public class DebtAccountReportEntryBean implements SpreadsheetRow {
 
@@ -46,7 +48,7 @@ public class DebtAccountReportEntryBean implements SpreadsheetRow {
     private String finantialInstitutionName;
     private String customerId;
     private String name;
-    private LocalizedString identificationType;
+    private String identificationType;
     private String identificationNumber;
     private String vatNumber;
     private String email;
@@ -57,14 +59,16 @@ public class DebtAccountReportEntryBean implements SpreadsheetRow {
     private String totalInDebt;
 
     public DebtAccountReportEntryBean(final DebtAccount debtAccount, final DebtReportRequest request, final ErrorsLog errorsLog) {
+        final ITreasuryPlatformDependentServices treasuryServices = TreasuryPlataformDependentServicesFactory.implementation();
+
         final String decimalSeparator = request.getDecimalSeparator();
 
         this.debtAccount = debtAccount;
 
         try {
             this.identification = debtAccount.getExternalId();
-            this.versioningCreator = TreasuryPlataformDependentServicesFactory.implementation().versioningCreatorUsername(debtAccount);
-            this.creationDate = TreasuryPlataformDependentServicesFactory.implementation().versioningCreationDate(debtAccount);
+            this.versioningCreator = treasuryServices.versioningCreatorUsername(debtAccount);
+            this.creationDate = treasuryServices.versioningCreationDate(debtAccount);
             this.finantialInstitutionName = debtAccount.getFinantialInstitution().getName();
             this.customerId = debtAccount.getCustomer().getExternalId();
             this.name = debtAccount.getCustomer().getName();
@@ -72,13 +76,13 @@ public class DebtAccountReportEntryBean implements SpreadsheetRow {
             if (debtAccount.getCustomer().isPersonCustomer() && ((PersonCustomer) debtAccount.getCustomer()).getPerson() != null
                     && ((PersonCustomer) debtAccount.getCustomer()).getPerson().getIdDocumentType() != null) {
                 this.identificationType =
-                        ((PersonCustomer) debtAccount.getCustomer()).getPerson().getIdDocumentType().getLocalizedNameI18N();
+                        ((PersonCustomer) debtAccount.getCustomer()).getPerson().getIdDocumentType().getLocalizedName();
             } else if (debtAccount.getCustomer().isPersonCustomer()
                     && ((PersonCustomer) debtAccount.getCustomer()).getPersonForInactivePersonCustomer() != null
                     && ((PersonCustomer) debtAccount.getCustomer()).getPersonForInactivePersonCustomer()
                             .getIdDocumentType() != null) {
                 this.identificationType = ((PersonCustomer) debtAccount.getCustomer()).getPersonForInactivePersonCustomer()
-                        .getIdDocumentType().getLocalizedNameI18N();
+                        .getIdDocumentType().getLocalizedName();
             }
 
             this.identificationNumber = debtAccount.getCustomer().getIdentificationNumber();
@@ -172,7 +176,7 @@ public class DebtAccountReportEntryBean implements SpreadsheetRow {
             return "";
         }
 
-        return academicTreasuryBundle(value ? "label.true" : "label.false");
+        return academicTreasuryBundle(value ? "label.yes" : "label.no");
     }
 
     private String valueOrEmpty(final Integer value) {
@@ -188,7 +192,7 @@ public class DebtAccountReportEntryBean implements SpreadsheetRow {
             return "";
         }
 
-        if (StringUtils.isEmpty(value.getContent())) {
+        if (Strings.isNullOrEmpty(value.getContent())) {
             return "";
         }
 
@@ -196,7 +200,7 @@ public class DebtAccountReportEntryBean implements SpreadsheetRow {
     }
 
     private String valueOrEmpty(final String value) {
-        if (!StringUtils.isEmpty(value)) {
+        if (!Strings.isNullOrEmpty(value)) {
             return value;
         }
 

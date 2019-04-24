@@ -1,5 +1,6 @@
 package org.fenixedu.academictreasury.dto.reports;
 
+
 import static org.fenixedu.academictreasury.dto.reports.DebtReportEntryBean.personalEmail;
 import static org.fenixedu.academictreasury.util.AcademicTreasuryConstants.academicTreasuryBundle;
 
@@ -7,12 +8,13 @@ import java.math.BigDecimal;
 
 import org.apache.poi.ss.usermodel.Row;
 import org.fenixedu.academic.domain.Person;
-import org.fenixedu.academic.domain.contacts.EmailAddress;
 import org.fenixedu.academictreasury.domain.customer.PersonCustomer;
 import org.fenixedu.academictreasury.domain.event.AcademicTreasuryEvent;
 import org.fenixedu.academictreasury.domain.reports.DebtReportRequest;
 import org.fenixedu.academictreasury.domain.reports.ErrorsLog;
 import org.fenixedu.academictreasury.domain.serviceRequests.ITreasuryServiceRequest;
+import org.fenixedu.academictreasury.services.AcademicTreasuryPlataformDependentServicesFactory;
+import org.fenixedu.academictreasury.services.IAcademicTreasuryPlatformDependentServices;
 import org.fenixedu.academictreasury.util.AcademicTreasuryConstants;
 import org.fenixedu.commons.i18n.I18N;
 import org.fenixedu.commons.i18n.LocalizedString;
@@ -25,12 +27,12 @@ import org.fenixedu.treasury.domain.document.InvoiceEntry;
 import org.fenixedu.treasury.domain.document.SettlementEntry;
 import org.fenixedu.treasury.domain.document.SettlementNote;
 import org.fenixedu.treasury.domain.event.TreasuryEvent;
+import org.fenixedu.treasury.services.integration.ITreasuryPlatformDependentServices;
 import org.fenixedu.treasury.services.integration.TreasuryPlataformDependentServicesFactory;
 import org.fenixedu.treasury.util.streaming.spreadsheet.IErrorsLog;
 import org.fenixedu.treasury.util.streaming.spreadsheet.SpreadsheetRow;
 import org.joda.time.DateTime;
 import org.joda.time.LocalDate;
-import org.springframework.util.StringUtils;
 
 import com.google.common.base.Strings;
 
@@ -88,7 +90,7 @@ public class SettlementReportEntryBean implements SpreadsheetRow {
     private String customerId;
     private String debtAccountId;
     private String name;
-    private LocalizedString identificationType;
+    private String identificationType;
     private String identificationNumber;
     private String vatNumber;
     private String institutionalOrDefaultEmail;
@@ -99,7 +101,7 @@ public class SettlementReportEntryBean implements SpreadsheetRow {
     private Integer registrationNumber;
     private String degreeType;
     private String degreeCode;
-    private LocalizedString degreeName;
+    private String degreeName;
     private String executionYear;
     private String executionSemester;
     
@@ -115,6 +117,8 @@ public class SettlementReportEntryBean implements SpreadsheetRow {
     private String decimalSeparator;
     
     public SettlementReportEntryBean(final SettlementEntry entry, final DebtReportRequest request, final ErrorsLog errorsLog) {
+        final ITreasuryPlatformDependentServices treasuryServices = TreasuryPlataformDependentServicesFactory.implementation();
+
         this.decimalSeparator = request != null ? request.getDecimalSeparator() : DebtReportRequest.DOT;
         
         this.settlementEntry = entry;
@@ -124,8 +128,8 @@ public class SettlementReportEntryBean implements SpreadsheetRow {
             final Currency currency = settlementNote.getDebtAccount().getFinantialInstitution().getCurrency();
             
             this.identification = entry.getExternalId();
-            this.creationDate = TreasuryPlataformDependentServicesFactory.implementation().versioningCreationDate(entry);
-            this.responsible = TreasuryPlataformDependentServicesFactory.implementation().versioningCreatorUsername(entry);
+            this.creationDate = treasuryServices.versioningCreationDate(entry);
+            this.responsible = treasuryServices.versioningCreatorUsername(entry);
             this.invoiceEntryIdentification = entry.getInvoiceEntry().getExternalId();
             this.settlementNoteNumber = settlementNote.getUiDocumentNumber();
             this.settlementNoteDocumentDate = settlementNote.getDocumentDate();
@@ -177,6 +181,8 @@ public class SettlementReportEntryBean implements SpreadsheetRow {
 
     
     private void fillAcademicInformation(final InvoiceEntry invoiceEntry) {
+        final IAcademicTreasuryPlatformDependentServices academicTreasuryServices = AcademicTreasuryPlataformDependentServicesFactory.implementation();
+
         final DebitEntry debitEntry = invoiceEntry.isDebitNoteEntry() ? (DebitEntry) invoiceEntry : ((CreditEntry) invoiceEntry).getDebitEntry();
 
         if (debitEntry != null) {
@@ -187,17 +193,17 @@ public class SettlementReportEntryBean implements SpreadsheetRow {
 
                 if (academicTreasuryEvent.isForRegistrationTuition()) {
                     this.registrationNumber = academicTreasuryEvent.getRegistration().getNumber();
-                    this.degreeType = academicTreasuryEvent.getRegistration().getDegree().getDegreeType().getName().getContent();
+                    this.degreeType = academicTreasuryServices.localizedNameOfDegreeType(academicTreasuryEvent.getRegistration().getDegree().getDegreeType());
                     this.degreeCode = academicTreasuryEvent.getRegistration().getDegree().getCode();
-                    this.degreeName = academicTreasuryEvent.getRegistration().getDegree().getPresentationNameI18N();
+                    this.degreeName = academicTreasuryEvent.getRegistration().getDegree().getPresentationName();
                     this.executionYear = academicTreasuryEvent.getExecutionYear().getQualifiedName();
 
                 } else if (academicTreasuryEvent.isForStandaloneTuition()
                         || academicTreasuryEvent.isForExtracurricularTuition()) {
                     if (debitEntry.getCurricularCourse() != null) {
-                        this.degreeType = debitEntry.getCurricularCourse().getDegree().getDegreeType().getName().getContent();
+                        this.degreeType = academicTreasuryServices.localizedNameOfDegreeType(debitEntry.getCurricularCourse().getDegree().getDegreeType());
                         this.degreeCode = debitEntry.getCurricularCourse().getDegree().getCode();
-                        this.degreeName = debitEntry.getCurricularCourse().getDegree().getPresentationNameI18N();
+                        this.degreeName = debitEntry.getCurricularCourse().getDegree().getPresentationName();
                     }
 
                     if (debitEntry.getExecutionSemester() != null) {
@@ -207,9 +213,9 @@ public class SettlementReportEntryBean implements SpreadsheetRow {
 
                 } else if (academicTreasuryEvent.isForImprovementTax()) {
                     if (debitEntry.getCurricularCourse() != null) {
-                        this.degreeType = debitEntry.getCurricularCourse().getDegree().getDegreeType().getName().getContent();
+                        this.degreeType = academicTreasuryServices.localizedNameOfDegreeType(debitEntry.getCurricularCourse().getDegree().getDegreeType());
                         this.degreeCode = debitEntry.getCurricularCourse().getDegree().getCode();
-                        this.degreeName = debitEntry.getCurricularCourse().getDegree().getPresentationNameI18N();
+                        this.degreeName = debitEntry.getCurricularCourse().getDegree().getPresentationName();
                     }
 
                     if (debitEntry.getExecutionSemester() != null) {
@@ -220,9 +226,9 @@ public class SettlementReportEntryBean implements SpreadsheetRow {
                 } else if (academicTreasuryEvent.isForAcademicTax()) {
 
                     this.registrationNumber = academicTreasuryEvent.getRegistration().getNumber();
-                    this.degreeType = academicTreasuryEvent.getRegistration().getDegree().getDegreeType().getName().getContent();
+                    this.degreeType = academicTreasuryServices.localizedNameOfDegreeType(academicTreasuryEvent.getRegistration().getDegree().getDegreeType());
                     this.degreeCode = academicTreasuryEvent.getRegistration().getDegree().getCode();
-                    this.degreeName = academicTreasuryEvent.getRegistration().getDegree().getPresentationNameI18N();
+                    this.degreeName = academicTreasuryEvent.getRegistration().getDegree().getPresentationName();
                     this.executionYear = academicTreasuryEvent.getExecutionYear().getQualifiedName();
 
                 } else if (academicTreasuryEvent.isForAcademicServiceRequest()) {
@@ -231,9 +237,9 @@ public class SettlementReportEntryBean implements SpreadsheetRow {
 
                     this.registrationNumber = iTreasuryServiceRequest.getRegistration().getNumber();
                     this.degreeType =
-                            iTreasuryServiceRequest.getRegistration().getDegree().getDegreeType().getName().getContent();
+                            academicTreasuryServices.localizedNameOfDegreeType(iTreasuryServiceRequest.getRegistration().getDegree().getDegreeType());
                     this.degreeCode = iTreasuryServiceRequest.getRegistration().getDegree().getCode();
-                    this.degreeName = iTreasuryServiceRequest.getRegistration().getDegree().getPresentationNameI18N();
+                    this.degreeName = iTreasuryServiceRequest.getRegistration().getDegree().getPresentationName();
 
                     if (iTreasuryServiceRequest.hasExecutionYear()) {
                         this.executionYear = iTreasuryServiceRequest.getExecutionYear().getQualifiedName();
@@ -247,7 +253,7 @@ public class SettlementReportEntryBean implements SpreadsheetRow {
                 }
 
                 if (!Strings.isNullOrEmpty(treasuryEvent.getDegreeName())) {
-                    this.degreeName = new LocalizedString(I18N.getLocale(), treasuryEvent.getDegreeName());
+                    this.degreeName = treasuryEvent.getDegreeName();
                 }
 
                 if (!Strings.isNullOrEmpty(treasuryEvent.getExecutionYearName())) {
@@ -274,7 +280,7 @@ public class SettlementReportEntryBean implements SpreadsheetRow {
         this.name = customer.getName();
 
         if (customer.isPersonCustomer() && ((PersonCustomer) customer).getAssociatedPerson() != null && ((PersonCustomer) customer).getAssociatedPerson().getIdDocumentType() != null) {
-            this.identificationType = ((PersonCustomer) customer).getAssociatedPerson().getIdDocumentType().getLocalizedNameI18N();
+            this.identificationType = ((PersonCustomer) customer).getAssociatedPerson().getIdDocumentType().getLocalizedName();
         }
 
         this.identificationNumber = customer.getIdentificationNumber();
@@ -382,7 +388,7 @@ public class SettlementReportEntryBean implements SpreadsheetRow {
             return "";
         }
 
-        return academicTreasuryBundle(value ? "label.true" : "label.false");
+        return academicTreasuryBundle(value ? "label.yes" : "label.no");
     }
 
     private String valueOrEmpty(final Integer value) {
@@ -398,7 +404,7 @@ public class SettlementReportEntryBean implements SpreadsheetRow {
             return "";
         }
 
-        if (StringUtils.isEmpty(value.getContent())) {
+        if (Strings.isNullOrEmpty(value.getContent())) {
             return "";
         }
 
@@ -406,7 +412,7 @@ public class SettlementReportEntryBean implements SpreadsheetRow {
     }
 
     private String valueOrEmpty(final String value) {
-        if (!StringUtils.isEmpty(value)) {
+        if (!Strings.isNullOrEmpty(value)) {
             return value;
         }
 
@@ -596,11 +602,11 @@ public class SettlementReportEntryBean implements SpreadsheetRow {
         this.name = name;
     }
 
-    public LocalizedString getIdentificationType() {
+    public String getIdentificationType() {
         return identificationType;
     }
 
-    public void setIdentificationType(LocalizedString identificationType) {
+    public void setIdentificationType(String identificationType) {
         this.identificationType = identificationType;
     }
 
@@ -684,11 +690,11 @@ public class SettlementReportEntryBean implements SpreadsheetRow {
         this.degreeCode = degreeCode;
     }
 
-    public LocalizedString getDegreeName() {
+    public String getDegreeName() {
         return degreeName;
     }
 
-    public void setDegreeName(LocalizedString degreeName) {
+    public void setDegreeName(String degreeName) {
         this.degreeName = degreeName;
     }
 

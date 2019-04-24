@@ -2,7 +2,9 @@ package org.fenixedu.academictreasury.services;
 
 import java.util.Locale;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.fenixedu.academic.domain.CurricularYear;
 import org.fenixedu.academic.domain.Degree;
@@ -11,6 +13,7 @@ import org.fenixedu.academic.domain.Enrolment;
 import org.fenixedu.academic.domain.ExecutionDegree;
 import org.fenixedu.academic.domain.ExecutionYear;
 import org.fenixedu.academic.domain.Person;
+import org.fenixedu.academic.domain.administrativeOffice.AdministrativeOffice;
 import org.fenixedu.academic.domain.candidacy.IngressionType;
 import org.fenixedu.academic.domain.degree.DegreeType;
 import org.fenixedu.academic.domain.organizationalStructure.Party;
@@ -20,6 +23,7 @@ import org.fenixedu.academic.domain.student.RegistrationProtocol;
 import org.fenixedu.academic.domain.student.RegistrationRegimeType;
 import org.fenixedu.academic.domain.student.StatuteType;
 import org.fenixedu.academic.domain.student.Student;
+import org.fenixedu.bennu.core.domain.Bennu;
 import org.fenixedu.treasury.domain.FinantialEntity;
 import org.joda.time.LocalDate;
 
@@ -127,5 +131,12 @@ public interface IAcademicTreasuryPlatformDependentServices {
 
     public Set<StatuteType> statutesTypesValidOnAnyExecutionSemesterFor(final Student student, final ExecutionYear executionYear);
     
+    /* AdministrativeOffice */
+    
+    default public Stream<AdministrativeOffice> findAdministrativeOfficesByPredicate(Predicate<AdministrativeOffice> predicate) {
+        return Bennu.getInstance().getAdministrativeOfficesSet().stream().filter(predicate);
+    }
+
+
     
 }

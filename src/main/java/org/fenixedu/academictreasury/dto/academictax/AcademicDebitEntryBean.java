@@ -1,18 +1,21 @@
-package org.fenixedu.academictreasury.dto.academicservicerequest;
+package org.fenixedu.academictreasury.dto.academictax;
 
 import java.math.BigDecimal;
 
 import org.fenixedu.commons.i18n.LocalizedString;
 import org.joda.time.LocalDate;
 
-public class AcademicServiceRequestDebitEntryBean {
+public class AcademicDebitEntryBean {
 
     private LocalizedString description;
     private LocalDate dueDate;
     private BigDecimal vatRate;
     private BigDecimal amount;
 
-    public AcademicServiceRequestDebitEntryBean(final LocalizedString description, final LocalDate dueDate, final BigDecimal vatRate,
+    public AcademicDebitEntryBean() {
+    }
+    
+    public AcademicDebitEntryBean(final LocalizedString description, final LocalDate dueDate, final BigDecimal vatRate,
             final BigDecimal amount) {
         this.description = description;
         this.dueDate = dueDate;

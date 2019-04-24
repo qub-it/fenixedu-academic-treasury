@@ -1,6 +1,8 @@
 package org.fenixedu.academictreasury.domain.tuition;
 
-import org.fenixedu.academictreasury.util.AcademicTreasuryConstants;
+
+import static org.fenixedu.academictreasury.util.AcademicTreasuryConstants.academicTreasuryBundleI18N;
+
 import org.fenixedu.commons.i18n.LocalizedString;
 
 public enum EctsCalculationType {
@@ -25,8 +27,7 @@ public enum EctsCalculationType {
     }
     
     public LocalizedString getDescriptionI18N() {
-        return AcademicTreasuryConstants.academicTreasuryBundleI18N(getClass().getSimpleName() + "." + name());
+        return academicTreasuryBundleI18N(getClass().getSimpleName() + "." + name());
     }
-    
     
 }
