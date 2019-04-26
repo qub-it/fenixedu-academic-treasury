@@ -276,7 +276,7 @@ public class ERPTuitionInfoController extends AcademicTreasuryBaseController {
     
     @RequestMapping(value = _SEARCH_ERP_TUITION_INFO_CREATION_REPORT_FILE_URI, method=RequestMethod.GET)
     public String searcherptuitioninfocreationreportfile(final Model model) {
-        model.addAttribute("result", Bennu.getInstance().getErpTuitionInfoCreationReportFilesSet());
+        model.addAttribute("result", ERPTuitionInfoCreationReportFile.findAll().collect(Collectors.toSet()) );
         
         return jspPage(_SEARCH_ERP_TUITION_INFO_CREATION_REPORT_FILE_URI);
     }
@@ -287,7 +287,7 @@ public class ERPTuitionInfoController extends AcademicTreasuryBaseController {
     @RequestMapping(value = _DOWNLOAD_ERP_TUITION_INFO_CREATION_REPORT_FILE_URI + "/{fileId}", method=RequestMethod.GET)
     public String searcherptuitioninfocreationreportfile(
             @PathVariable("fileId") ERPTuitionInfoCreationReportFile file, final Model model, final HttpServletResponse response) {
-        model.addAttribute("result", Bennu.getInstance().getErpTuitionInfoCreationReportFilesSet());
+        model.addAttribute("result", ERPTuitionInfoCreationReportFile.findAll().collect(Collectors.toSet()) );
         
         response.setContentLength(file.getContent().length);
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");

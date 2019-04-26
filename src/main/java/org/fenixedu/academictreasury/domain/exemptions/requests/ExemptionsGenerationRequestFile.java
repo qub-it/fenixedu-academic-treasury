@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.stream.Collectors;
@@ -24,12 +25,14 @@ import org.fenixedu.academictreasury.util.ExcelUtils;
 import org.fenixedu.bennu.core.domain.Bennu;
 import org.fenixedu.bennu.core.domain.User;
 import org.fenixedu.bennu.core.domain.exceptions.DomainException;
+import org.fenixedu.bennu.io.domain.IGenericFile;
 import org.fenixedu.treasury.domain.Product;
 import org.fenixedu.treasury.domain.document.DebitEntry;
 import org.fenixedu.treasury.domain.event.TreasuryEvent;
 import org.fenixedu.treasury.domain.exemption.TreasuryExemption;
 import org.fenixedu.treasury.domain.exemption.TreasuryExemptionType;
 import org.fenixedu.treasury.services.accesscontrol.TreasuryAccessControlAPI;
+import org.fenixedu.treasury.services.integration.ITreasuryPlatformDependentServices;
 import org.fenixedu.treasury.services.integration.TreasuryPlataformDependentServicesFactory;
 import org.fenixedu.treasury.util.TreasuryConstants;
 import org.joda.time.DateTime;
@@ -39,20 +42,17 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import pt.ist.fenixframework.Atomic;
+import pt.ist.fenixframework.FenixFramework;
 
-public class ExemptionsGenerationRequestFile extends ExemptionsGenerationRequestFile_Base {
+public class ExemptionsGenerationRequestFile extends ExemptionsGenerationRequestFile_Base implements IGenericFile {
 
-    public static final Comparator<ExemptionsGenerationRequestFile> COMPARE_BY_CREATION_DATE =
-            new Comparator<ExemptionsGenerationRequestFile>() {
+    public static final String CONTENT_TYPE = "application/octet-stream";
 
-                @Override
-                public int compare(final ExemptionsGenerationRequestFile o1, final ExemptionsGenerationRequestFile o2) {
-                    int c = TreasuryPlataformDependentServicesFactory.implementation().versioningCreationDate(o1)
-                            .compareTo(TreasuryPlataformDependentServicesFactory.implementation().versioningCreationDate(o2));
-
-                    return c != 0 ? c : o1.getExternalId().compareTo(o2.getExternalId());
-                }
-            };
+    public static final Comparator<ExemptionsGenerationRequestFile> COMPARE_BY_CREATION_DATE = (o1, o2) -> {
+        int c = o1.getCreationDate().compareTo(o2.getCreationDate());
+        
+        return c != 0 ? c : o1.getExternalId().compareTo(o2.getExternalId());
+    };
 
     private static final int MAX_COLS = 24;
 
@@ -69,7 +69,8 @@ public class ExemptionsGenerationRequestFile extends ExemptionsGenerationRequest
     protected ExemptionsGenerationRequestFile() {
         super();
 
-        setBennu(Bennu.getInstance());
+        setDomainRoot(FenixFramework.getDomainRoot());
+        setCreationDate(new DateTime());
     }
 
     protected ExemptionsGenerationRequestFile(final TreasuryExemptionType treasuryExemptionType, final String filename,
@@ -77,13 +78,15 @@ public class ExemptionsGenerationRequestFile extends ExemptionsGenerationRequest
         this();
         setTreasuryExemptionType(treasuryExemptionType);
 
-        init(filename, filename, content);
+        ITreasuryPlatformDependentServices services = TreasuryPlataformDependentServicesFactory.implementation();
+        
+        services.createFile(this, filename, CONTENT_TYPE, content);
 
         checkRules();
     }
 
     private void checkRules() {
-        if (getBennu() == null) {
+        if (getDomainRoot() == null) {
             throw new AcademicTreasuryDomainException("error.ExemptionsGenerationRequestFile.bennu.required");
         }
 
@@ -93,10 +96,6 @@ public class ExemptionsGenerationRequestFile extends ExemptionsGenerationRequest
     }
 
     @Override
-    public boolean isAccessible(final User user) {
-        return isAccessible(user.getUsername());
-    }
-
     public boolean isAccessible(final String username) {
         return TreasuryAccessControlAPI.isBackOfficeMember(username);
     }
@@ -129,6 +128,18 @@ public class ExemptionsGenerationRequestFile extends ExemptionsGenerationRequest
 
         setWhenProcessed(new DateTime());
     }
+    
+    @Override
+    public void delete() {
+        final ITreasuryPlatformDependentServices services = TreasuryPlataformDependentServicesFactory.implementation();
+        
+        setDomainRoot(null);
+        setTreasuryExemptionType(null);
+        
+        services.deleteFile(this);
+        
+        super.deleteDomainObject();
+    }
 
     // @formatter:off
     /* ********
@@ -138,15 +149,15 @@ public class ExemptionsGenerationRequestFile extends ExemptionsGenerationRequest
     // @formatter:on
 
     public static Stream<ExemptionsGenerationRequestFile> findAll() {
-        return Bennu.getInstance().getExemptionsGenerationRequestFileSet().stream();
+        return FenixFramework.getDomainRoot().getExemptionsGenerationRequestFileSet().stream();
     }
-
+    
     @Atomic
     public static ExemptionsGenerationRequestFile create(final TreasuryExemptionType treasuryExemptionType, final String filename,
             final byte[] content) {
         return new ExemptionsGenerationRequestFile(treasuryExemptionType, filename, content);
     }
-
+    
     public static List<ExemptionsGenerationRowResult> readExcel(final TreasuryExemptionType treasuryExemptionType,
             byte[] content) {
         try {

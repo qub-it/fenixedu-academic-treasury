@@ -2,178 +2,53 @@ package org.fenixedu.academictreasury.domain;
 
 external class .org.fenixedu.treasury.domain.TreasuryFile;
 
-/* --- DebtReportRequestResultFile --- */
-
-class reports.DebtReportRequestResultFile extends .org.fenixedu.treasury.domain.TreasuryFile {
-}
-
-/* This is a replacement for existings treasury files. It should not be used */
-class reports.TreasuryFileForDebtReportRequestResultFile extends .org.fenixedu.treasury.domain.TreasuryFile {
-}
-
-	relation DebtReportRequestResultFileBennu {
-	
-		.org.fenixedu.bennu.core.domain.Bennu playsRole bennu {
-			multiplicity 1..1;
-		}
-	
-		reports.DebtReportRequestResultFile playsRole DebtReportRequestResultFiles {
-			multiplicity *;
-		}
-	}
-	
-	relation DebtReportRequestResultFileDebtReportRequest {
-
-		reports.DebtReportRequest playsRole debtReportRequest {
-			multiplicity 1..1;
-		}
-	
-		reports.DebtReportRequestResultFile playsRole debtReportRequestResultFiles {
-			multiplicity *;
-		}
-		
-	}
-	
-
 /* --- DebtReportRequestResultFileDomainObject --- */
 
-	relation DebtReportRequestResultFileDomainObjectTreasuryFile {
+	/* This is a replacement for existings treasury files. It should not be used */
+	class reports.TreasuryFileForDebtReportRequestResultFile extends .org.fenixedu.treasury.domain.TreasuryFile {
+	}
+
+	relation DebtReportRequestResultFileTreasuryFile {
 		.org.fenixedu.treasury.domain.TreasuryFile playsRole treasuryFile {
 			multiplicity 1..1;
 		}
 		
-		reports.DebtReportRequestResultFileDomainObject playsRole {
+		reports.DebtReportRequestResultFile playsRole {
 			multiplicity *;
 		}
 	}
 	
 	
-/* --- DebtReportRequestResultErrorsFile --- */
-
-class reports.DebtReportRequestResultErrorsFile extends .org.fenixedu.treasury.domain.TreasuryFile {
-}
-
-/* This is a replacement for existings treasury files. It should not be used */
-class reports.TreasuryFileForDebtReportRequestResultErrorsFile extends .org.fenixedu.treasury.domain.TreasuryFile {
-}
- 
-	relation DebtReportRequestResultErrorsFileBennu {
-	
-		.org.fenixedu.bennu.core.domain.Bennu playsRole bennu {
-			multiplicity 1..1;
-		}
-	
-		reports.DebtReportRequestResultErrorsFile playsRole debtReportRequestResultErrorsFiles {
-			multiplicity *;
-		}
-	}
-	
-	relation DebtReportRequestResultErrorsFileDebtReportRequest {
-
-		reports.DebtReportRequest playsRole debtReportRequest {
-			multiplicity 1..1;
-		}
-		
-		reports.DebtReportRequestResultErrorsFile playsRole debtReportRequestResultErrorsFiles {
-			multiplicity *;
-		}
-	}
-	
-
 /* --- DebtReportRequestResultErrorsFileDomainObject --- */
+
+	/* This is a replacement for existings treasury files. It should not be used */
+	class reports.TreasuryFileForDebtReportRequestResultErrorsFile extends .org.fenixedu.treasury.domain.TreasuryFile {
+	}
+	 
 	
-	relation DebtReportRequestResultErrorsFileDomainObjectTreasuryFile {
+	relation DebtReportRequestResultErrorsFileTreasuryFile {
 		.org.fenixedu.treasury.domain.TreasuryFile playsRole treasuryFile {
 			multiplicity 1..1;
 		}
 		
-		reports.DebtReportRequestResultErrorsFileDomainObject playsRole {
+		reports.DebtReportRequestResultErrorsFile playsRole {
 			multiplicity *;
 		}
 	}
-	
-/* --- MassiveDebtGenerationRequestFile --- */
-
-class debtGeneration.requests.MassiveDebtGenerationRequestFile extends .org.fenixedu.treasury.domain.TreasuryFile {
-	LocalDate debtDate;
-	DateTime whenProcessed;
-	String reason;
-}
-
-/* This is a replacement for existings treasury files. It should not be used */
-class debtGeneration.requests.TreasuryFileForMassiveDebtGenerationRequestFile extends .org.fenixedu.treasury.domain.TreasuryFile {
-}
-
-	relation MassiveDebtGenerationRequestBennu {
-		.org.fenixedu.bennu.core.domain.Bennu playsRole bennu {
-			multiplicity 1..1;
-		}
-		
-		debtGeneration.requests.MassiveDebtGenerationRequestFile playsRole massiveDebtGenerationRequestFiles {
-			multiplicity *;
-		}
-	}
-
-	relation MassiveDebtGenerationRequestMassiveDebtGenerationType {
-
-		debtGeneration.requests.MassiveDebtGenerationType playsRole massiveDebtGenerationType {
-			multiplicity 1..1;
-		}
-
-		debtGeneration.requests.MassiveDebtGenerationRequestFile playsRole massiveDebtGenerationRequestFiles {
-			multiplicity *;
-		}
-	}
-
-	relation MassiveDebtGenerationRequestExecutionYear {
-		.org.fenixedu.academic.domain.ExecutionYear playsRole executionYear {
-			multiplicity 0..1;
-		}
-
-		debtGeneration.requests.MassiveDebtGenerationRequestFile playsRole massiveDebtGenerationRequestFiles {
-			multiplicity *;
-		}
-	}
-
-	relation MassiveDebtGenerationRequestTuitionPaymentPlanGroup {
-		tuition.TuitionPaymentPlanGroup playsRole tuitionPaymentPlanGroup {
-			multiplicity 0..1;
-		}
-
-		debtGeneration.requests.MassiveDebtGenerationRequestFile playsRole massiveDebtGenerationRequestFiles {
-			multiplicity *;
-		}
-	}
-
-	relation MassiveDebtGenerationRequestAcademicTax {	
-		emoluments.AcademicTax playsRole academicTax {
-			multiplicity 0..1;
-		}
-		
-		debtGeneration.requests.MassiveDebtGenerationRequestFile playsRole massiveDebtGenerationRequestFiles {
-			multiplicity *;
-		}
-	 }
-	 
-	relation MassiveDebtGenerationRequestFileFinantialInstitution {	
-		.org.fenixedu.treasury.domain.FinantialInstitution playsRole finantialInstitution {
-			multiplicity 0..1;
-		}
-		
-		debtGeneration.requests.MassiveDebtGenerationRequestFile playsRole massiveDebtGenerationRequestFiles {
-			multiplicity *;
-		}
-	 }
 	
 /* --- MassiveDebtGenerationRequestFileDomainObject --- */	
 	
-	relation MassiveDebtGenerationRequestFileDomainObjectTreasuryFile {
+	/* This is a replacement for existings treasury files. It should not be used */
+	class debtGeneration.requests.TreasuryFileForMassiveDebtGenerationRequestFile extends .org.fenixedu.treasury.domain.TreasuryFile {
+	}
+	
+	relation MassiveDebtGenerationRequestFileTreasuryFile {
 	
 		.org.fenixedu.treasury.domain.TreasuryFile playsRole treasuryFile {
 			multiplicity 1..1;
 		}
 		
-		debtGeneration.requests.MassiveDebtGenerationRequestFileDomainObject playsRole {
+		debtGeneration.requests.MassiveDebtGenerationRequestFile playsRole {
 			multiplicity *;
 		}
 	}
@@ -181,105 +56,47 @@ class debtGeneration.requests.TreasuryFileForMassiveDebtGenerationRequestFile ex
 
 /* --- ExemptionsGenerationRequestFile ---*/
 
-class exemptions.requests.ExemptionsGenerationRequestFile extends .org.fenixedu.treasury.domain.TreasuryFile {
-	LocalDate debtDate;
-	DateTime whenProcessed;
-}
-
-/* This is a replacement for existings treasury files. It should not be used */
-class exemptions.requests.TreasuryFileForExemptionsGenerationRequestFile extends .org.fenixedu.treasury.domain.TreasuryFile {
-}
-
-	relation ExemptionsGenerationRequestFileBennu {
-		.org.fenixedu.bennu.core.domain.Bennu playsRole bennu {
-			multiplicity 1..1;
-		}
-		
-		exemptions.requests.ExemptionsGenerationRequestFile playsRole exemptionsGenerationRequestFile {
-			multiplicity *;
-		}
+	/* This is a replacement for existings treasury files. It should not be used */
+	class exemptions.requests.TreasuryFileForExemptionsGenerationRequestFile extends .org.fenixedu.treasury.domain.TreasuryFile {
 	}
 	
-	relation ExemptionsGenerationRequestFileTreasuryExemptionType {
-		.org.fenixedu.treasury.domain.exemption.TreasuryExemptionType playsRole treasuryExemptionType {
-			multiplicity 1..1;
-		}
-
-		exemptions.requests.ExemptionsGenerationRequestFile playsRole exemptionsGenerationRequestFile {
-			multiplicity *;
-		}
-	}
-
-
-/* --- ExemptionsGenerationRequestFileDomainObject --- */
-
-	relation ExemptionsGenerationRequestFileDomainObjectTreasuryFile {
+	relation ExemptionsGenerationRequestFileTreasuryFile {
 	
 		.org.fenixedu.treasury.domain.TreasuryFile playsRole treasuryFile {
 			multiplicity 1..1;
 		}
 		
-		exemptions.requests.ExemptionsGenerationRequestFileDomainObject playsRole {
+		exemptions.requests.ExemptionsGenerationRequestFile playsRole {
 			multiplicity *;
 		}
 	}
 	
-
-/* --- TreasuryImportFile ---*/
-
-class importation.TreasuryImportFile extends .org.fenixedu.treasury.domain.TreasuryFile {
-	DateTime whenProcessed;
-}
-
-/* This is a replacement for existings treasury files. It should not be used */
-class importation.TreasuryFileForTreasuryImportFile extends .org.fenixedu.treasury.domain.TreasuryFile {
-}
-
-	relation TreasuryImportFileBennu {
-		.org.fenixedu.bennu.core.domain.Bennu playsRole bennu {
-			multiplicity 1..1;
-		}
-		
-		importation.TreasuryImportFile playsRole treasuryImportFiles {
-			multiplicity *;
-		}
-	}
-	
-	relation TreasuryImportFileTreasuryImportType {
-		importation.TreasuryImportType playsRole treasuryImportType {
-			multiplicity 1..1;
-		}
-		
-		importation.TreasuryImportFile playsRole treasuryImportFiles {
-			multiplicity *;
-		}
-		
-	}
 
 /* --- TreasuryImportFileDomainObject ---*/
 
-	relation TreasuryImportFileDomainObjectTreasuryFile {
+	/* This is a replacement for existings treasury files. It should not be used */
+	class importation.TreasuryFileForTreasuryImportFile extends .org.fenixedu.treasury.domain.TreasuryFile {
+	}
+	
+	relation TreasuryImportFileTreasuryFile {
 		
 		.org.fenixedu.treasury.domain.TreasuryFile playsRole treasuryFile {
 			multiplicity 1..1;
 		}
 		
-		importation.TreasuryImportFileDomainObject playsRole treasuryImportFileDomainObjects {
+		importation.TreasuryImportFile playsRole treasuryImportFiles {
 			multiplicity *;
 		}
 	}
 	
-/* ERPTuitionInfoCreationReportFile */
+/* ERPTuitionInfoCreationReportFileDomainObject */
 
-class integration.ERPTuitionInfoCreationReportFile extends .org.fenixedu.treasury.domain.TreasuryFile {
-}
-
-/* This is a replacement for existings treasury files. It should not be used */
-class integration.TreasuryFileForERPTuitionInfoCreationReportFile extends .org.fenixedu.treasury.domain.TreasuryFile {
-}
-
-	relation ERPTuitionInfoCreationReportFileBennu {
-		.org.fenixedu.bennu.core.domain.Bennu playsRole bennu {
+	/* This is a replacement for existings treasury files. It should not be used */
+	class integration.TreasuryFileForERPTuitionInfoCreationReportFile extends .org.fenixedu.treasury.domain.TreasuryFile {
+	}
+	
+	relation ERPTuitionInfoCreationReportFileTreasuryFile {
+		.org.fenixedu.treasury.domain.TreasuryFile playsRole treasuryFile {
 			multiplicity 1..1;
 		}
 		
@@ -287,16 +104,3 @@ class integration.TreasuryFileForERPTuitionInfoCreationReportFile extends .org.f
 			multiplicity *;
 		}
 	}
-
-/* ERPTuitionInfoCreationReportFileDomainObject */
-
-	relation ERPTuitionInfoCreationReportFileTreasuryFile {
-		.org.fenixedu.treasury.domain.TreasuryFile playsRole treasuryFile {
-			multiplicity 1..1;
-		}
-		
-		integration.ERPTuitionInfoCreationReportFileDomainObject playsRole erpTuitionInfoCreationReportFileDomainObjects {
-			multiplicity *;
-		}
-	}
-
