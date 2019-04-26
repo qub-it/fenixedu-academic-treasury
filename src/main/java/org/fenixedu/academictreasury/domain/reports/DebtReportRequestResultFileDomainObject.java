@@ -94,6 +94,7 @@ public class DebtReportRequestResultFileDomainObject extends DebtReportRequestRe
         result.setCreationDate(file.getCreationDate());
         result.setCreator(services.versioningCreatorUsername(file));
         result.setFileId(file.getExternalId());
+        result.setDebtReportRequest(file.getDebtReportRequest());
         
         return result;
     }
