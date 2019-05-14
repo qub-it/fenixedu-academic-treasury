@@ -15,6 +15,7 @@ import org.fenixedu.academic.domain.ExecutionYear;
 import org.fenixedu.academic.domain.Person;
 import org.fenixedu.academic.domain.accessControl.academicAdministration.AcademicAccessRule;
 import org.fenixedu.academic.domain.accessControl.academicAdministration.AcademicOperationType;
+import org.fenixedu.academic.domain.administrativeOffice.AdministrativeOffice;
 import org.fenixedu.academic.domain.candidacy.IngressionType;
 import org.fenixedu.academic.domain.degree.DegreeType;
 import org.fenixedu.academic.domain.student.Registration;
@@ -33,7 +34,11 @@ public class FenixEduAcademicTreasuryPlatformDependentServices implements IAcade
 	
 	@Override
 	public Set<Degree> readDegrees(FinantialEntity finantialEntity) {
-		return finantialEntity.getAdministrativeOffice().getAdministratedDegrees();
+	    if(finantialEntity.getAdministrativeOffice() != null) {
+	        return finantialEntity.getAdministrativeOffice().getAdministratedDegrees();
+	    }
+	    
+	    return Collections.emptySet();
 	}
 
     public boolean isFrontOfficeMember(final String username, final FinantialEntity finantialEntity) {
@@ -108,7 +113,8 @@ public class FenixEduAcademicTreasuryPlatformDependentServices implements IAcade
 
     @Override
     public FinantialEntity finantialEntityOfDegree(Degree degree, LocalDate when) {
-        throw new RuntimeException("not implemented");
+        final AdministrativeOffice administrativeOffice = degree.getAdministrativeOffice();
+        return administrativeOffice.getFinantialEntity();
     }
 
     @Override
