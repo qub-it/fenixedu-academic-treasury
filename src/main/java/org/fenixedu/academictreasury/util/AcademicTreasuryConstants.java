@@ -44,15 +44,27 @@ public class AcademicTreasuryConstants {
     public static final TreasuryTupleDataSourceBean SELECT_OPTION =
             new TreasuryTupleDataSourceBean("", academicTreasuryBundle("label.TreasuryTupleDataSourceBean.select.description"));
 
+    
+    // @formatter:off
+    /* *************
+     * COUNTRY UTILS
+     * *************
+     * */
+    // @formatter:on
+    
     public static final Locale DEFAULT_LANGUAGE = new Locale("PT");
     public static final String DEFAULT_COUNTRY = "PT";
 
     public static final Locale ENGLISH_LANGUAGE = new Locale("EN");
-    
+   
+    @Deprecated
+    // Use TreasuryConstants
     public static boolean isForeignLanguage(final Locale language) {
         return !language.getLanguage().equals(DEFAULT_LANGUAGE.getLanguage());
     }
-
+    
+    @Deprecated
+    // Use TreasuryConstants
     public static boolean isDefaultCountry(final String country) {
         if (Strings.isNullOrEmpty(country)) {
             return false;
@@ -60,7 +72,7 @@ public class AcademicTreasuryConstants {
 
         return DEFAULT_COUNTRY.equals(country.toUpperCase());
     }
-
+   
     // @formatter: off
     /**************
      * MATH UTILS *

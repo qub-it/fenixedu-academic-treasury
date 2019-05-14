@@ -44,18 +44,19 @@ public class PersonCustomer extends PersonCustomer_Base {
         super();
     }
 
-    protected PersonCustomer(final Person person, final String fiscalCountry, final String fiscalNumber) {
+    protected PersonCustomer(final Person person, final String fiscalAddressCountryCode, final String fiscalNumber) {
         this();
 
-        if (!DEFAULT_FISCAL_NUMBER.equals(getFiscalNumber())
-                && find(getPerson(), getFiscalCountry(), getFiscalNumber()).count() > 1) {
+        // TODO: CHECK IF THIS CODE DO ANYTHING
+        if (!DEFAULT_FISCAL_NUMBER.equals(getFiscalNumber()) && find(getPerson(), getFiscalCountry(), getFiscalNumber()).count() > 1) {
             throw new AcademicTreasuryDomainException("error.PersonCustomer.person.customer.duplicated");
         }
 
         setPerson(person);
         setCustomerType(getDefaultCustomerType(this));
 
-        super.setCountryCode(fiscalCountry);
+        super.setCountryCode(fiscalAddressCountryCode);
+        super.setAddressCountryCode(fiscalAddressCountryCode);
         super.setFiscalNumber(fiscalNumber);
 
         if (!FiscalCodeValidation.isValidFiscalNumber(getCountryCode(), getFiscalNumber())) {
@@ -71,7 +72,7 @@ public class PersonCustomer extends PersonCustomer_Base {
     }
 
     @Override
-    protected void checkRules() {
+    public void checkRules() {
         super.checkRules();
 
         /* Person Customer can be associated to Person with only one of two relations
@@ -92,10 +93,21 @@ public class PersonCustomer extends PersonCustomer_Base {
         if (getPerson() != null && getPersonForInactivePersonCustomer() != null) {
             throw new AcademicTreasuryDomainException("error.PersonCustomer.may.only.be.related.to.person.with.one.relation");
         }
+        
+        if (isActive() && getPerson().getFiscalAddress() == null) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.person.fiscalAddress.required");
+        }
+        
+        if(isActive() && getPerson().getFiscalAddress().getCountryOfResidence() == null) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.person.countryOfResidence.required");
+        }
+        
+        if(isActive() && !TreasuryConstants.isSameCountryCode(getPerson().getFiscalAddress().getCountryOfResidence().getCode(), getAddressCountryCode())) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.countryOfResidence.is.not.equal.of.customer");
+        }
 
         if (DEFAULT_FISCAL_NUMBER.equals(getFiscalNumber()) && !TreasuryConstants.isDefaultCountry(getFiscalCountry())) {
-            throw new AcademicTreasuryDomainException(
-                    "error.PersonCustomer.default.fiscal.number.applied.only.to.default.country");
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.default.fiscal.number.applied.only.to.default.country");
         }
 
         final Person person = isActive() ? getPerson() : getPersonForInactivePersonCustomer();
@@ -163,10 +175,12 @@ public class PersonCustomer extends PersonCustomer_Base {
         return person.getDocumentIdNumber();
     }
 
-    private PhysicalAddress getPhysicalAddress() {
+    @Deprecated
+    public PhysicalAddress getPhysicalAddress() {
         return physicalAddress(getAssociatedPerson());
     }
 
+    @Deprecated
     public static PhysicalAddress physicalAddress(final Person person) {
         if (person.getDefaultPhysicalAddress() != null) {
             return person.getDefaultPhysicalAddress();
@@ -178,68 +192,127 @@ public class PersonCustomer extends PersonCustomer_Base {
 
         return null;
     }
+    
+    public PhysicalAddress getFiscalAddress() {
+        return fiscalAddress(getAssociatedPerson());
+    }
+    
+    public static PhysicalAddress fiscalAddress(final Person person) {
+        return person.getFiscalAddress();
+    }
 
     @Override
     public String getAddress() {
-        if (getPhysicalAddress() == null) {
+        if(!isActive()) {
+            return super.getAddress();
+        }
+        
+        return address(getFiscalAddress());
+    }
+    
+    public static String address(final PhysicalAddress physicalAddress) {
+        if (physicalAddress == null) {
             return null;
         }
 
-        return getPhysicalAddress().getAddress();
+        return physicalAddress.getAddress();
     }
 
     @Override
     public String getDistrictSubdivision() {
-        if (getPhysicalAddress() == null) {
+        if(!isActive()) {
+            return super.getDistrictSubdivision();
+        }
+        
+        return districtSubdivision(getFiscalAddress());
+    }
+    
+    public static String districtSubdivision(final PhysicalAddress physicalAddress) {
+        if (physicalAddress == null) {
             return null;
         }
 
-        if (!Strings.isNullOrEmpty(getPhysicalAddress().getArea())) {
-            return getPhysicalAddress().getArea();
+        if (!Strings.isNullOrEmpty(physicalAddress.getDistrictSubdivisionOfResidence())) {
+            return physicalAddress.getDistrictSubdivisionOfResidence();
         }
 
-        if (!Strings.isNullOrEmpty(getPhysicalAddress().getDistrictSubdivisionOfResidence())) {
-            return getPhysicalAddress().getDistrictSubdivisionOfResidence();
+        if (!Strings.isNullOrEmpty(physicalAddress.getArea())) {
+            return physicalAddress.getArea();
         }
 
-        if (!Strings.isNullOrEmpty(getPhysicalAddress().getDistrictOfResidence())) {
-            return getPhysicalAddress().getDistrictOfResidence();
+        if (!Strings.isNullOrEmpty(physicalAddress.getDistrictOfResidence())) {
+            return physicalAddress.getDistrictOfResidence();
         }
 
         return null;
     }
 
     @Override
-    public String getDistrict() {
-        if (getPhysicalAddress() == null) {
+    public String getRegion() {
+        if(!isActive()) {
+            return super.getRegion();
+        }
+        
+        return region(getFiscalAddress());
+    }
+    
+    public static String region(final PhysicalAddress physicalAddress) {
+        if (physicalAddress == null) {
             return null;
         }
 
-        return getPhysicalAddress().getDistrictOfResidence();
+        if (!Strings.isNullOrEmpty(physicalAddress.getDistrictOfResidence())) {
+            return physicalAddress.getDistrictOfResidence();
+        }
+
+        if (!Strings.isNullOrEmpty(physicalAddress.getDistrictSubdivisionOfResidence())) {
+            return physicalAddress.getDistrictSubdivisionOfResidence();
+        }
+
+        if (!Strings.isNullOrEmpty(physicalAddress.getArea())) {
+            return physicalAddress.getArea();
+        }
+
+        return null;
     }
 
     @Override
     public String getZipCode() {
-        if (getPhysicalAddress() == null) {
+        if(!isActive()) {
+            return super.getZipCode();
+        }
+        
+        return zipCode(getFiscalAddress());
+    }
+    
+    public static String zipCode(final PhysicalAddress physicalAddress) {
+        if (physicalAddress == null) {
             return null;
         }
 
-        return getPhysicalAddress().getAreaCode();
+        return physicalAddress.getAreaCode();
     }
 
-    @Override
-    public String getAddressCountryCode() {
-        if (getPhysicalAddress() == null) {
-            return null;
-        }
-
-        if (getPhysicalAddress().getCountryOfResidence() == null) {
-            return null;
-        }
-
-        return getPhysicalAddress().getCountryOfResidence().getCode();
+    public static String addressCountryCode(final Person person) {
+        final PhysicalAddress fiscalAddress = person.getFiscalAddress();
+        
+        return addressCountryCode(fiscalAddress);
     }
 
+    
+    public static String addressCountryCode(final PhysicalAddress physicalAddress) {
+        if (physicalAddress == null) {
+            return null;
+        }
+
+        if (physicalAddress.getCountryOfResidence() == null) {
+            return null;
+        }
+
+        return physicalAddress.getCountryOfResidence().getCode();
+    }
+
+    @Deprecated
     public static String countryCode(final Person person) {
         return person.getFiscalCountry() != null ? person.getFiscalCountry().getCode() : null;
     }
@@ -257,7 +330,7 @@ public class PersonCustomer extends PersonCustomer_Base {
     }
 
     public static boolean isValidFiscalNumber(final Person person) {
-        return FiscalCodeValidation.isValidFiscalNumber(countryCode(person), fiscalNumber(person));
+        return person.getFiscalAddress() != null && FiscalCodeValidation.isValidFiscalNumber(addressCountryCode(person), fiscalNumber(person));
     }
 
     @Override
@@ -283,6 +356,7 @@ public class PersonCustomer extends PersonCustomer_Base {
     }
 
     @Override
+    @Deprecated
     public String getFiscalCountry() {
         return getCountryCode();
     }
@@ -327,7 +401,7 @@ public class PersonCustomer extends PersonCustomer_Base {
 
         return activeCustomer.get();
     }
-
+    
     @Override
     @Atomic
     public void delete() {
@@ -418,6 +492,7 @@ public class PersonCustomer extends PersonCustomer_Base {
 
         if (person.getPersonCustomer() != null) {
             final PersonCustomer personCustomer = person.getPersonCustomer();
+            personCustomer.saveFiscalAddressFieldsFromPersonInCustomer();
             personCustomer.setPersonForInactivePersonCustomer(getPerson());
             personCustomer.setPerson(null);
             personCustomer.setFromPersonMerge(true);
@@ -434,19 +509,19 @@ public class PersonCustomer extends PersonCustomer_Base {
         for (final AcademicTreasuryEvent e : Sets.newHashSet(person.getAcademicTreasuryEventSet())) {
             e.setPerson(thisPerson);
         }
-
+        
         checkRules();
     }
 
-    @Override
     @Atomic
-    public void changeFiscalNumber(final AdhocCustomerBean bean) {
+    public void changeFiscalNumber(final AdhocCustomerBean bean, final PhysicalAddress fiscalAddress) {
         if (!Strings.isNullOrEmpty(getErpCustomerId())) {
             throw new TreasuryDomainException("warning.Customer.changeFiscalNumber.maybe.integrated.in.erp");
         }
 
-        final String oldFiscalCountry = getFiscalCountry();
+        final String oldAddressFiscalCountry = getAddressCountryCode();
         final String oldFiscalNumber = getFiscalNumber();
+        
         final boolean changeFiscalNumberConfirmed = bean.isChangeFiscalNumberConfirmed();
         final boolean withFinantialDocumentsIntegratedInERP = isWithFinantialDocumentsIntegratedInERP();
         final boolean customerInformationMaybeIntegratedWithSuccess = isCustomerInformationMaybeIntegratedWithSuccess();
@@ -457,10 +532,10 @@ public class PersonCustomer extends PersonCustomer_Base {
             throw new TreasuryDomainException("message.Customer.changeFiscalNumber.confirmation");
         }
 
-        final String countryCode = bean.getCountryCode();
+        final String addressCountryCode = fiscalAddress.getCountryOfResidence().getCode();
         final String fiscalNumber = bean.getFiscalNumber();
 
-        if (Strings.isNullOrEmpty(countryCode)) {
+        if (Strings.isNullOrEmpty(addressCountryCode)) {
             throw new TreasuryDomainException("error.Customer.countryCode.required");
         }
 
@@ -469,7 +544,7 @@ public class PersonCustomer extends PersonCustomer_Base {
         }
 
         // Check if fiscal information is different from current information
-        if (lowerCase(countryCode).equals(lowerCase(getCountryCode())) && fiscalNumber.equals(getFiscalNumber())) {
+        if (lowerCase(addressCountryCode).equals(lowerCase(getAddressCountryCode())) && fiscalNumber.equals(getFiscalNumber())) {
             throw new TreasuryDomainException("error.Customer.already.with.fiscal.information");
         }
 
@@ -485,20 +560,25 @@ public class PersonCustomer extends PersonCustomer_Base {
             throw new TreasuryDomainException("error.Customer.changeFiscalNumber.documents.integrated.erp");
         }
 
-        if (!FiscalCodeValidation.isValidFiscalNumber(countryCode, fiscalNumber)) {
+        if (!FiscalCodeValidation.isValidFiscalNumber(addressCountryCode, fiscalNumber)) {
             throw new TreasuryDomainException("error.Customer.fiscal.information.invalid");
         }
 
-        final Optional<? extends PersonCustomer> customerOptional = findUnique(getAssociatedPerson(), countryCode, fiscalNumber);
+        final Optional<? extends PersonCustomer> customerOptional = findUnique(getAssociatedPerson(), addressCountryCode, fiscalNumber);
         if (isActive()) {
             // Check if this customer has customer with same fiscal information
             if (customerOptional.isPresent()) {
                 throw new TreasuryDomainException("error.Customer.changeFiscalNumber.customer.exists.for.fiscal.number");
             }
 
-            setCountryCode(countryCode);
+            setAddressCountryCode(addressCountryCode);
+            setCountryCode(addressCountryCode);
             setFiscalNumber(fiscalNumber);
-            getPerson().editSocialSecurityNumber(Country.readByTwoLetterCode(countryCode), fiscalNumber);
+            if(getPerson().getFiscalAddress() != null) {
+                getPerson().getFiscalAddress().setFiscalAddress(false);
+            }
+            
+            getPerson().editSocialSecurityNumber(fiscalNumber, fiscalAddress);
         } else {
             // Check if this customer has customer with same fiscal information
             if (customerOptional.isPresent()) {
@@ -506,16 +586,18 @@ public class PersonCustomer extends PersonCustomer_Base {
                 setFromPersonMerge(true);
             }
 
-            setCountryCode(countryCode);
+            setAddressCountryCode(addressCountryCode);
+            setCountryCode(addressCountryCode);
             setFiscalNumber(fiscalNumber);
+            
+            saveFiscalAddressFieldsInCustomer(fiscalAddress);
         }
 
         checkRules();
 
-        FiscalDataUpdateLog.create(this, oldFiscalCountry, oldFiscalNumber, changeFiscalNumberConfirmed,
+        FiscalDataUpdateLog.create(this, oldAddressFiscalCountry, oldFiscalNumber, changeFiscalNumberConfirmed,
                 withFinantialDocumentsIntegratedInERP, customerInformationMaybeIntegratedWithSuccess,
                 customerWithFinantialDocumentsIntegratedInPreviousERP);
-
     }
 
     @Override
@@ -577,6 +659,65 @@ public class PersonCustomer extends PersonCustomer_Base {
         return getAssociatedPerson().getIban();
     }
     
+    @Override
+    @Deprecated
+    public String getCountryCode() {
+        return super.getCountryCode();
+    }
+    
+    public void saveFiscalAddressFieldsFromPersonInCustomer() {
+        PhysicalAddress fiscalAddress = fiscalAddress(getAssociatedPerson());
+        if(fiscalAddress == null) {
+            // No fiscal address assigned, return
+            return;
+        }
+        
+        saveFiscalAddressFieldsInCustomer(fiscalAddress);
+    }
+    
+    public void saveFiscalAddressFieldsInCustomer(final PhysicalAddress fiscalAddress) {
+        if(fiscalAddress == null) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.updateFiscalAddress.fiscalAddress.required");
+        }
+        
+        if(fiscalAddress.getCountryOfResidence() == null) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.updateFiscalAddress.countryOfResidence.required");
+        }
+        
+        if(!TreasuryConstants.isSameCountryCode(getAddressCountryCode(), fiscalAddress.getCountryOfResidence().getCode())) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.countryOfResidence.is.not.equal.of.customer");
+        }
+        
+        super.setAddress(address(fiscalAddress));
+        super.setDistrictSubdivision(districtSubdivision(fiscalAddress));
+        super.setRegion(region(fiscalAddress));
+        super.setZipCode(zipCode(fiscalAddress));
+    }
+    
+    protected void inactivateCustomer() {
+        if(!isActive()) {
+            throw new AcademicTreasuryDomainException("error.Person.inactivateCustomer.customer.not.active");
+        }
+        
+        final Person person = this.getAssociatedPerson();
+        setPerson(null);
+        setPersonForInactivePersonCustomer(person);
+        
+        this.checkRules();
+    }
+
+    protected void activateCustomer() {
+        if(isActive()) {
+            throw new AcademicTreasuryDomainException("error.Person.activateCustomer.customer.active");
+        }
+        
+        final Person person = this.getAssociatedPerson();
+        setPerson(person);
+        setPersonForInactivePersonCustomer(null);
+        
+        this.checkRules();
+    }
+    
     // @formatter: off
     /************
      * SERVICES *
@@ -605,7 +746,7 @@ public class PersonCustomer extends PersonCustomer_Base {
     public static Stream<? extends PersonCustomer> find(final Person person, final String fiscalCountryCode,
             final String fiscalNumber) {
         return find(person).filter(pc -> !Strings.isNullOrEmpty(pc.getFiscalCountry())
-                && lowerCase(pc.getFiscalCountry()).equals(lowerCase(fiscalCountryCode))
+                && TreasuryConstants.isSameCountryCode(pc.getFiscalCountry(), fiscalCountryCode)
                 && !Strings.isNullOrEmpty(pc.getFiscalNumber()) && pc.getFiscalNumber().equals(fiscalNumber));
     }
 
@@ -628,46 +769,46 @@ public class PersonCustomer extends PersonCustomer_Base {
         return find(person, fiscalCountryCode, fiscalNumber).sorted(SORT_BY_PERSON_MERGE).findFirst();
     }
 
-//    public static Stream<? extends PersonCustomer> findInactivePersonCustomers(final Person person) {
-//        return PersonCustomer.findAll().filter(pc -> pc.getPersonForInactivePersonCustomer() == person);
-//    }
-
     public static PersonCustomer createWithCurrentFiscalInformation(final Person person) {
-        if (person.getFiscalCountry() == null) {
-            throw new AcademicTreasuryDomainException("error.PersonCustomer.fiscalCountry.required");
+        if (person.getFiscalAddress() == null) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.fiscalAddress.required");
         }
 
+        if(person.getFiscalAddress().getCountryOfResidence() == null) {
+            throw new AcademicTreasuryDomainException("error.PersonCustomer.fiscalAddress.countryOfResidence.required");
+        }
+        
         if (!Strings.isNullOrEmpty(person.getSocialSecurityNumber())) {
             throw new AcademicTreasuryDomainException("error.PersonCustomer.fiscalNumber.required");
         }
+        
+        final Country countryOfResidence = person.getFiscalAddress().getCountryOfResidence();
 
-        return create(person, person.getFiscalCountry().getCode(), person.getSocialSecurityNumber());
+        return create(person, countryOfResidence.getCode(), person.getSocialSecurityNumber());
     }
 
     @Atomic
-    public static PersonCustomer create(final Person person, final String fiscalCountry, final String fiscalNumber) {
-        return new PersonCustomer(person, fiscalCountry, fiscalNumber);
+    public static PersonCustomer create(final Person person, final String fiscalAddressCountryCode, final String fiscalNumber) {
+        return new PersonCustomer(person, fiscalAddressCountryCode, fiscalNumber);
     }
 
-    public static boolean switchCustomer(final Person person, final String fiscalCountryCode, final String fiscalNumber) {
-        PersonCustomer personCustomer = person.getPersonCustomer();
-        Optional<? extends PersonCustomer> newCustomer = PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber);
+    public static boolean switchCustomer(final Person person, final String fiscalAddressCountryCode, final String fiscalNumber) {
+        final PersonCustomer personCustomer = person.getPersonCustomer();
+        Optional<? extends PersonCustomer> newCustomer = PersonCustomer.findUnique(person, fiscalAddressCountryCode, fiscalNumber);
 
         if (newCustomer.isPresent() && newCustomer.get().isActive()) {
             return false;
         }
 
         if (personCustomer != null) {
-            personCustomer.setPerson(null);
-            personCustomer.setPersonForInactivePersonCustomer(person);
+            personCustomer.inactivateCustomer();
         }
 
         if (!newCustomer.isPresent()) {
-            PersonCustomer.create(person, fiscalCountryCode, fiscalNumber);
-            newCustomer = PersonCustomer.findUnique(person, fiscalCountryCode, fiscalNumber);
+            PersonCustomer.create(person, fiscalAddressCountryCode, fiscalNumber);
+            newCustomer = PersonCustomer.findUnique(person, fiscalAddressCountryCode, fiscalNumber);
         } else {
-            newCustomer.get().setPerson(person);
-            newCustomer.get().setPersonForInactivePersonCustomer(null);
+            newCustomer.get().activateCustomer();
         }
 
         if (personCustomer != null) {
