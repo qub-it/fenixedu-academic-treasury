@@ -17,8 +17,9 @@ public class RegistrationServices {
 
     @Atomic
     public static PersonCustomer createPersonCustomer(final Person p) {
-        final String fiscalCountryCode = PersonCustomer.countryCode(p);
+        final String fiscalCountryCode = PersonCustomer.addressCountryCode(p);
         final String fiscalNumber = PersonCustomer.fiscalNumber(p);
+
         if (Strings.isNullOrEmpty(fiscalCountryCode) || Strings.isNullOrEmpty(fiscalNumber)) {
             throw new AcademicTreasuryDomainException("error.PersonCustomer.fiscalInformation.required");
         }

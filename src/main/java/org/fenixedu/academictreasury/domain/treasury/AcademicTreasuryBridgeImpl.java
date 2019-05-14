@@ -6,11 +6,15 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.fenixedu.academic.domain.Country;
 import org.fenixedu.academic.domain.Enrolment;
 import org.fenixedu.academic.domain.EnrolmentEvaluation;
 import org.fenixedu.academic.domain.ExecutionYear;
 import org.fenixedu.academic.domain.Person;
 import org.fenixedu.academic.domain.administrativeOffice.AdministrativeOffice;
+import org.fenixedu.academic.domain.contacts.PartyContactType;
+import org.fenixedu.academic.domain.contacts.PhysicalAddress;
+import org.fenixedu.academic.domain.contacts.PhysicalAddressData;
 import org.fenixedu.academic.domain.serviceRequests.AcademicServiceRequest;
 import org.fenixedu.academic.domain.student.Registration;
 import org.fenixedu.academic.domain.treasury.IAcademicServiceRequestAndAcademicTaxTreasuryEvent;
@@ -539,8 +543,8 @@ public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
     }
 
     @Override
-    public boolean isValidFiscalNumber(final String fiscalCountryCode, final String fiscalNumber) {
-        return FiscalCodeValidation.isValidFiscalNumber(fiscalCountryCode, fiscalNumber);
+    public boolean isValidFiscalNumber(final String fiscalAddressCountryCode, final String fiscalNumber) {
+        return FiscalCodeValidation.isValidFiscalNumber(fiscalAddressCountryCode, fiscalNumber);
     }
 
     @Override
@@ -548,4 +552,31 @@ public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
         return PersonCustomer.switchCustomer(person, fiscalCountryCode, fiscalNumber);
     }
 
+    @Override
+    public void saveFiscalAddressFieldsFromPersonInActiveCustomer(final Person person) {
+        if(person.getPersonCustomer() == null) {
+            return;
+        }
+        
+        person.getPersonCustomer().saveFiscalAddressFieldsFromPersonInCustomer();
+    }
+
+    @Override
+    public PhysicalAddress createSaftDefaultPhysicalAddress(final Person person) {
+        
+        PhysicalAddressData data = new PhysicalAddressData();
+        
+        data.setAddress("Desconhecido");
+        data.setCountryOfResidence(Country.readDefault());
+        data.setDistrictOfResidence("Desconhecido");
+        data.setDistrictSubdivisionOfResidence("Desconhecido");
+        data.setAreaCode("0000-000");
+
+        final PhysicalAddress physicalAddress = PhysicalAddress.createPhysicalAddress(person, data, PartyContactType.PERSONAL, true);
+        physicalAddress.setValid();
+        
+        return physicalAddress;
+        
+    }
+    
 }
