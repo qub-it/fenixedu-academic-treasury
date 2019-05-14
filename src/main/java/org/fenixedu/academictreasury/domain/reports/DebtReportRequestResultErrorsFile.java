@@ -2,6 +2,8 @@ package org.fenixedu.academictreasury.domain.reports;
 
 import static org.fenixedu.academictreasury.util.AcademicTreasuryConstants.academicTreasuryBundle;
 
+import java.util.stream.Stream;
+
 import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainException;
 import org.fenixedu.academictreasury.util.AcademicTreasuryConstants;
 import org.fenixedu.bennu.core.domain.Bennu;
@@ -24,6 +26,8 @@ public class DebtReportRequestResultErrorsFile extends DebtReportRequestResultEr
 
         init(filename, filename, content);
         checkRules();
+        
+        DebtReportRequestResultErrorsFileDomainObject.createFromDebtReportRequestResultErrorsFile(this);
     }
 
     private void checkRules() {
@@ -41,8 +45,19 @@ public class DebtReportRequestResultErrorsFile extends DebtReportRequestResultEr
         return TreasuryAccessControlAPI.isBackOfficeMember(username);
     }
 
+    // @formatter:off
+    /* ********
+     * SERVICES
+     * ********
+     */
+    // @formatter:on
+    
     public static DebtReportRequestResultErrorsFile create(final DebtReportRequest request, final byte[] content) {
         return new DebtReportRequestResultErrorsFile(request, content);
     }
-
+    
+    public static Stream<DebtReportRequestResultErrorsFile> findAll() {
+        return Bennu.getInstance().getDebtReportRequestResultErrorsFilesSet().stream();
+    }
+    
 }

@@ -4,6 +4,7 @@ import static org.fenixedu.academictreasury.util.AcademicTreasuryConstants.acade
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.stream.Stream;
 
 import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainException;
 import org.fenixedu.academictreasury.util.AcademicTreasuryConstants;
@@ -27,6 +28,8 @@ public class DebtReportRequestResultFile extends DebtReportRequestResultFile_Bas
 
         init(filename, filename, content);
         checkRules();
+        
+        DebtReportRequestResultFileDomainObject.createFromDebtReportRequestResultFile(this);
     }
 
     private void checkRules() {
@@ -49,6 +52,10 @@ public class DebtReportRequestResultFile extends DebtReportRequestResultFile_Bas
     
     public boolean isAccessible(final String username) {
         return TreasuryAccessControlAPI.isBackOfficeMember(username);
+    }
+    
+    public static Stream<DebtReportRequestResultFile> findAll() {
+        return Bennu.getInstance().getDebtReportRequestResultFilesSet().stream();
     }
 
     public static DebtReportRequestResultFile create(final DebtReportRequest request, final byte[] content) {

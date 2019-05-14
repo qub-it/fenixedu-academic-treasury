@@ -850,12 +850,6 @@ class reports.DebtReportRequest {
 	boolean includeAnnuledEntries;
 }
 
-class reports.DebtReportRequestResultFile extends .org.fenixedu.bennu.io.domain.GenericFile {
-}
-
-class reports.DebtReportRequestResultErrorsFile extends .org.fenixedu.bennu.io.domain.GenericFile {
-}
- 
  	relation DebtReportRequestBennu {
 		.pt.ist.fenixframework.DomainRoot playsRole domainRoot {
 			multiplicity 1..1;
@@ -876,51 +870,62 @@ class reports.DebtReportRequestResultErrorsFile extends .org.fenixedu.bennu.io.d
 			multiplicity *;
 		}
 	}
+
+class reports.DebtReportRequestResultFileDomainObject /* implements IGenericFile */ {
+	String fileId;
+	DateTime creationDate;
+	String creator;
+}
+
+	relation DebtReportRequestResultFileDomainObjectBennu {
 	
-	relation DebtReportRequestResultFileBennu {
-	
-		.org.fenixedu.bennu.core.domain.Bennu playsRole bennu {
+		.pt.ist.fenixframework.DomainRoot playsRole domainRoot {
 			multiplicity 1..1;
 		}
 	
-		reports.DebtReportRequestResultFile playsRole DebtReportRequestResultFiles {
+		reports.DebtReportRequestResultFileDomainObject playsRole debtReportRequestResultFileDomainObjects {
 			multiplicity *;
 		}
 	}
 	
-	relation DebtReportRequestResultErrorsFileBennu {
-	
-		.org.fenixedu.bennu.core.domain.Bennu playsRole bennu {
-			multiplicity 1..1;
-		}
-	
-		reports.DebtReportRequestResultErrorsFile playsRole debtReportRequestResultErrorsFiles {
-			multiplicity *;
-		}
-	}
-	
-	relation DebtReportRequestResultFileDebtReportRequest {
+	relation DebtReportRequestResultFileDomainObjectDebtReportRequest {
 
 		reports.DebtReportRequest playsRole debtReportRequest {
 			multiplicity 1..1;
 		}
 	
-		reports.DebtReportRequestResultFile playsRole debtReportRequestResultFiles {
+		reports.DebtReportRequestResultFileDomainObject playsRole debtReportRequestResultFileDomainObjects {
 			multiplicity *;
 		}
-		
 	}
 	
-	relation DebtReportRequestResultErrorsFileDebtReportRequest {
+
+class reports.DebtReportRequestResultErrorsFileDomainObject /* implements IGenericFile */ {
+	String fileId;
+	DateTime creationDate;
+	String creator;
+}
+ 
+	relation DebtReportRequestResultErrorsFileDomainObjectDomainRoot {
+	
+		.pt.ist.fenixframework.DomainRoot playsRole domainRoot {
+			multiplicity 1..1;
+		}
+	
+		reports.DebtReportRequestResultErrorsFileDomainObject playsRole debtReportRequestResultErrorsFileDomainObjects {
+			multiplicity *;
+		}
+	}
+	
+	relation DebtReportRequestResultErrorsFileDomainObjectDebtReportRequest {
 
 		reports.DebtReportRequest playsRole debtReportRequest {
 			multiplicity 1..1;
 		}
 		
-		reports.DebtReportRequestResultErrorsFile playsRole debtReportRequestResultErrorsFiles {
+		reports.DebtReportRequestResultErrorsFileDomainObject playsRole debtReportRequestResultErrorsFileDomainObjects {
 			multiplicity *;
 		}
-		
 	}
 
 	
@@ -945,69 +950,72 @@ class debtGeneration.requests.MassiveDebtGenerationType {
 		}
 	}
 
-class debtGeneration.requests.MassiveDebtGenerationRequestFile extends .org.fenixedu.bennu.io.domain.GenericFile {
+class debtGeneration.requests.MassiveDebtGenerationRequestFileDomainObject /* implements IGenericFile */ {
+	String fileId;
 	LocalDate debtDate;
 	DateTime whenProcessed;
 	String reason;
+	DateTime creationDate;
+	String creator;
 }
 
-	relation MassiveDebtGenerationRequestBennu {
-		.org.fenixedu.bennu.core.domain.Bennu playsRole bennu {
+	relation MassiveDebtGenerationRequestDomainObjectDomainRoot {
+		.pt.ist.fenixframework.DomainRoot playsRole domainRoot {
 			multiplicity 1..1;
 		}
 		
-		debtGeneration.requests.MassiveDebtGenerationRequestFile playsRole massiveDebtGenerationRequestFiles {
+		debtGeneration.requests.MassiveDebtGenerationRequestFileDomainObject playsRole massiveDebtGenerationRequestFileDomainObjects {
 			multiplicity *;
 		}
 	}
 
-	relation MassiveDebtGenerationRequestMassiveDebtGenerationType {
+	relation MassiveDebtGenerationRequestDomainObjectMassiveDebtGenerationType {
 
 		debtGeneration.requests.MassiveDebtGenerationType playsRole massiveDebtGenerationType {
 			multiplicity 1..1;
 		}
 
-		debtGeneration.requests.MassiveDebtGenerationRequestFile playsRole massiveDebtGenerationRequestFiles {
+		debtGeneration.requests.MassiveDebtGenerationRequestFileDomainObject playsRole massiveDebtGenerationRequestFileDomainObjects {
 			multiplicity *;
 		}
 	}
 
-	relation MassiveDebtGenerationRequestExecutionYear {
+	relation MassiveDebtGenerationRequestDomainObjectExecutionYear {
 		.org.fenixedu.academic.domain.ExecutionYear playsRole executionYear {
 			multiplicity 0..1;
 		}
 
-		debtGeneration.requests.MassiveDebtGenerationRequestFile playsRole massiveDebtGenerationRequestFiles {
+		debtGeneration.requests.MassiveDebtGenerationRequestFileDomainObject playsRole massiveDebtGenerationRequestFileDomainObjects {
 			multiplicity *;
 		}
 	}
 
-	relation MassiveDebtGenerationRequestTuitionPaymentPlanGroup {
+	relation MassiveDebtGenerationRequestDomainObjectTuitionPaymentPlanGroup {
 		tuition.TuitionPaymentPlanGroup playsRole tuitionPaymentPlanGroup {
 			multiplicity 0..1;
 		}
 
-		debtGeneration.requests.MassiveDebtGenerationRequestFile playsRole massiveDebtGenerationRequestFiles {
+		debtGeneration.requests.MassiveDebtGenerationRequestFileDomainObject playsRole massiveDebtGenerationRequestFileDomainObjects {
 			multiplicity *;
 		}
 	}
 
-	relation MassiveDebtGenerationRequestAcademicTax {	
+	relation MassiveDebtGenerationRequestDomainObjectAcademicTax {	
 		emoluments.AcademicTax playsRole academicTax {
 			multiplicity 0..1;
 		}
 		
-		debtGeneration.requests.MassiveDebtGenerationRequestFile playsRole massiveDebtGenerationRequestFiles {
+		debtGeneration.requests.MassiveDebtGenerationRequestFileDomainObject playsRole massiveDebtGenerationRequestFileDomainObjects {
 			multiplicity *;
 		}
 	 }
 	 
-	relation MassiveDebtGenerationRequestFileFinantialInstitution {	
+	relation MassiveDebtGenerationRequestFileDomainObjectFinantialInstitution {	
 		.org.fenixedu.treasury.domain.FinantialInstitution playsRole finantialInstitution {
 			multiplicity 0..1;
 		}
 		
-		debtGeneration.requests.MassiveDebtGenerationRequestFile playsRole massiveDebtGenerationRequestFiles {
+		debtGeneration.requests.MassiveDebtGenerationRequestFileDomainObject playsRole massiveDebtGenerationRequestFileDomainObjects {
 			multiplicity *;
 		}
 	 }
@@ -1017,27 +1025,30 @@ class debtGeneration.requests.MassiveDebtGenerationRequestFile extends .org.feni
  * *****************************
  */
 
-class exemptions.requests.ExemptionsGenerationRequestFile extends .org.fenixedu.bennu.io.domain.GenericFile {
+class exemptions.requests.ExemptionsGenerationRequestFileDomainObject /* implements IGenericFile */ {
+	String fileId;
 	LocalDate debtDate;
 	DateTime whenProcessed;
+	DateTime creationDate;
+	String creator;
 }
 
-	relation ExemptionsGenerationRequestFileBennu {
-		.org.fenixedu.bennu.core.domain.Bennu playsRole bennu {
+	relation ExemptionsGenerationRequestFileDomainObjectDomainRoot {
+		.pt.ist.fenixframework.DomainRoot playsRole domainRoot {
 			multiplicity 1..1;
 		}
 		
-		exemptions.requests.ExemptionsGenerationRequestFile playsRole exemptionsGenerationRequestFile {
+		exemptions.requests.ExemptionsGenerationRequestFileDomainObject playsRole exemptionsGenerationRequestFileDomainObject {
 			multiplicity *;
 		}
 	}
 	
-	relation ExemptionsGenerationRequestFileTreasuryExemptionType {
+	relation ExemptionsGenerationRequestFileDomainObjectTreasuryExemptionType {
 		.org.fenixedu.treasury.domain.exemption.TreasuryExemptionType playsRole treasuryExemptionType {
 			multiplicity 1..1;
 		}
 
-		exemptions.requests.ExemptionsGenerationRequestFile playsRole exemptionsGenerationRequestFile {
+		exemptions.requests.ExemptionsGenerationRequestFileDomainObject playsRole exemptionsGenerationRequestFileDomainObject {
 			multiplicity *;
 		}
 	}
@@ -1063,29 +1074,31 @@ class importation.TreasuryImportType {
 		}
 	}
 
-class importation.TreasuryImportFile extends .org.fenixedu.bennu.io.domain.GenericFile {
+class importation.TreasuryImportFileDomainObject /* implements IGenericFile */ {
+	String fileId;
 	DateTime whenProcessed;
+	DateTime creationDate;
+	String creator;
 }
 
-	relation TreasuryImportFileBennu {
-		.org.fenixedu.bennu.core.domain.Bennu playsRole bennu {
+	relation TreasuryImportFileDomainObjectDomainRoot {
+		.pt.ist.fenixframework.DomainRoot playsRole domainRoot {
 			multiplicity 1..1;
 		}
 		
-		importation.TreasuryImportFile playsRole treasuryImportFiles {
+		importation.TreasuryImportFileDomainObject playsRole treasuryImportFileDomainObjects {
 			multiplicity *;
 		}
 	}
 	
-	relation TreasuryImportFileTreasuryImportType {
+	relation TreasuryImportFileDomainObjectTreasuryImportType {
 		importation.TreasuryImportType playsRole treasuryImportType {
 			multiplicity 1..1;
 		}
 		
-		importation.TreasuryImportFile playsRole treasuryImportFiles {
+		importation.TreasuryImportFileDomainObject playsRole treasuryImportFileDomainObjects {
 			multiplicity *;
 		}
-		
 	}
 
 /* *****************
@@ -1348,15 +1361,18 @@ class integration.ERPTuitionInfoExportOperation extends .org.fenixedu.treasury.d
 		}
 	}
 
-class integration.ERPTuitionInfoCreationReportFile extends .org.fenixedu.bennu.io.domain.GenericFile {
+class integration.ERPTuitionInfoCreationReportFileDomainObject /* implements IGenericFile */ {
+	String fileId;
+	DateTime creationDate;
+	String creator;
 }
 
-	relation ERPTuitionInfoCreationReportFileBennu {
-		.org.fenixedu.bennu.core.domain.Bennu playsRole bennu {
+	relation ERPTuitionInfoCreationReportFileDomainObjectDomainRoot {
+		.pt.ist.fenixframework.DomainRoot playsRole domainRoot {
 			multiplicity 1..1;
 		}
 		
-		integration.ERPTuitionInfoCreationReportFile playsRole erpTuitionInfoCreationReportFiles {
+		integration.ERPTuitionInfoCreationReportFileDomainObject playsRole erpTuitionInfoCreationReportFileDomainObjects {
 			multiplicity *;
 		}
 		
