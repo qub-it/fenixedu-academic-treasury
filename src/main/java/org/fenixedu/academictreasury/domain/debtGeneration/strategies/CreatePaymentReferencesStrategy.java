@@ -3,6 +3,7 @@ package org.fenixedu.academictreasury.domain.debtGeneration.strategies;
 import static org.fenixedu.academictreasury.domain.debtGeneration.IAcademicDebtGenerationRuleStrategy.findActiveDebitEntries;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -28,6 +29,7 @@ import org.fenixedu.treasury.domain.document.DebitEntry;
 import org.fenixedu.treasury.domain.exceptions.TreasuryDomainException;
 import org.fenixedu.treasury.domain.paymentcodes.MultipleEntriesPaymentCode;
 import org.fenixedu.treasury.domain.paymentcodes.PaymentReferenceCode;
+import org.fenixedu.treasury.dto.document.managepayments.PaymentReferenceCodeBean;
 import org.joda.time.LocalDate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,9 +89,9 @@ public class CreatePaymentReferencesStrategy implements IAcademicDebtGenerationR
         return true;
     }
 
-    private static final List<String> MESSAGES_TO_IGNORE = Lists.newArrayList(
-            "error.AcademicDebtGenerationRule.debitEntry.with.none.or.annuled.finantial.document");
-    
+    private static final List<String> MESSAGES_TO_IGNORE =
+            Lists.newArrayList("error.AcademicDebtGenerationRule.debitEntry.with.none.or.annuled.finantial.document");
+
     @Override
     @Atomic(mode = TxMode.READ)
     public void process(final AcademicDebtGenerationRule rule) {
@@ -113,10 +115,10 @@ public class CreatePaymentReferencesStrategy implements IAcademicDebtGenerationR
                 try {
                     processDebtsForRegistration(rule, registration);
                 } catch (final AcademicTreasuryDomainException e) {
-                    if(!MESSAGES_TO_IGNORE.contains(e.getMessage())) {
+                    if (!MESSAGES_TO_IGNORE.contains(e.getMessage())) {
                         logger.debug(e.getMessage());
                     }
-                } catch(final TreasuryDomainException e) {
+                } catch (final TreasuryDomainException e) {
                     logger.debug(e.getMessage());
                 } catch (final Exception e) {
                     e.printStackTrace();
@@ -188,9 +190,15 @@ public class CreatePaymentReferencesStrategy implements IAcademicDebtGenerationR
         final BigDecimal amount =
                 debitEntries.stream().map(d -> d.getOpenAmount()).reduce((a, c) -> a.add(c)).orElse(BigDecimal.ZERO);
 
-        final PaymentReferenceCode paymentCode = rule.getPaymentCodePool().getReferenceCodeGenerator().generateNewCodeFor(
-                currency.getValueWithScale(amount), new LocalDate(), maxDebitEntryDueDate(debitEntries), false);
-        paymentCode.createPaymentTargetTo(debitEntries, amount);
+        final PaymentReferenceCodeBean referenceCodeBean =
+                new PaymentReferenceCodeBean(debitEntries.iterator().next().getDebtAccount());
+        referenceCodeBean.setBeginDate(new LocalDate());
+        referenceCodeBean.setEndDate(maxDebitEntryDueDate(debitEntries));
+        referenceCodeBean.setPaymentAmount(currency.getValueWithScale(amount));
+        referenceCodeBean.setSelectedDebitEntries(new ArrayList<DebitEntry>(debitEntries));
+
+        final PaymentReferenceCode paymentCode = rule.getPaymentCodePool().getReferenceCodeGenerator()
+                .createPaymentReferenceCode(debitEntries.iterator().next().getDebtAccount(), referenceCodeBean);
 
         if (rule.getAcademicTaxDueDateAlignmentType() != null) {
             rule.getAcademicTaxDueDateAlignmentType().applyDueDate(rule, debitEntries);

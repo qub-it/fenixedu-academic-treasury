@@ -1,6 +1,7 @@
 package org.fenixedu.academictreasury.domain.treasury;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -46,6 +47,7 @@ import org.fenixedu.treasury.domain.document.SettlementEntry;
 import org.fenixedu.treasury.domain.document.SettlementNote;
 import org.fenixedu.treasury.domain.paymentcodes.PaymentReferenceCode;
 import org.fenixedu.treasury.domain.paymentcodes.pool.PaymentCodePool;
+import org.fenixedu.treasury.dto.document.managepayments.PaymentReferenceCodeBean;
 import org.fenixedu.treasury.ui.accounting.managecustomer.CustomerController;
 import org.fenixedu.treasury.ui.accounting.managecustomer.DebtAccountController;
 import org.fenixedu.treasury.util.FiscalCodeValidation;
@@ -417,9 +419,17 @@ public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
 
     private PaymentReferenceCode createPaymentReferenceCode(final PaymentCodePool paymentCodePool, final DebitEntry debitEntry,
             final LocalDate when, final LocalDate dueDate) {
-        final PaymentReferenceCode paymentReferenceCode =
-                paymentCodePool.getReferenceCodeGenerator().generateNewCodeFor(debitEntry.getOpenAmount(), when, dueDate, true);
-        paymentReferenceCode.createPaymentTargetTo(Sets.newHashSet(debitEntry), debitEntry.getOpenAmount());
+        
+        final PaymentReferenceCodeBean referenceCodeBean =
+                new PaymentReferenceCodeBean(debitEntry.getDebtAccount());
+        referenceCodeBean.setBeginDate(when);
+        referenceCodeBean.setEndDate(dueDate);
+        referenceCodeBean.setPaymentAmount(debitEntry.getOpenAmount());
+        referenceCodeBean.setSelectedDebitEntries(new ArrayList<DebitEntry>());
+        referenceCodeBean.getSelectedDebitEntries().add(debitEntry);
+
+        final PaymentReferenceCode paymentReferenceCode = paymentCodePool.getReferenceCodeGenerator()
+                .createPaymentReferenceCode(debitEntry.getDebtAccount(), referenceCodeBean);
 
         return paymentReferenceCode;
     }

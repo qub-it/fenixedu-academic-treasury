@@ -3,6 +3,7 @@ package org.fenixedu.academictreasury.services;
 import static org.fenixedu.academictreasury.util.AcademicTreasuryConstants.academicTreasuryBundle;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -35,6 +36,7 @@ import org.fenixedu.treasury.domain.document.DocumentNumberSeries;
 import org.fenixedu.treasury.domain.document.FinantialDocumentType;
 import org.fenixedu.treasury.domain.paymentcodes.PaymentReferenceCode;
 import org.fenixedu.treasury.domain.paymentcodes.pool.PaymentCodePool;
+import org.fenixedu.treasury.dto.document.managepayments.PaymentReferenceCodeBean;
 import org.fenixedu.treasury.util.TreasuryConstants;
 import org.joda.time.DateTime;
 import org.joda.time.LocalDate;
@@ -273,12 +275,21 @@ public class EmolumentServices {
                 throw new AcademicTreasuryDomainException(
                         "error.EmolumentServices.academicServiceRequest.paymentCodePool.is.required");
             }
+            
             final LocalDate dueDate = academicTresuryEvent.getDueDate();
             final LocalDate now = new LocalDate();
-            PaymentReferenceCode referenceCode = pool.getReferenceCodeGenerator().generateNewCodeFor(
-                    academicTresuryEvent.getRemainingAmountToPay(), now, dueDate.compareTo(now) > 0 ? dueDate : now, true);
+            
+            final PaymentReferenceCodeBean referenceCodeBean =
+                    new PaymentReferenceCodeBean(debitEntry.getDebtAccount());
+            referenceCodeBean.setBeginDate(now);
+            referenceCodeBean.setEndDate(dueDate.compareTo(now) > 0 ? dueDate : now);
+            referenceCodeBean.setPaymentAmount(academicTresuryEvent.getRemainingAmountToPay());
+            referenceCodeBean.setSelectedDebitEntries(new ArrayList<DebitEntry>());
+            referenceCodeBean.getSelectedDebitEntries().add(debitEntry);
 
-            referenceCode.createPaymentTargetTo(Sets.newHashSet(debitEntry), debitEntry.getOpenAmount());
+            final PaymentReferenceCode referenceCode = pool.getReferenceCodeGenerator()
+                    .createPaymentReferenceCode(debitEntry.getDebtAccount(), referenceCodeBean);
+            
         }
 
         return true;
