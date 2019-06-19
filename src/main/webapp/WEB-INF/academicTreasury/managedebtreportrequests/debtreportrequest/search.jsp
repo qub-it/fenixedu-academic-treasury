@@ -153,7 +153,7 @@ ${portal.angularToolkit()}
 				</p>
 				<c:forEach var="result" items="${row.debtReportRequestResultFiles}">
 					<p><a href="${pageContext.request.contextPath}<%= DebtReportRequestController.DOWNLOAD_URL %>/${result.externalId}">
-						<c:out value="${result.filename}" /> (<em><c:out value="${result.filesizeMb}" /> Mb</em>)
+						<c:out value="${result.getFilename()}" /> (<em><c:out value="${result.filesizeMb}" /> Mb</em>)
 					</a></p>
 				</c:forEach>
 				
@@ -161,7 +161,7 @@ ${portal.angularToolkit()}
 				
 				<c:forEach var="result" items="${row.debtReportRequestResultErrorsFiles}">
 					<p><a href="${pageContext.request.contextPath}<%= DebtReportRequestController.DOWNLOAD_ERRORS_URL %>/${result.externalId}">
-						<c:out value="${result.filename}" />
+						<c:out value="${result.getFilename()}" />
 					</a></p>
 				</c:forEach>
 				

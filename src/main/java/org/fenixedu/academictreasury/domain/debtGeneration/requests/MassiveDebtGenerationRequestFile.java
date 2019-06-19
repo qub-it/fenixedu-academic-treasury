@@ -1,5 +1,6 @@
 package org.fenixedu.academictreasury.domain.debtGeneration.requests;
 
+
 import java.util.Comparator;
 import java.util.stream.Stream;
 
@@ -7,14 +8,15 @@ import org.fenixedu.academic.domain.ExecutionYear;
 import org.fenixedu.academictreasury.domain.emoluments.AcademicTax;
 import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainException;
 import org.fenixedu.academictreasury.domain.tuition.TuitionPaymentPlanGroup;
-import org.fenixedu.bennu.core.domain.Bennu;
-import org.fenixedu.bennu.core.domain.User;
 import org.fenixedu.bennu.io.domain.IGenericFile;
 import org.fenixedu.treasury.services.accesscontrol.TreasuryAccessControlAPI;
+import org.fenixedu.treasury.services.integration.ITreasuryPlatformDependentServices;
 import org.fenixedu.treasury.services.integration.TreasuryPlataformDependentServicesFactory;
+import org.joda.time.DateTime;
 import org.joda.time.LocalDate;
 
 import pt.ist.fenixframework.Atomic;
+import pt.ist.fenixframework.FenixFramework;
 
 /**
  * This class applies not only for debt generation but also for other
@@ -23,27 +25,28 @@ import pt.ist.fenixframework.Atomic;
  * @author anilmamede
  *
  */
-public class MassiveDebtGenerationRequestFile extends MassiveDebtGenerationRequestFile_Base {
+public class MassiveDebtGenerationRequestFile extends MassiveDebtGenerationRequestFile_Base
+        implements IGenericFile {
 
-    public static final Comparator<MassiveDebtGenerationRequestFile> COMPARE_BY_CREATION_DATE =
-            new Comparator<MassiveDebtGenerationRequestFile>() {
+    public static final String CONTENT_TYPE = "application/octet-stream";
 
-                @Override
-                public int compare(final MassiveDebtGenerationRequestFile o1, final MassiveDebtGenerationRequestFile o2) {
-                    int c = TreasuryPlataformDependentServicesFactory.implementation().versioningCreationDate(o1).compareTo(TreasuryPlataformDependentServicesFactory.implementation().versioningCreationDate(o2));
+    public static final Comparator<MassiveDebtGenerationRequestFile> COMPARE_BY_CREATION_DATE = (o1, o2) -> {
 
-                    return c != 0 ? c : o1.getExternalId().compareTo(o2.getExternalId());
-                }
-            };
+        int c = o1.getCreationDate().compareTo(o2.getCreationDate());
+
+        return c != 0 ? c : o1.getExternalId().compareTo(o2.getExternalId());
+    };
 
     protected MassiveDebtGenerationRequestFile() {
         super();
-        setBennu(Bennu.getInstance());
+        setDomainRoot(FenixFramework.getDomainRoot());
+        setCreationDate(new DateTime());
     }
 
     protected MassiveDebtGenerationRequestFile(final MassiveDebtGenerationRequestFileBean bean, final String filename,
             final byte[] content) {
         this();
+
 
         final MassiveDebtGenerationType type = bean.getMassiveDebtGenerationType();
         final TuitionPaymentPlanGroup tuitionPaymentPlanGroup = bean.getTuitionPaymentPlanGroup();
@@ -52,7 +55,8 @@ public class MassiveDebtGenerationRequestFile extends MassiveDebtGenerationReque
         final LocalDate debtDate = bean.getDebtDate();
         final String reason = bean.getReason();
         
-        init(filename, filename, content);
+        final ITreasuryPlatformDependentServices services = TreasuryPlataformDependentServicesFactory.implementation();
+        services.createFile(this, filename, CONTENT_TYPE, content);
 
         setMassiveDebtGenerationType(type);
         setTuitionPaymentPlanGroup(tuitionPaymentPlanGroup);
@@ -64,11 +68,10 @@ public class MassiveDebtGenerationRequestFile extends MassiveDebtGenerationReque
 
         checkRules();
         
-        MassiveDebtGenerationRequestFileDomainObject.createFromMassiveDebtGenerationRequestFile(this);
     }
 
     private void checkRules() {
-        if (getBennu() == null) {
+        if (getDomainRoot() == null) {
             throw new AcademicTreasuryDomainException("error.MassiveDebtGenerationRequestFile.bennu.required");
         }
 
@@ -79,7 +82,7 @@ public class MassiveDebtGenerationRequestFile extends MassiveDebtGenerationReque
 
         getMassiveDebtGenerationType().implementation().checkRules(this);
     }
-    
+
     public String getDataDescription() {
         return getMassiveDebtGenerationType().implementation().dataDescription(this);
     }
@@ -90,12 +93,24 @@ public class MassiveDebtGenerationRequestFile extends MassiveDebtGenerationReque
     }
 
     @Override
-    public boolean isAccessible(final User user) {
-        return isAccessible(user.getUsername());
-    }
-    
     public boolean isAccessible(final String username) {
         return TreasuryAccessControlAPI.isBackOfficeMember(username);
+    }
+
+    @Override
+    public void delete() {
+        final ITreasuryPlatformDependentServices services = TreasuryPlataformDependentServicesFactory.implementation();
+
+        setDomainRoot(null);
+        setMassiveDebtGenerationType(null);
+        setTuitionPaymentPlanGroup(null);
+        setAcademicTax(null);
+        setExecutionYear(null);
+        setFinantialInstitution(null);
+
+        services.deleteFile(this);
+
+        super.deleteDomainObject();
     }
 
     // @formatter:off
@@ -106,9 +121,9 @@ public class MassiveDebtGenerationRequestFile extends MassiveDebtGenerationReque
     // @formatter:on
 
     public static Stream<MassiveDebtGenerationRequestFile> findAll() {
-        return Bennu.getInstance().getMassiveDebtGenerationRequestFilesSet().stream();
+        return FenixFramework.getDomainRoot().getMassiveDebtGenerationRequestFilesSet().stream();
     }
-    
+
     public static Stream<MassiveDebtGenerationRequestFile> findAllActive() {
         return findAll().filter(m -> m.getMassiveDebtGenerationType().isActive());
     }

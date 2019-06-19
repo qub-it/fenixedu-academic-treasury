@@ -13,7 +13,6 @@ import org.fenixedu.academic.domain.student.Registration;
 import org.fenixedu.academictreasury.domain.debtGeneration.requests.IMassiveDebtGenerationStrategy;
 import org.fenixedu.academictreasury.domain.debtGeneration.requests.MassiveDebtGenerationRequestFile;
 import org.fenixedu.academictreasury.domain.debtGeneration.requests.MassiveDebtGenerationRequestFileBean;
-import org.fenixedu.academictreasury.domain.debtGeneration.requests.MassiveDebtGenerationRequestFileDomainObject;
 import org.fenixedu.academictreasury.domain.debtGeneration.requests.MassiveDebtGenerationRowResult;
 import org.fenixedu.academictreasury.domain.emoluments.AcademicTax;
 import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainException;
@@ -104,8 +103,6 @@ public class TuitionAcademicTaxGenerationStrategy implements IMassiveDebtGenerat
         }
 
         file.setWhenProcessed(new DateTime());
-        
-        MassiveDebtGenerationRequestFileDomainObject.findUniqueByMassiveDebtGenerationRequestFile(file).get().setWhenProcessed(new DateTime());
     }
 
     @Override

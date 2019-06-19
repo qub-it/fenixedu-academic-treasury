@@ -871,59 +871,59 @@ class reports.DebtReportRequest {
 		}
 	}
 
-class reports.DebtReportRequestResultFileDomainObject /* implements IGenericFile */ {
+class reports.DebtReportRequestResultFile /* implements IGenericFile */ {
 	String fileId;
 	DateTime creationDate;
 	String creator;
 }
 
-	relation DebtReportRequestResultFileDomainObjectBennu {
+	relation DebtReportRequestResultFileBennu {
 	
 		.pt.ist.fenixframework.DomainRoot playsRole domainRoot {
 			multiplicity 1..1;
 		}
 	
-		reports.DebtReportRequestResultFileDomainObject playsRole debtReportRequestResultFileDomainObjects {
+		reports.DebtReportRequestResultFile playsRole debtReportRequestResultFiles {
 			multiplicity *;
 		}
 	}
 	
-	relation DebtReportRequestResultFileDomainObjectDebtReportRequest {
+	relation DebtReportRequestResultFileDebtReportRequest {
 
 		reports.DebtReportRequest playsRole debtReportRequest {
 			multiplicity 1..1;
 		}
 	
-		reports.DebtReportRequestResultFileDomainObject playsRole debtReportRequestResultFileDomainObjects {
+		reports.DebtReportRequestResultFile playsRole debtReportRequestResultFiles {
 			multiplicity *;
 		}
 	}
 	
 
-class reports.DebtReportRequestResultErrorsFileDomainObject /* implements IGenericFile */ {
+class reports.DebtReportRequestResultErrorsFile /* implements IGenericFile */ {
 	String fileId;
 	DateTime creationDate;
 	String creator;
 }
  
-	relation DebtReportRequestResultErrorsFileDomainObjectDomainRoot {
+	relation DebtReportRequestResultErrorsFileDomainRoot {
 	
 		.pt.ist.fenixframework.DomainRoot playsRole domainRoot {
 			multiplicity 1..1;
 		}
 	
-		reports.DebtReportRequestResultErrorsFileDomainObject playsRole debtReportRequestResultErrorsFileDomainObjects {
+		reports.DebtReportRequestResultErrorsFile playsRole debtReportRequestResultErrorsFiles {
 			multiplicity *;
 		}
 	}
 	
-	relation DebtReportRequestResultErrorsFileDomainObjectDebtReportRequest {
+	relation DebtReportRequestResultErrorsFileDebtReportRequest {
 
 		reports.DebtReportRequest playsRole debtReportRequest {
 			multiplicity 1..1;
 		}
 		
-		reports.DebtReportRequestResultErrorsFileDomainObject playsRole debtReportRequestResultErrorsFileDomainObjects {
+		reports.DebtReportRequestResultErrorsFile playsRole debtReportRequestResultErrorsFiles {
 			multiplicity *;
 		}
 	}
@@ -950,7 +950,7 @@ class debtGeneration.requests.MassiveDebtGenerationType {
 		}
 	}
 
-class debtGeneration.requests.MassiveDebtGenerationRequestFileDomainObject /* implements IGenericFile */ {
+class debtGeneration.requests.MassiveDebtGenerationRequestFile /* implements IGenericFile */ {
 	String fileId;
 	LocalDate debtDate;
 	DateTime whenProcessed;
@@ -959,63 +959,63 @@ class debtGeneration.requests.MassiveDebtGenerationRequestFileDomainObject /* im
 	String creator;
 }
 
-	relation MassiveDebtGenerationRequestDomainObjectDomainRoot {
+	relation MassiveDebtGenerationRequestDomainRoot {
 		.pt.ist.fenixframework.DomainRoot playsRole domainRoot {
 			multiplicity 1..1;
 		}
 		
-		debtGeneration.requests.MassiveDebtGenerationRequestFileDomainObject playsRole massiveDebtGenerationRequestFileDomainObjects {
+		debtGeneration.requests.MassiveDebtGenerationRequestFile playsRole massiveDebtGenerationRequestFiles {
 			multiplicity *;
 		}
 	}
 
-	relation MassiveDebtGenerationRequestDomainObjectMassiveDebtGenerationType {
+	relation MassiveDebtGenerationRequestMassiveDebtGenerationType {
 
 		debtGeneration.requests.MassiveDebtGenerationType playsRole massiveDebtGenerationType {
 			multiplicity 1..1;
 		}
 
-		debtGeneration.requests.MassiveDebtGenerationRequestFileDomainObject playsRole massiveDebtGenerationRequestFileDomainObjects {
+		debtGeneration.requests.MassiveDebtGenerationRequestFile playsRole massiveDebtGenerationRequestFiles {
 			multiplicity *;
 		}
 	}
 
-	relation MassiveDebtGenerationRequestDomainObjectExecutionYear {
+	relation MassiveDebtGenerationRequestExecutionYear {
 		.org.fenixedu.academic.domain.ExecutionYear playsRole executionYear {
 			multiplicity 0..1;
 		}
 
-		debtGeneration.requests.MassiveDebtGenerationRequestFileDomainObject playsRole massiveDebtGenerationRequestFileDomainObjects {
+		debtGeneration.requests.MassiveDebtGenerationRequestFile playsRole massiveDebtGenerationRequestFiles {
 			multiplicity *;
 		}
 	}
 
-	relation MassiveDebtGenerationRequestDomainObjectTuitionPaymentPlanGroup {
+	relation MassiveDebtGenerationRequestTuitionPaymentPlanGroup {
 		tuition.TuitionPaymentPlanGroup playsRole tuitionPaymentPlanGroup {
 			multiplicity 0..1;
 		}
 
-		debtGeneration.requests.MassiveDebtGenerationRequestFileDomainObject playsRole massiveDebtGenerationRequestFileDomainObjects {
+		debtGeneration.requests.MassiveDebtGenerationRequestFile playsRole massiveDebtGenerationRequestFiles {
 			multiplicity *;
 		}
 	}
 
-	relation MassiveDebtGenerationRequestDomainObjectAcademicTax {	
+	relation MassiveDebtGenerationRequestAcademicTax {	
 		emoluments.AcademicTax playsRole academicTax {
 			multiplicity 0..1;
 		}
 		
-		debtGeneration.requests.MassiveDebtGenerationRequestFileDomainObject playsRole massiveDebtGenerationRequestFileDomainObjects {
+		debtGeneration.requests.MassiveDebtGenerationRequestFile playsRole massiveDebtGenerationRequestFiles {
 			multiplicity *;
 		}
 	 }
 	 
-	relation MassiveDebtGenerationRequestFileDomainObjectFinantialInstitution {	
+	relation MassiveDebtGenerationRequestFileFinantialInstitution {	
 		.org.fenixedu.treasury.domain.FinantialInstitution playsRole finantialInstitution {
 			multiplicity 0..1;
 		}
 		
-		debtGeneration.requests.MassiveDebtGenerationRequestFileDomainObject playsRole massiveDebtGenerationRequestFileDomainObjects {
+		debtGeneration.requests.MassiveDebtGenerationRequestFile playsRole massiveDebtGenerationRequestFiles {
 			multiplicity *;
 		}
 	 }
@@ -1025,7 +1025,7 @@ class debtGeneration.requests.MassiveDebtGenerationRequestFileDomainObject /* im
  * *****************************
  */
 
-class exemptions.requests.ExemptionsGenerationRequestFileDomainObject /* implements IGenericFile */ {
+class exemptions.requests.ExemptionsGenerationRequestFile /* implements IGenericFile */ {
 	String fileId;
 	LocalDate debtDate;
 	DateTime whenProcessed;
@@ -1033,22 +1033,22 @@ class exemptions.requests.ExemptionsGenerationRequestFileDomainObject /* impleme
 	String creator;
 }
 
-	relation ExemptionsGenerationRequestFileDomainObjectDomainRoot {
+	relation ExemptionsGenerationRequestFileDomainRoot {
 		.pt.ist.fenixframework.DomainRoot playsRole domainRoot {
 			multiplicity 1..1;
 		}
 		
-		exemptions.requests.ExemptionsGenerationRequestFileDomainObject playsRole exemptionsGenerationRequestFileDomainObject {
+		exemptions.requests.ExemptionsGenerationRequestFile playsRole exemptionsGenerationRequestFile {
 			multiplicity *;
 		}
 	}
 	
-	relation ExemptionsGenerationRequestFileDomainObjectTreasuryExemptionType {
+	relation ExemptionsGenerationRequestFileTreasuryExemptionType {
 		.org.fenixedu.treasury.domain.exemption.TreasuryExemptionType playsRole treasuryExemptionType {
 			multiplicity 1..1;
 		}
 
-		exemptions.requests.ExemptionsGenerationRequestFileDomainObject playsRole exemptionsGenerationRequestFileDomainObject {
+		exemptions.requests.ExemptionsGenerationRequestFile playsRole exemptionsGenerationRequestFile {
 			multiplicity *;
 		}
 	}
@@ -1074,29 +1074,29 @@ class importation.TreasuryImportType {
 		}
 	}
 
-class importation.TreasuryImportFileDomainObject /* implements IGenericFile */ {
+class importation.TreasuryImportFile /* implements IGenericFile */ {
 	String fileId;
 	DateTime whenProcessed;
 	DateTime creationDate;
 	String creator;
 }
 
-	relation TreasuryImportFileDomainObjectDomainRoot {
+	relation TreasuryImportFileDomainRoot {
 		.pt.ist.fenixframework.DomainRoot playsRole domainRoot {
 			multiplicity 1..1;
 		}
 		
-		importation.TreasuryImportFileDomainObject playsRole treasuryImportFileDomainObjects {
+		importation.TreasuryImportFile playsRole treasuryImportFiles {
 			multiplicity *;
 		}
 	}
 	
-	relation TreasuryImportFileDomainObjectTreasuryImportType {
+	relation TreasuryImportFileTreasuryImportType {
 		importation.TreasuryImportType playsRole treasuryImportType {
 			multiplicity 1..1;
 		}
 		
-		importation.TreasuryImportFileDomainObject playsRole treasuryImportFileDomainObjects {
+		importation.TreasuryImportFile playsRole treasuryImportFiles {
 			multiplicity *;
 		}
 	}
@@ -1361,18 +1361,18 @@ class integration.ERPTuitionInfoExportOperation extends .org.fenixedu.treasury.d
 		}
 	}
 
-class integration.ERPTuitionInfoCreationReportFileDomainObject /* implements IGenericFile */ {
+class integration.ERPTuitionInfoCreationReportFile /* implements IGenericFile */ {
 	String fileId;
 	DateTime creationDate;
 	String creator;
 }
 
-	relation ERPTuitionInfoCreationReportFileDomainObjectDomainRoot {
+	relation ERPTuitionInfoCreationReportFileDomainRoot {
 		.pt.ist.fenixframework.DomainRoot playsRole domainRoot {
 			multiplicity 1..1;
 		}
 		
-		integration.ERPTuitionInfoCreationReportFileDomainObject playsRole erpTuitionInfoCreationReportFileDomainObjects {
+		integration.ERPTuitionInfoCreationReportFile playsRole erpTuitionInfoCreationReportFiles {
 			multiplicity *;
 		}
 		

@@ -1,33 +1,45 @@
 package org.fenixedu.academictreasury.domain.reports;
 
+
+
 import static org.fenixedu.academictreasury.util.AcademicTreasuryConstants.academicTreasuryBundle;
 
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainException;
-import org.fenixedu.academictreasury.util.AcademicTreasuryConstants;
-import org.fenixedu.bennu.core.domain.Bennu;
-import org.fenixedu.bennu.core.domain.User;
+import org.fenixedu.bennu.io.domain.IGenericFile;
 import org.fenixedu.treasury.services.accesscontrol.TreasuryAccessControlAPI;
+import org.fenixedu.treasury.services.integration.ITreasuryPlatformDependentServices;
+import org.fenixedu.treasury.services.integration.TreasuryPlataformDependentServicesFactory;
 import org.joda.time.DateTime;
 
 import pt.ist.fenixframework.FenixFramework;
 
-public class DebtReportRequestResultErrorsFile extends DebtReportRequestResultErrorsFile_Base {
+public class DebtReportRequestResultErrorsFile extends DebtReportRequestResultErrorsFile_Base implements IGenericFile {
 
-    protected DebtReportRequestResultErrorsFile(final DebtReportRequest request, final byte[] content) {
+    public static final String CONTENT_TYPE = "text/plain";
+
+    public DebtReportRequestResultErrorsFile() {
         super();
 
-        setBennu(Bennu.getInstance());
+        setDomainRoot(FenixFramework.getDomainRoot());
+        setCreationDate(new DateTime());
+    }
+    
+    protected DebtReportRequestResultErrorsFile(final DebtReportRequest request, final byte[] content) {
+        this();
+
         setDebtReportRequest(request);
 
         final String filename =
                 academicTreasuryBundle("label.DebtReportRequestResultErrorsFile.filename", new DateTime().toString("YYYYMMddHHmmss"));
 
-        init(filename, filename, content);
-        checkRules();
+        final ITreasuryPlatformDependentServices services = TreasuryPlataformDependentServicesFactory.implementation();
         
-        DebtReportRequestResultErrorsFileDomainObject.createFromDebtReportRequestResultErrorsFile(this);
+        services.createFile(this, filename, CONTENT_TYPE, content);
+        
+        checkRules();
     }
 
     private void checkRules() {
@@ -35,14 +47,22 @@ public class DebtReportRequestResultErrorsFile extends DebtReportRequestResultEr
             throw new AcademicTreasuryDomainException("error.DebtReportRequestResultErrorsFile.debtReportRequest.required");
         }
     }
-
-    @Override
-    public boolean isAccessible(final User user) {
-        return isAccessible(user.getUsername());
-    }
     
+    @Override
     public boolean isAccessible(final String username) {
         return TreasuryAccessControlAPI.isBackOfficeMember(username);
+    }
+    
+    @Override
+    public void delete() {
+        final ITreasuryPlatformDependentServices services = TreasuryPlataformDependentServicesFactory.implementation();
+        
+        setDomainRoot(null);
+        setDebtReportRequest(null);
+        
+        services.deleteFile(this);
+        
+        super.deleteDomainObject();
     }
 
     // @formatter:off
@@ -57,7 +77,7 @@ public class DebtReportRequestResultErrorsFile extends DebtReportRequestResultEr
     }
     
     public static Stream<DebtReportRequestResultErrorsFile> findAll() {
-        return Bennu.getInstance().getDebtReportRequestResultErrorsFilesSet().stream();
+        return FenixFramework.getDomainRoot().getDebtReportRequestResultErrorsFilesSet().stream();
     }
-    
+
 }
