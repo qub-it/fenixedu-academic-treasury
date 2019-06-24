@@ -91,7 +91,7 @@ ${portal.toolkit()}
 				<datatables:columnHead>
 					<spring:message code="label.ExemptionsGenerationRequestFile.versioningCreationDate" />
 				</datatables:columnHead>
-				<c:out value='${requestFile.versioningCreationDate.toString("yyyy-MM-dd HH:mm:ss")}' />
+				<c:out value='${requestFile.creationDate.toString("yyyy-MM-dd HH:mm:ss")}' />
 			</datatables:column>
 
 			<datatables:column cssStyle="width:20%">

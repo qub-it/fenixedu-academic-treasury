@@ -94,7 +94,7 @@ ${portal.toolkit()}
 						<td><c:out value='${row.creationDate.toString("YYYY-MM-dd HH:mm:ss")}' /></td>
 						<td>
 							<a href="${pageContext.request.contextPath}<%= ERPTuitionInfoController.DOWNLOAD_ERP_TUITION_INFO_CREATION_REPORT_FILE_URL %>/${row.externalId}">
-								<c:out value='${row.filename}' />
+								<c:out value='${row.getFilename()}' />
 							</a>
 						</td>
 					</tr>

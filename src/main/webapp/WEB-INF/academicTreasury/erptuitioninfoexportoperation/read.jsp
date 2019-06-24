@@ -120,7 +120,7 @@ ${portal.toolkit()}
                     <tr>
                         <th scope="row" class="col-xs-3">
                         	<spring:message code="label.ERPTuitionInfoExportOperation.size" /></th>
-                        <td><pre><c:out value='${operation.file.size} Bytes' /></pre></td>
+                        <td><pre><c:out value='${operation.file.getSize()} Bytes' /></pre></td>
                     </tr>
 
                     <tr>
