@@ -256,7 +256,7 @@ public class SettlementReportEntryBean implements SpreadsheetRow {
                         this.degreeType =
                                 treasuryEventTarget.getAcademicTreasuryTargetRegistration().getDegree().getDegreeType().getName().getContent();
                         this.degreeCode = treasuryEventTarget.getAcademicTreasuryTargetRegistration().getDegree().getCode();
-                        this.degreeName = treasuryEventTarget.getAcademicTreasuryTargetRegistration().getDegree().getPresentationNameI18N();
+                        this.degreeName = treasuryEventTarget.getAcademicTreasuryTargetRegistration().getDegree().getPresentationName();
                     }
                     
                     if(treasuryEventTarget.getAcademicTreasuryTargetExecutionYear() != null) {

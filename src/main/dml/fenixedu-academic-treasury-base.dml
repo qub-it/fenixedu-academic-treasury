@@ -816,6 +816,7 @@ relation PendingRegistrationsForAcademicAcademicDebtGenerationRule {
 class settings.AcademicTreasurySettings {
 	boolean closeServiceRequestEmolumentsWithDebitNote;
 	boolean runAcademicDebtGenerationRuleOnNormalEnrolment;
+	String academicTreasuryAccountUrlImpl;
 }
 
 	relation AcademicTreasurySettingsBennu {

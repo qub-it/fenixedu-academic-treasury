@@ -35,6 +35,7 @@ import org.fenixedu.academictreasury.domain.debtGeneration.AcademicDebtGeneratio
 import org.fenixedu.academictreasury.domain.event.AcademicTreasuryEvent;
 import org.fenixedu.academictreasury.domain.event.TreasuryEventDefaultMethods;
 import org.fenixedu.academictreasury.domain.exceptions.AcademicTreasuryDomainException;
+import org.fenixedu.academictreasury.domain.settings.AcademicTreasurySettings;
 import org.fenixedu.academictreasury.domain.tariff.AcademicTariff;
 import org.fenixedu.academictreasury.services.AcademicTaxServices;
 import org.fenixedu.academictreasury.services.AcademicTreasuryPlataformDependentServicesFactory;
@@ -514,11 +515,7 @@ public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
 
     @Override
     public String getPersonAccountTreasuryManagementURL(final Person person) {
-        final String countryCode = PersonCustomer.countryCode(person);
-        final String fiscalNumber = PersonCustomer.fiscalNumber(person);
-        // return CustomerController.READ_URL 
-        return TreasuryEventDefaultMethods.CUSTOMER_CONTROLLER_READ_URL
-                + PersonCustomer.findUnique(person, countryCode, fiscalNumber).get().getExternalId();
+        return AcademicTreasurySettings.getInstance().getAcademicTreasuryAccountUrl().getPersonAccountTreasuryManagementURL(person);
     }
 
     @Override
@@ -530,26 +527,7 @@ public class AcademicTreasuryBridgeImpl implements ITreasuryBridgeAPI {
 
     @Override
     public String getRegistrationAccountTreasuryManagementURL(Registration registration) {
-        if (registration.getDegree().getAdministrativeOffice().getFinantialEntity() == null) {
-            return getPersonAccountTreasuryManagementURL(registration.getPerson());
-        }
-
-        final FinantialInstitution inst =
-                registration.getDegree().getAdministrativeOffice().getFinantialEntity().getFinantialInstitution();
-        final Person person = registration.getPerson();
-        final String countryCode = PersonCustomer.countryCode(person);
-        final String fiscalNumber = PersonCustomer.fiscalNumber(person);
-
-        final PersonCustomer customer = PersonCustomer.findUnique(person, countryCode, fiscalNumber).get();
-
-        final DebtAccount account = customer.getDebtAccountFor(inst);
-        if (account != null) {
-            // return DebtAccountController.READ_URL
-            return TreasuryEventDefaultMethods.DEBT_ACCOUNT_CONTROLLER_READ_URL
-                    + customer.getDebtAccountFor(inst).getExternalId();
-        } else {
-            return getPersonAccountTreasuryManagementURL(person);
-        }
+        return AcademicTreasurySettings.getInstance().getAcademicTreasuryAccountUrl().getRegistrationAccountTreasuryManagementURL(registration);
     }
 
     @Override

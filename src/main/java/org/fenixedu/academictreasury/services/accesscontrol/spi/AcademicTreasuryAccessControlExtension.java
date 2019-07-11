@@ -34,6 +34,19 @@ public class AcademicTreasuryAccessControlExtension implements ITreasuryAccessCo
     }
 
     @Override
+    public boolean isFrontOfficeMemberWithinContext(final String username, final Object context) {
+        final IAcademicTreasuryPlatformDependentServices services = AcademicTreasuryPlataformDependentServicesFactory.implementation();
+        if (context instanceof Degree) {
+            final Degree degree = (Degree) context;
+            final FinantialEntity finantialEntity = services.finantialEntityOfDegree(degree, new LocalDate());
+            
+            return isFrontOfficeMember(username, finantialEntity);
+        }
+
+        return false;
+    }
+    
+    @Override
     public boolean isBackOfficeMember(final String username) {
         return FinantialInstitution.findAll().map(l -> isBackOfficeMember(username, l)).reduce((a, b) -> a || b).orElse(false);
     }
