@@ -145,7 +145,8 @@ public class EmolumentServices {
         final AcademicTariff academicTariff = findTariffForAcademicServiceRequest(iTreasuryServiceRequest, debtDate);
 
         if (academicTariff == null) {
-            throw new AcademicTreasuryDomainException("error.EmolumentServices.tariff.not.found", debtDate.toString(TreasuryConstants.DATE_FORMAT));
+            throw new AcademicTreasuryDomainException("error.EmolumentServices.tariff.not.found",
+                    debtDate.toString(TreasuryConstants.DATE_FORMAT));
         }
 
         final FinantialEntity finantialEntity = academicTariff.getFinantialEntity();
@@ -215,7 +216,8 @@ public class EmolumentServices {
         final AcademicTariff academicTariff = findTariffForAcademicServiceRequest(iTreasuryServiceRequest, when);
 
         if (academicTariff == null) {
-            throw new AcademicTreasuryDomainException("error.EmolumentServices.tariff.not.found", when.toString(TreasuryConstants.DATE_FORMAT));
+            throw new AcademicTreasuryDomainException("error.EmolumentServices.tariff.not.found",
+                    when.toString(TreasuryConstants.DATE_FORMAT));
         }
 
         final FinantialEntity finantialEntity = academicTariff.getFinantialEntity();
@@ -275,21 +277,18 @@ public class EmolumentServices {
                 throw new AcademicTreasuryDomainException(
                         "error.EmolumentServices.academicServiceRequest.paymentCodePool.is.required");
             }
-            
+
             final LocalDate dueDate = academicTresuryEvent.getDueDate();
             final LocalDate now = new LocalDate();
-            
-            final PaymentReferenceCodeBean referenceCodeBean =
-                    new PaymentReferenceCodeBean(debitEntry.getDebtAccount());
+
+            final PaymentReferenceCodeBean referenceCodeBean = new PaymentReferenceCodeBean(pool, debitEntry.getDebtAccount());
             referenceCodeBean.setBeginDate(now);
             referenceCodeBean.setEndDate(dueDate.compareTo(now) > 0 ? dueDate : now);
-            referenceCodeBean.setPaymentAmount(academicTresuryEvent.getRemainingAmountToPay());
             referenceCodeBean.setSelectedDebitEntries(new ArrayList<DebitEntry>());
             referenceCodeBean.getSelectedDebitEntries().add(debitEntry);
 
-            final PaymentReferenceCode referenceCode = pool.getReferenceCodeGenerator()
-                    .createPaymentReferenceCode(debitEntry.getDebtAccount(), referenceCodeBean);
-            
+            final PaymentReferenceCode referenceCode =
+                    PaymentReferenceCode.createPaymentReferenceCodeForMultipleDebitEntries(debitEntry.getDebtAccount(), referenceCodeBean);
         }
 
         return true;
@@ -334,12 +333,14 @@ public class EmolumentServices {
 
         final DebitNote debitNote = (DebitNote) debitEntry.getFinantialDocument();
         if (!debitEntry.isProcessedInDebitNote()) {
-            debitEntry.annulDebitEntry(academicTreasuryBundle("label.EmolumentServices.removeDebitEntryForAcademicService.reason"));
+            debitEntry
+                    .annulDebitEntry(academicTreasuryBundle("label.EmolumentServices.removeDebitEntryForAcademicService.reason"));
             debitEntry.delete();
 
             return true;
         } else if (debitEntry.getCreditEntriesSet().isEmpty()) {
-            debitNote.anullDebitNoteWithCreditNote(academicTreasuryBundle("label.EmolumentServices.removeDebitEntryForAcademicService.reason"), false);
+            debitNote.anullDebitNoteWithCreditNote(
+                    academicTreasuryBundle("label.EmolumentServices.removeDebitEntryForAcademicService.reason"), false);
 
             return true;
         }
