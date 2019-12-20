@@ -767,6 +767,14 @@ public class DebtReportEntryBean implements SpreadsheetRow {
         return "";
     }
     
+    public DebitEntry getDebitEntry() {
+        return (DebitEntry) this.invoiceEntry;
+    }
+    
+    public CreditEntry getCreditEntry() {
+        return (CreditEntry) this.invoiceEntry;
+    }
+    
     // @formatter:off
     /* *****************
      * GETTERS & SETTERS

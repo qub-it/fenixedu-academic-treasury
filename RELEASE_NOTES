@@ -1,5 +1,7 @@
 - Refactor: removed ExecutionSemester reference in dml
 - Refactor: updated academic-core module dependency
+- Refactor: Reuse treasury API for debt creation service with domain entities declaration
+- Refactor: Make available DebitEntry or CreditEntry from DebtReportEntryBean, to use in reports
 
 4.4.0 (04-12-2019)
 - New Fixture: MBWay payments interface
